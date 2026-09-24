@@ -1,18 +1,22 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
+import { API_BASE_URL } from './apiEnvironment.js';
 
 export async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers
-    },
-    ...options
+    }
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
+    const messages = {
+      429: 'Place search is busy. Please try again shortly.',
+      503: 'Place search is not configured. You can still use the map or GPS.',
+      504: 'Place search timed out. Edit the search to try again.'
+    };
+    throw new Error(messages[response.status] || 'Place search is unavailable right now.');
   }
 
   return response.json();
 }
-

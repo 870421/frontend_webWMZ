@@ -21,7 +21,7 @@ export function LocationMarker({ point, title }) {
   const type = title.toLowerCase();
 
   return (
-    <Marker icon={createMarkerIcon(type)} position={[point.lat, point.lng]}>
+    <Marker icon={createMarkerIcon(type)} position={[point.lat, point.lng]} title={title} alt={title}>
       <Popup>
         <strong>{title}</strong>
         <br />

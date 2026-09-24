@@ -1,18 +1,65 @@
-import { render, screen } from '@testing-library/react';
-
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { App } from './App.jsx';
 
 jest.mock('../features/map/MapView.jsx', () => ({
-  MapView: () => <div data-testid="map-view" />
+  MapView: ({ origin, destination, onSelectPoint }) => <div data-testid="map-view">
+    <button onClick={() => onSelectPoint({ lat: 41.65, lng: -0.89, source: 'map' })}>Select map point</button>
+    <span data-testid="origin-marker">{origin ? origin.lat : 'none'}</span>
+    <span data-testid="destination-marker">{destination ? destination.lat : 'none'}</span>
+  </div>
 }));
 
 describe('App', () => {
+  const originalLocation = navigator.geolocation;
+  afterEach(() => {
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: originalLocation });
+  });
+
   it('renders the base application shell', () => {
     render(<App />);
-
     expect(screen.getByRole('heading', { name: 'WeatherMapZ' })).toBeInTheDocument();
     expect(screen.getByLabelText('Route controls')).toBeInTheDocument();
     expect(screen.getByTestId('map-view')).toBeInTheDocument();
   });
-});
 
+  it('keeps map selection, editable inputs and markers synchronized', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByText('Select map point'));
+    expect(screen.getByLabelText('Origin')).toHaveValue('41.65000, -0.89000');
+    await user.click(screen.getByText('Select map point'));
+    expect(screen.getByTestId('destination-marker')).toHaveTextContent('41.65');
+    await user.clear(screen.getByLabelText('Origin'));
+    expect(screen.getByTestId('origin-marker')).toHaveTextContent('none');
+    await user.type(screen.getByLabelText('Origin'), 'draft');
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(screen.getByLabelText('Origin')).toHaveValue('');
+    expect(screen.getByLabelText('Destination')).toHaveValue('');
+    expect(screen.getByTestId('destination-marker')).toHaveTextContent('none');
+  });
+
+  it('ignores GPS after reset or a newer map selection and clears old success messages', async () => {
+    const user = userEvent.setup();
+    let success;
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+      getCurrentPosition: jest.fn((callback) => { success = callback; })
+    } });
+    render(<App />);
+    const position = { coords: { latitude: 42, longitude: -1 } };
+    await user.click(screen.getByLabelText('Use GPS for origin'));
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+    act(() => success(position));
+    expect(screen.getByTestId('origin-marker')).toHaveTextContent('none');
+    await user.click(screen.getByLabelText('Use GPS for origin'));
+    await user.click(screen.getByText('Select map point'));
+    act(() => success(position));
+    expect(screen.getByTestId('origin-marker')).toHaveTextContent('41.65');
+    await user.click(screen.getByLabelText('Use GPS for destination'));
+    act(() => success(position));
+    expect(screen.getByTestId('destination-marker')).toHaveTextContent('42');
+    expect(screen.getByRole('status')).toHaveTextContent('Current location set as destination');
+    await user.clear(screen.getByLabelText('Destination'));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});

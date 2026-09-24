@@ -1,81 +1,38 @@
 import { useState } from 'react';
 
-const INITIAL_ACTIVE_POINT = 'origin';
-
-function formatCoordinate(value) {
-  return value.toFixed(5);
-}
-
 export function formatPointLabel(point) {
-  if (!point) {
-    return 'Not selected';
-  }
-
-  if (point.label) {
-    return point.label;
-  }
-
-  return `${formatCoordinate(point.lat)}, ${formatCoordinate(point.lng)}`;
+  if (!point) return 'Not selected';
+  return point.label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
 }
 
 export function useRoutePoints() {
-  const [origin, setOrigin] = useState(null);
-  const [destination, setDestination] = useState(null);
-  const [activePoint, setActivePoint] = useState(INITIAL_ACTIVE_POINT);
-  const [lastSelectedPoint, setLastSelectedPoint] = useState(null);
-
-  function selectPoint(point) {
-    setLastSelectedPoint(point);
-
-    if (activePoint === 'origin') {
-      setOrigin(point);
-      setActivePoint('destination');
-      return;
-    }
-
-    setDestination(point);
-  }
+  const [state, setState] = useState({
+    origin: null, destination: null, originInput: '', destinationInput: '',
+    activePoint: 'origin', lastSelectedPoint: null
+  });
 
   function setPoint(pointType, point) {
-    setLastSelectedPoint(point);
-
-    if (pointType === 'origin') {
-      setOrigin(point);
-      setActivePoint('destination');
-      return;
-    }
-
-    setDestination(point);
-    setActivePoint('destination');
+    setState((current) => ({
+      ...current, [pointType]: point, [`${pointType}Input`]: formatPointLabel(point),
+      lastSelectedPoint: point, activePoint: 'destination'
+    }));
   }
-
-  function clearPoint(pointType) {
-    if (pointType === 'origin') {
-      setOrigin(null);
-      setActivePoint('origin');
-      return;
-    }
-
-    setDestination(null);
-    setActivePoint('destination');
+  function editPoint(pointType, value) {
+    setState((current) => ({
+      ...current, [pointType]: null, [`${pointType}Input`]: value, activePoint: pointType,
+      lastSelectedPoint: current.lastSelectedPoint === current[pointType] ? null : current.lastSelectedPoint
+    }));
   }
-
   function resetPoints() {
-    setOrigin(null);
-    setDestination(null);
-    setLastSelectedPoint(null);
-    setActivePoint(INITIAL_ACTIVE_POINT);
+    setState({
+      origin: null, destination: null, originInput: '', destinationInput: '',
+      activePoint: 'origin', lastSelectedPoint: null
+    });
   }
-
   return {
-    activePoint,
-    clearPoint,
-    destination,
-    lastSelectedPoint,
-    origin,
-    resetPoints,
-    selectPoint,
-    setActivePoint,
-    setPoint
+    ...state, setPoint, editPoint, resetPoints,
+    selectPoint: (point) => setPoint(state.activePoint, point),
+    clearPoint: (pointType) => editPoint(pointType, ''),
+    setActivePoint: (activePoint) => setState((current) => ({ ...current, activePoint }))
   };
 }

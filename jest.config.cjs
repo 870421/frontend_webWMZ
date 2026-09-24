@@ -6,13 +6,14 @@ module.exports = {
     '^.+\\.[jt]sx?$': 'babel-jest'
   },
   moduleNameMapper: {
+    '^\\./apiEnvironment\\.js$': '<rootDir>/src/tests/apiEnvironmentMock.js',
     '\\.(css|less|scss|sass)$': '<rootDir>/src/tests/styleMock.js',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/src/tests/fileMock.js'
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx}',
     '!src/main.jsx',
-    '!src/services/api/**',
+    '!src/services/api/apiEnvironment.js',
     '!src/tests/**'
   ],
   coverageThreshold: {

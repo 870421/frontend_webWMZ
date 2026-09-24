@@ -11,6 +11,12 @@ export function App() {
   const geolocation = useDeviceLocation({
     onLocated: (pointType, point) => routePoints.setPoint(pointType, point)
   });
+  function withLocationCancelled(action) {
+    return (...args) => {
+      geolocation.clearGeolocationMessage();
+      action(...args);
+    };
+  }
 
   return (
     <AppShell
@@ -19,7 +25,7 @@ export function App() {
           activePoint={routePoints.activePoint}
           destination={routePoints.destination}
           focusPoint={routePoints.lastSelectedPoint}
-          onSelectPoint={routePoints.selectPoint}
+          onSelectPoint={withLocationCancelled(routePoints.selectPoint)}
           origin={routePoints.origin}
         />
       }
@@ -30,10 +36,14 @@ export function App() {
             destination={routePoints.destination}
             geolocation={geolocation.geolocation}
             onClearGeolocationMessage={geolocation.clearGeolocationMessage}
-            onClearPoint={routePoints.clearPoint}
+            originInput={routePoints.originInput}
+            destinationInput={routePoints.destinationInput}
+            onEditPoint={withLocationCancelled(routePoints.editPoint)}
+            onClearPoint={withLocationCancelled(routePoints.clearPoint)}
             onRequestCurrentLocation={geolocation.requestCurrentLocation}
-            onResetPoints={routePoints.resetPoints}
+            onResetPoints={withLocationCancelled(routePoints.resetPoints)}
             onSetActivePoint={routePoints.setActivePoint}
+            onSetPoint={withLocationCancelled(routePoints.setPoint)}
             origin={routePoints.origin}
           />
           <RouteComparisonPanel />

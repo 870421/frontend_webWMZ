@@ -1,86 +1,100 @@
-import { useEffect, useState } from 'react';
-
-import { formatPointLabel } from './useRoutePoints.js';
+import { useState } from 'react';
+import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
 
 const noop = () => {};
-const DEFAULT_GEOLOCATION = {
-  status: 'idle',
-  errorMessage: ''
-};
 
-function PointInput({
-  activePoint,
-  isLocating,
-  name,
-  onActivate,
-  onChange,
-  onClear,
-  onUseLocation,
-  point,
-  title,
-  value
-}) {
+function PointInput({ name, title, value, point, activePoint, isLocating,
+  onActivate, onEditPoint, onClearPoint, onSetPoint, onRequestCurrentLocation }) {
+  const [focused, setFocused] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+  const open = focused && !dismissed && activePoint === name && !point && value.trim().length >= 3;
+  const search = usePlaceAutocomplete(value, open, name);
+  const listId = `${name}-suggestions`;
+  const selectedIndex = highlight < search.results.length ? highlight : -1;
+
+  function choose(result) {
+    setDismissed(true);
+    setHighlight(-1);
+    onSetPoint(name, { lat: result.lat, lng: result.lng, label: result.label, source: 'search' });
+  }
+
+  function handleKey(event) {
+    if (event.key === 'Escape') {
+      setDismissed(true);
+      setHighlight(-1);
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      setDismissed(false);
+      if (search.results.length) {
+        setHighlight((index) => event.key === 'ArrowDown'
+          ? (index + 1) % search.results.length
+          : (index <= 0 ? search.results.length : index) - 1);
+      }
+    }
+    if (event.key === 'Enter' && open && selectedIndex >= 0) {
+      event.preventDefault();
+      choose(search.results[selectedIndex]);
+    }
+  }
+
   return (
     <div className="point-field">
-      <label>
-        {title}
-        <input
-          autoComplete="off"
-          inputMode="search"
-          name={name}
-          onChange={(event) => onChange(event.target.value)}
-          onFocus={(event) => {
-            onActivate(name);
-            event.target.select();
-          }}
-          placeholder={`Type ${title.toLowerCase()} or tap the map`}
-          type="search"
-          value={value}
-        />
-      </label>
-      <p className="point-coordinate">{formatPointLabel(point)}</p>
+      <label htmlFor={name}>{title}</label>
+      <input id={name} name={name} type="text" inputMode="search" autoComplete="off"
+        role="combobox" aria-autocomplete="list" aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={open && selectedIndex >= 0 ? `${listId}-${selectedIndex}` : undefined}
+        aria-describedby={`${name}-coordinates`} maxLength={200}
+        placeholder="Search a place or tap the map" value={value}
+        onFocus={() => { setFocused(true); setDismissed(false); onActivate(name); }}
+        onBlur={() => { setFocused(false); setHighlight(-1); }}
+        onChange={(event) => {
+          setDismissed(false); setHighlight(-1); onEditPoint(name, event.target.value);
+        }}
+        onKeyDown={handleKey}
+      />
+      {open && (
+        <div className="autocomplete-panel">
+          <ul id={listId} className="autocomplete-results" role="listbox" aria-label={`${title} places`} aria-busy={search.isLoading}>
+            {search.results.map((result, index) => (
+              <li key={result.id} id={`${listId}-${index}`} role="option"
+                aria-selected={selectedIndex === index}
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={() => choose(result)}>
+                {result.label}
+              </li>
+            ))}
+          </ul>
+          {search.isLoading && <p className="autocomplete-message" role="status">Searching places...</p>}
+          {search.errorMessage && <p className="autocomplete-message autocomplete-error" role="alert">{search.errorMessage}</p>}
+          {!search.isLoading && !search.errorMessage && search.results.length === 0 &&
+            <p className="autocomplete-message" role="status">No places found. Try another address or select on the map.</p>}
+        </div>
+      )}
+      <p id={`${name}-coordinates`} className="point-coordinate" aria-live="polite">
+        {point ? `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` : 'Not selected'}
+      </p>
       <div className="point-actions">
-        <button
-          type="button"
-          className="secondary-button"
-          disabled={isLocating}
-          onClick={() => onUseLocation(name)}
-        >
-          Use GPS
-        </button>
-        <button type="button" className="secondary-button" disabled={!point} onClick={onClear}>
-          Clear
-        </button>
+        <button type="button" className="secondary-button" aria-label={`Use GPS for ${name}`}
+          disabled={isLocating} onClick={() => { setDismissed(true); onRequestCurrentLocation(name); }}>Use GPS</button>
+        <button type="button" className="secondary-button" aria-label={`Clear ${name}`}
+          disabled={!point && !value} onClick={() => { setDismissed(true); onClearPoint(name); }}>Clear</button>
       </div>
-      {activePoint === name ? <span className="active-point-note">Map tap target</span> : null}
+      {activePoint === name && <span className="active-point-note">Map tap target</span>}
     </div>
   );
 }
 
 export function RouteSearchPanel({
-  activePoint = 'origin',
-  destination = null,
-  geolocation = DEFAULT_GEOLOCATION,
-  onClearGeolocationMessage = noop,
-  onClearPoint = noop,
-  onRequestCurrentLocation = noop,
-  onResetPoints = noop,
-  onSetActivePoint = noop,
-  origin = null
+  activePoint = 'origin', origin = null, destination = null, originInput = '', destinationInput = '',
+  geolocation = { status: 'idle', errorMessage: '' }, onSetActivePoint = noop,
+  onEditPoint = noop, onClearPoint = noop, onSetPoint = noop, onResetPoints = noop,
+  onRequestCurrentLocation = noop, onClearGeolocationMessage = noop
 }) {
-  const [originInput, setOriginInput] = useState(formatPointLabel(origin));
-  const [destinationInput, setDestinationInput] = useState(formatPointLabel(destination));
   const isLocating = geolocation.status === 'loading';
-  const hasSelectedPoint = Boolean(origin || destination);
-
-  useEffect(() => {
-    setOriginInput(origin ? formatPointLabel(origin) : '');
-  }, [origin]);
-
-  useEffect(() => {
-    setDestinationInput(destination ? formatPointLabel(destination) : '');
-  }, [destination]);
-
   return (
     <section className="panel-section" aria-labelledby="route-search-title">
       <h2 id="route-search-title">Route</h2>
@@ -88,87 +102,39 @@ export function RouteSearchPanel({
         <fieldset className="selection-mode">
           <legend>Map tap sets</legend>
           <div className="segmented-control">
-            <button
-              type="button"
-              className={activePoint === 'origin' ? 'is-active' : ''}
-              aria-pressed={activePoint === 'origin'}
-              onClick={() => onSetActivePoint('origin')}
-            >
-              Origin
-            </button>
-            <button
-              type="button"
-              className={activePoint === 'destination' ? 'is-active' : ''}
-              aria-pressed={activePoint === 'destination'}
-              onClick={() => onSetActivePoint('destination')}
-            >
-              Destination
-            </button>
+            {['origin', 'destination'].map((name) => (
+              <button key={name} type="button" className={activePoint === name ? 'is-active' : ''}
+                aria-pressed={activePoint === name} onClick={() => onSetActivePoint(name)}>
+                {name === 'origin' ? 'Origin' : 'Destination'}
+              </button>
+            ))}
           </div>
         </fieldset>
-
         <div className="point-list">
-          <PointInput
-            activePoint={activePoint}
-            isLocating={isLocating}
-            name="origin"
-            onActivate={onSetActivePoint}
-            onChange={setOriginInput}
-            onClear={() => {
-              setOriginInput('');
-              onClearPoint('origin');
-            }}
-            onUseLocation={onRequestCurrentLocation}
-            point={origin}
-            title="Origin"
-            value={originInput}
-          />
-          <PointInput
-            activePoint={activePoint}
-            isLocating={isLocating}
-            name="destination"
-            onActivate={onSetActivePoint}
-            onChange={setDestinationInput}
-            onClear={() => {
-              setDestinationInput('');
-              onClearPoint('destination');
-            }}
-            onUseLocation={onRequestCurrentLocation}
-            point={destination}
-            title="Destination"
-            value={destinationInput}
-          />
+          {['origin', 'destination'].map((name) => (
+            <PointInput key={name} name={name} title={name === 'origin' ? 'Origin' : 'Destination'}
+              value={name === 'origin' ? originInput : destinationInput}
+              point={name === 'origin' ? origin : destination}
+              activePoint={activePoint} isLocating={isLocating} onActivate={onSetActivePoint}
+              onEditPoint={onEditPoint} onClearPoint={onClearPoint} onSetPoint={onSetPoint}
+              onRequestCurrentLocation={onRequestCurrentLocation} />
+          ))}
         </div>
-
-        <div className="route-actions">
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={!hasSelectedPoint}
-            onClick={onResetPoints}
-          >
-            Reset
-          </button>
-        </div>
-
-        {geolocation.errorMessage ? (
-          <p className="form-message form-message-error" role="alert">
-            {geolocation.errorMessage}
-            <button type="button" onClick={onClearGeolocationMessage}>
-              Dismiss
-            </button>
-          </p>
-        ) : null}
-
-        {geolocation.status === 'success' ? (
-          <p className="form-message" role="status">
-            Current location set as {geolocation.pointType ?? 'origin'}.
-          </p>
-        ) : null}
-
-        <button type="button" className="route-submit" disabled>
-          Route calculation comes later
-        </button>
+        <button type="button" className="secondary-button"
+          disabled={!origin && !destination && !originInput && !destinationInput && geolocation.status === 'idle'}
+          onClick={onResetPoints}>Reset</button>
+        {geolocation.errorMessage && <div className="form-message form-message-error" role="alert">
+          {geolocation.errorMessage}
+          <button type="button" onClick={onClearGeolocationMessage}>Dismiss</button>
+        </div>}
+        {isLocating && <div className="form-message" role="status">
+          Getting current location...
+          <button type="button" onClick={onClearGeolocationMessage}>Cancel location</button>
+        </div>}
+        {geolocation.status === 'success' && <p className="form-message" role="status">
+          Current location set as {geolocation.pointType}.
+        </p>}
+        <button type="button" className="route-submit" disabled>Route calculation comes later</button>
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const GEOLOCATION_PERMISSION_DENIED = 1;
 const GEOLOCATION_POSITION_UNAVAILABLE = 2;
@@ -36,12 +36,15 @@ export function createDevicePoint(position) {
 }
 
 export function useDeviceLocation({ onLocated }) {
+  const requestId = useRef(0);
+  useEffect(() => () => { requestId.current += 1; }, []);
   const [geolocation, setGeolocation] = useState({
     status: 'idle',
     errorMessage: ''
   });
 
   function requestCurrentLocation(pointType = 'origin') {
+    const id = ++requestId.current;
     if (window.isSecureContext === false) {
       setGeolocation({
         status: 'error',
@@ -65,6 +68,7 @@ export function useDeviceLocation({ onLocated }) {
     });
 
     function handleSuccess(position) {
+      if (id !== requestId.current) return;
       const point = createDevicePoint(position);
 
       onLocated(pointType, point);
@@ -76,6 +80,7 @@ export function useDeviceLocation({ onLocated }) {
     }
 
     function handleFinalError(error) {
+      if (id !== requestId.current) return;
       setGeolocation({
         status: error?.code === GEOLOCATION_PERMISSION_DENIED ? 'denied' : 'error',
         errorMessage: getGeolocationErrorMessage(error)
@@ -93,6 +98,7 @@ export function useDeviceLocation({ onLocated }) {
     navigator.geolocation.getCurrentPosition(
       handleSuccess,
       (error) => {
+        if (id !== requestId.current) return;
         if (
           error?.code === GEOLOCATION_POSITION_UNAVAILABLE ||
           error?.code === GEOLOCATION_TIMEOUT
@@ -112,6 +118,7 @@ export function useDeviceLocation({ onLocated }) {
   }
 
   function clearGeolocationMessage() {
+    requestId.current += 1;
     setGeolocation({
       status: 'idle',
       errorMessage: '',

@@ -24,7 +24,13 @@ describe('useRoutePoints', () => {
 
     expect(result.current.origin).toBeNull();
     expect(result.current.destination).toMatchObject({ lat: 41.66, lng: -0.88 });
+    expect(result.current.lastSelectedPoint).toMatchObject({ lat: 41.66, lng: -0.88 });
     expect(result.current.activePoint).toBe('origin');
+
+    act(() => result.current.clearPoint('destination'));
+
+    expect(result.current.destination).toBeNull();
+    expect(result.current.lastSelectedPoint).toBeNull();
 
     act(() => result.current.resetPoints());
 

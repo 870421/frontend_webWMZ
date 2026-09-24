@@ -181,4 +181,33 @@ describe('useDeviceLocation', () => {
     expect(result.current.geolocation.status).toBe('denied');
     expect(result.current.geolocation.errorMessage).toBe('Location permission was denied.');
   });
+
+  it('reports timeout after the fallback also times out', () => {
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+      getCurrentPosition: jest.fn((_success, fail) => fail({ code: 3 }))
+    } });
+    const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
+    act(() => result.current.requestCurrentLocation());
+    expect(result.current.geolocation.errorMessage).toBe('Location request timed out.');
+    expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores callbacks after cancellation and unmount', () => {
+    let success;
+    let fail;
+    const onLocated = jest.fn();
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+      getCurrentPosition: jest.fn((onSuccess, onError) => { success = onSuccess; fail = onError; })
+    } });
+    const { result, unmount } = renderHook(() => useDeviceLocation({ onLocated }));
+    act(() => result.current.requestCurrentLocation());
+    act(() => result.current.clearGeolocationMessage());
+    act(() => { success({ coords: { latitude: 41, longitude: -1 } }); fail({ code: 2 }); });
+    expect(onLocated).not.toHaveBeenCalled();
+    expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+    act(() => result.current.requestCurrentLocation());
+    unmount();
+    act(() => success({ coords: { latitude: 41, longitude: -1 } }));
+    expect(onLocated).not.toHaveBeenCalled();
+  });
 });
