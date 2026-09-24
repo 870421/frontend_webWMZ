@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="WeatherMapZ icon">
+  <rect width="192" height="192" rx="36" fill="#175c4c"/>
+  <path d="M49 131c24-52 63-70 94-70" fill="none" stroke="#f2c94c" stroke-width="14" stroke-linecap="round"/>
+  <path d="M52 134c30-12 57-10 88 5" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="62" cy="126" r="10" fill="#f2c94c"/>
+  <circle cx="144" cy="64" r="12" fill="#ffffff"/>
+</svg>
+

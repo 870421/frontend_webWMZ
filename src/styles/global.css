@@ -1,0 +1,405 @@
+:root {
+  color: #18231f;
+  background: #f7faf8;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  min-height: 2.75rem;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: #f7faf8;
+}
+
+.map-region {
+  height: 52vh;
+  height: 52svh;
+  min-height: 18rem;
+  flex: none;
+}
+
+.map-wrapper,
+.map-view {
+  width: 100%;
+  height: 100%;
+}
+
+.map-wrapper {
+  position: relative;
+}
+
+.map-selection-hint {
+  position: absolute;
+  z-index: 500;
+  right: 0.75rem;
+  bottom: 1.75rem;
+  left: 0.75rem;
+  border: 1px solid #c7d6d0;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  color: #1f302b;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0.35rem 1rem rgba(24, 35, 31, 0.12);
+  font-size: 0.95rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.location-marker-icon {
+  display: grid;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px 999px 999px 0;
+  box-shadow: 0 0.25rem 0.75rem rgba(24, 35, 31, 0.3);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 900;
+  transform: rotate(-45deg);
+}
+
+.location-marker-icon span {
+  transform: rotate(45deg);
+}
+
+.location-marker-icon-origin {
+  background: #175c4c;
+}
+
+.location-marker-icon-destination {
+  background: #b7462f;
+}
+
+.control-panel {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #d7e2dd;
+  background: #ffffff;
+}
+
+.app-header {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.app-kicker {
+  margin: 0;
+  color: #4d625b;
+  font-size: 0.85rem;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+
+h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.panel-section {
+  border-top: 1px solid #e2ebe7;
+  padding-top: 1rem;
+}
+
+.route-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.selection-mode {
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.selection-mode legend {
+  margin-bottom: 0.5rem;
+  color: #2a3a35;
+  font-weight: 700;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  background: #e8f0ed;
+  padding: 0.25rem;
+}
+
+.segmented-control button,
+.secondary-button,
+.primary-button,
+.route-submit {
+  border-radius: 0.5rem;
+  font-weight: 700;
+}
+
+.segmented-control button {
+  border: 0;
+  color: #37524a;
+  background: transparent;
+}
+
+.segmented-control button.is-active {
+  color: #ffffff;
+  background: #175c4c;
+}
+
+.point-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.point-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid #e2ebe7;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fbfa;
+}
+
+.point-field label {
+  display: grid;
+  gap: 0.35rem;
+  color: #2a3a35;
+  font-weight: 800;
+}
+
+.point-field input {
+  min-width: 0;
+}
+
+.point-coordinate {
+  margin: -0.45rem 0 0;
+  color: #52655e;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.autocomplete-panel {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid #d7e2dd;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background: #ffffff;
+}
+
+.autocomplete-results {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.autocomplete-results [role="option"] {
+  width: 100%;
+  min-height: 2.75rem;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  border: 0;
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  color: #1f302b;
+  background: #f4f8f6;
+  text-align: left;
+}
+
+.autocomplete-results [aria-selected="true"],
+.autocomplete-results [role="option"]:hover {
+  outline: 2px solid #175c4c;
+  outline-offset: 1px;
+  background: #e8f3ee;
+}
+
+.autocomplete-message {
+  margin: 0;
+  color: #52655e;
+  font-size: 0.9rem;
+}
+
+.autocomplete-error {
+  color: #68331f;
+}
+
+.point-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.active-point-note {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  color: #175c4c;
+  background: #e0f2ec;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.route-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: #2a3a35;
+  font-weight: 600;
+}
+
+.route-form input {
+  min-height: 2.75rem;
+  width: 100%;
+  border: 1px solid #c7d6d0;
+  border-radius: 0.5rem;
+  padding: 0 0.75rem;
+  color: #576861;
+  background: #f5f8f7;
+}
+
+.route-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.primary-button,
+.route-submit {
+  border: 0;
+  color: #ffffff;
+  background: #175c4c;
+}
+
+.secondary-button {
+  border: 1px solid #c7d6d0;
+  color: #214239;
+  background: #ffffff;
+}
+
+.route-submit {
+  background: #54655f;
+}
+
+.route-form button:disabled,
+.secondary-button:disabled,
+.primary-button:disabled,
+.route-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.form-message {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  color: #214239;
+  background: #edf6f2;
+  line-height: 1.45;
+}
+
+.form-message-error {
+  color: #68331f;
+  background: #fff0e8;
+}
+
+.form-message button {
+  justify-self: start;
+  min-height: 2.75rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+  color: inherit;
+  background: transparent;
+  font-weight: 700;
+}
+
+.status-message {
+  margin-bottom: 0;
+  color: #52655e;
+  line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  }
+
+  .map-region {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .map-selection-hint {
+    right: auto;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    max-width: 22rem;
+  }
+
+  .control-panel {
+    align-content: start;
+    border-top: 0;
+    border-left: 1px solid #d7e2dd;
+    padding: 1.5rem;
+  }
+
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #175c4c;
+  outline-offset: 2px;
+}
+
+.leaflet-control-zoom a {
+  min-width: 44px;
+  min-height: 44px;
+  line-height: 44px;
+}
