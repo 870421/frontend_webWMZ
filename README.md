@@ -58,4 +58,6 @@ npm run preview
 - Check 375, 390, 768, 1366 and 1920 px widths, long labels and browser zoom.
 - GPS requires HTTPS or localhost. On a phone, plain HTTP over a LAN will show the
   secure-context error; use HTTPS to test permission and location behavior.
+- GPS markers have a fixed 50-metre reference circle, not an accuracy estimate.
+  Correcting a point on the map, Clear and Reset remove its circle.
 - Route calculation is intentionally outside PBI-1.

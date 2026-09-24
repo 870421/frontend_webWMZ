@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { MapView } from './MapView.jsx';
 
 jest.mock('react-leaflet', () => ({
+  Circle: ({ center, radius, interactive }) => <div data-testid="accuracy-circle"
+    data-center={center.join(',')} data-radius={radius} data-interactive={String(interactive)} />,
   MapContainer: ({ children, center, zoom }) => (
     <div data-center={center.join(',')} data-testid="map-container" data-zoom={zoom}>
       {children}
@@ -23,6 +25,15 @@ jest.mock('react-leaflet', () => ({
 }));
 
 describe('MapView', () => {
+  it('shows a fixed 50-metre reference circle and removes it when corrected on the map', () => {
+    const { rerender } = render(<MapView origin={{ lat: 41.65, lng: -0.89, source: 'device', accuracy: 500 }} />);
+    expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-radius', '50');
+    expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-center', '41.65,-0.89');
+    expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-interactive', 'false');
+    expect(screen.getByText(/50 m reference circle/)).toBeInTheDocument();
+    rerender(<MapView origin={{ lat: 41.65, lng: -0.89, source: 'map' }} />);
+    expect(screen.queryByTestId('accuracy-circle')).not.toBeInTheDocument();
+  });
   it('renders a Leaflet map centered on Zaragoza with OpenStreetMap tiles', () => {
     render(<MapView />);
 

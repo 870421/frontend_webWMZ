@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { Marker, Popup } from 'react-leaflet';
+import { Circle, Marker, Popup } from 'react-leaflet';
 
 import { formatPointLabel } from '../route-search/useRoutePoints.js';
 
@@ -21,12 +21,17 @@ export function LocationMarker({ point, title }) {
   const type = title.toLowerCase();
 
   return (
-    <Marker icon={createMarkerIcon(type)} position={[point.lat, point.lng]} title={title} alt={title}>
-      <Popup>
-        <strong>{title}</strong>
-        <br />
-        {formatPointLabel(point)}
-      </Popup>
-    </Marker>
+    <>
+      {point.source === 'device' && <Circle center={[point.lat, point.lng]} radius={50}
+        interactive={false} pathOptions={{ color: type === 'origin' ? '#175c4c' : '#b7462f', fillOpacity: 0.12, weight: 2 }} />}
+      <Marker icon={createMarkerIcon(type)} position={[point.lat, point.lng]} title={title} alt={title}>
+        <Popup>
+          <strong>{title}</strong>
+          <br />
+          {formatPointLabel(point)}
+          {point.source === 'device' && <p>50 m reference circle. Location accuracy may vary.</p>}
+        </Popup>
+      </Marker>
+    </>
   );
 }
