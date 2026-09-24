@@ -12,7 +12,7 @@ function getGeolocationErrorMessage(error) {
   }
 
   if (error.code === GEOLOCATION_PERMISSION_DENIED) {
-    return 'Location permission was denied.';
+    return 'Location access was denied. Allow Location in this site’s browser settings, check your device’s location permissions, then press Use GPS again.';
   }
 
   if (error.code === GEOLOCATION_POSITION_UNAVAILABLE) {
@@ -27,9 +27,21 @@ function getGeolocationErrorMessage(error) {
 }
 
 export function createDevicePoint(position) {
+  const latitude = position?.coords?.latitude;
+  const longitude = position?.coords?.longitude;
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    return null;
+  }
+
   return {
-    lat: position.coords.latitude,
-    lng: position.coords.longitude,
+    lat: latitude,
+    lng: longitude,
     label: 'Current location',
     source: 'device'
   };
@@ -62,6 +74,16 @@ export function useDeviceLocation({ onLocated }) {
       return;
     }
 
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    if (policy?.allowsFeature && !policy.allowsFeature('geolocation')) {
+      setGeolocation({
+        status: 'denied',
+        errorMessage:
+          'Location is blocked by this page’s permissions policy. Open WeatherMapZ directly in a browser tab. If it is still blocked, the site administrator must enable geolocation.'
+      });
+      return;
+    }
+
     setGeolocation({
       status: 'loading',
       errorMessage: ''
@@ -70,6 +92,14 @@ export function useDeviceLocation({ onLocated }) {
     function handleSuccess(position) {
       if (id !== requestId.current) return;
       const point = createDevicePoint(position);
+
+      if (!point) {
+        setGeolocation({
+          status: 'error',
+          errorMessage: 'Your browser returned an invalid location. Please try again.'
+        });
+        return;
+      }
 
       onLocated(pointType, point);
       setGeolocation({

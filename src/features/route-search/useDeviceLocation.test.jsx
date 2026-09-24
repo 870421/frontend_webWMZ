@@ -18,6 +18,17 @@ describe('createDevicePoint', () => {
       source: 'device'
     });
   });
+
+  it.each([
+    undefined,
+    {},
+    { coords: {} },
+    { coords: { latitude: Number.NaN, longitude: -0.89 } },
+    { coords: { latitude: 91, longitude: -0.89 } },
+    { coords: { latitude: 41.65, longitude: -181 } }
+  ])('rejects invalid geolocation coordinates %#', (position) => {
+    expect(createDevicePoint(position)).toBeNull();
+  });
 });
 
 describe('useDeviceLocation', () => {
@@ -96,6 +107,29 @@ describe('useDeviceLocation', () => {
     });
     expect(result.current.geolocation.status).toBe('success');
     expect(result.current.geolocation.pointType).toBe('destination');
+  });
+
+  it('does not update route state when the browser returns invalid coordinates', () => {
+    const onLocated = jest.fn();
+
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: jest.fn((onSuccess) =>
+          onSuccess({ coords: { latitude: Number.NaN, longitude: -0.89 } })
+        )
+      }
+    });
+
+    const { result } = renderHook(() => useDeviceLocation({ onLocated }));
+
+    act(() => result.current.requestCurrentLocation('origin'));
+
+    expect(onLocated).not.toHaveBeenCalled();
+    expect(result.current.geolocation).toEqual({
+      status: 'error',
+      errorMessage: 'Your browser returned an invalid location. Please try again.'
+    });
   });
 
   it('falls back to lower accuracy when precise location is unavailable', () => {
@@ -179,7 +213,28 @@ describe('useDeviceLocation', () => {
     act(() => result.current.requestCurrentLocation());
 
     expect(result.current.geolocation.status).toBe('denied');
-    expect(result.current.geolocation.errorMessage).toBe('Location permission was denied.');
+    expect(result.current.geolocation.errorMessage).toContain('Allow Location in this site’s browser settings');
+  });
+
+  it('distinguishes a page policy block from a user permission denial', () => {
+    const originalPolicy = Object.getOwnPropertyDescriptor(document, 'permissionsPolicy');
+    const getCurrentPosition = jest.fn();
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true, value: { getCurrentPosition }
+    });
+    Object.defineProperty(document, 'permissionsPolicy', {
+      configurable: true, value: { allowsFeature: () => false }
+    });
+    try {
+      const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
+      act(() => result.current.requestCurrentLocation());
+      expect(result.current.geolocation.status).toBe('denied');
+      expect(result.current.geolocation.errorMessage).toContain('permissions policy');
+      expect(getCurrentPosition).not.toHaveBeenCalled();
+    } finally {
+      if (originalPolicy) Object.defineProperty(document, 'permissionsPolicy', originalPolicy);
+      else delete document.permissionsPolicy;
+    }
   });
 
   it('reports timeout after the fallback also times out', () => {
