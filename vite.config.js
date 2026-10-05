@@ -10,7 +10,7 @@ export default defineConfig({
       manifest: {
         name: 'WeatherMapZ',
         short_name: 'WeatherMapZ',
-        description: 'Comfort-aware pedestrian navigation for Zaragoza.',
+        description: 'Navegación peatonal confortable por Zaragoza.',
         theme_color: '#175c4c',
         background_color: '#f7faf8',
         display: 'standalone',

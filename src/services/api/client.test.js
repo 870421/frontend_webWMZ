@@ -12,7 +12,7 @@ describe('apiRequest', () => {
       signal, headers: { Accept: 'application/json', 'Content-Type': 'application/json' }
     });
   });
-  it.each([[429, 'busy'], [503, 'not configured'], [504, 'timed out'], [502, 'unavailable']])(
+  it.each([[429, 'ocupada'], [503, 'no está configurada'], [504, 'tardado demasiado'], [502, 'no está disponible']])(
     'provides a safe message for status %s', async (status, message) => {
       global.fetch = jest.fn().mockResolvedValue({ ok: false, status });
       await expect(apiRequest('/geocoding/autocomplete')).rejects.toThrow(message);

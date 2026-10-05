@@ -11,11 +11,11 @@ export async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     const messages = {
-      429: 'Place search is busy. Please try again shortly.',
-      503: 'Place search is not configured. You can still use the map or GPS.',
-      504: 'Place search timed out. Edit the search to try again.'
+      429: 'La búsqueda de lugares está ocupada. Inténtalo de nuevo en unos instantes.',
+      503: 'La búsqueda de lugares no está configurada. Puedes seguir usando el mapa o el GPS.',
+      504: 'La búsqueda ha tardado demasiado. Edita el texto para intentarlo de nuevo.'
     };
-    throw new Error(messages[response.status] || 'Place search is unavailable right now.');
+    throw new Error(messages[response.status] || 'La búsqueda de lugares no está disponible ahora mismo.');
   }
 
   return response.json();

@@ -14,7 +14,7 @@ describe('createDevicePoint', () => {
     ).toEqual({
       lat: 41.65,
       lng: -0.89,
-      label: 'Current location',
+      label: 'Ubicación actual',
       source: 'device'
     });
   });
@@ -58,7 +58,7 @@ describe('useDeviceLocation', () => {
 
     expect(result.current.geolocation.status).toBe('error');
     expect(result.current.geolocation.errorMessage).toBe(
-      'Location access requires HTTPS or localhost. Open the app on localhost or use HTTPS.'
+      'El acceso a la ubicación requiere HTTPS o localhost. Abre la aplicación en localhost o utiliza HTTPS.'
     );
   });
 
@@ -74,7 +74,7 @@ describe('useDeviceLocation', () => {
 
     expect(result.current.geolocation.status).toBe('unsupported');
     expect(result.current.geolocation.errorMessage).toBe(
-      'Your browser does not support location access.'
+      'Tu navegador no permite acceder a la ubicación.'
     );
   });
 
@@ -102,7 +102,7 @@ describe('useDeviceLocation', () => {
     expect(onLocated).toHaveBeenCalledWith('destination', {
       lat: 41.65,
       lng: -0.89,
-      label: 'Current location',
+      label: 'Ubicación actual',
       source: 'device'
     });
     expect(result.current.geolocation.status).toBe('success');
@@ -128,7 +128,7 @@ describe('useDeviceLocation', () => {
     expect(onLocated).not.toHaveBeenCalled();
     expect(result.current.geolocation).toEqual({
       status: 'error',
-      errorMessage: 'Your browser returned an invalid location. Please try again.'
+      errorMessage: 'El navegador ha devuelto una ubicación no válida. Inténtalo de nuevo.'
     });
   });
 
@@ -167,7 +167,7 @@ describe('useDeviceLocation', () => {
     expect(onLocated).toHaveBeenCalledWith('origin', {
       lat: 41.67,
       lng: -0.88,
-      label: 'Current location',
+      label: 'Ubicación actual',
       source: 'device'
     });
     expect(result.current.geolocation.status).toBe('success');
@@ -191,7 +191,7 @@ describe('useDeviceLocation', () => {
 
     expect(result.current.geolocation.status).toBe('error');
     expect(result.current.geolocation.errorMessage).toBe(
-      'Your current location is unavailable. Check that location services are enabled for your browser and operating system.'
+      'Tu ubicación actual no está disponible. Comprueba que los servicios de ubicación estén activados en el navegador y el sistema operativo.'
     );
   });
 
@@ -213,7 +213,7 @@ describe('useDeviceLocation', () => {
     act(() => result.current.requestCurrentLocation());
 
     expect(result.current.geolocation.status).toBe('denied');
-    expect(result.current.geolocation.errorMessage).toContain('Allow Location in this site’s browser settings');
+    expect(result.current.geolocation.errorMessage).toContain('Permítelo en la configuración del navegador');
   });
 
   it('distinguishes a page policy block from a user permission denial', () => {
@@ -229,7 +229,7 @@ describe('useDeviceLocation', () => {
       const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
       act(() => result.current.requestCurrentLocation());
       expect(result.current.geolocation.status).toBe('denied');
-      expect(result.current.geolocation.errorMessage).toContain('permissions policy');
+      expect(result.current.geolocation.errorMessage).toContain('política de permisos');
       expect(getCurrentPosition).not.toHaveBeenCalled();
     } finally {
       if (originalPolicy) Object.defineProperty(document, 'permissionsPolicy', originalPolicy);
@@ -243,7 +243,7 @@ describe('useDeviceLocation', () => {
     } });
     const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
     act(() => result.current.requestCurrentLocation());
-    expect(result.current.geolocation.errorMessage).toBe('Location request timed out.');
+    expect(result.current.geolocation.errorMessage).toBe('La solicitud de ubicación ha tardado demasiado.');
     expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(2);
   });
 

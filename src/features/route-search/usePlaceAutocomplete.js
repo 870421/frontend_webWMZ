@@ -22,8 +22,8 @@ export function usePlaceAutocomplete(query, enabled = true, field = '') {
         if (current) setState({
           ...EMPTY, key,
           errorMessage: controller.signal.aborted
-            ? 'Place search timed out. Edit the search to try again.'
-            : error.message || 'Place search is unavailable right now.'
+            ? 'La búsqueda ha tardado demasiado. Edita el texto para intentarlo de nuevo.'
+            : error.message || 'La búsqueda de lugares no está disponible ahora mismo.'
         });
       } finally {
         window.clearTimeout(requestTimeout);

@@ -6,8 +6,8 @@ describe('RouteComparisonPanel', () => {
   it('renders the empty comparison state', () => {
     render(<RouteComparisonPanel />);
 
-    expect(screen.getByRole('heading', { name: 'Comparison' })).toBeInTheDocument();
-    expect(screen.getByText('Select an origin and destination to compare routes.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Comparación' })).toBeInTheDocument();
+    expect(screen.getByText('Selecciona un origen y un destino para comparar rutas.')).toBeInTheDocument();
   });
 });
 

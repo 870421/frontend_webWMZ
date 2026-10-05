@@ -46,7 +46,7 @@ describe('usePlaceAutocomplete', () => {
   });
 
   it('reports unavailable search errors', async () => {
-    autocompletePlaces.mockRejectedValue(new Error('Place search is unavailable right now.'));
+    autocompletePlaces.mockRejectedValue(new Error('La búsqueda de lugares no está disponible ahora mismo.'));
 
     const { result } = renderHook(() => usePlaceAutocomplete('Pilar'));
 
@@ -54,7 +54,7 @@ describe('usePlaceAutocomplete', () => {
       jest.advanceTimersByTime(350);
     });
 
-    await waitFor(() => expect(result.current.errorMessage).toBe('Place search is unavailable right now.'));
+    await waitFor(() => expect(result.current.errorMessage).toBe('La búsqueda de lugares no está disponible ahora mismo.'));
   });
 
   it('hides old suggestions immediately and ignores superseded responses', async () => {
@@ -81,7 +81,7 @@ describe('usePlaceAutocomplete', () => {
     }));
     const { result, rerender } = renderHook(({ enabled }) => usePlaceAutocomplete('Pilar', enabled), { initialProps: { enabled: true } });
     await act(async () => { jest.advanceTimersByTime(12350); });
-    expect(result.current.errorMessage).toContain('timed out');
+    expect(result.current.errorMessage).toContain('tardado demasiado');
     rerender({ enabled: false });
     expect(result.current).toEqual({ results: [], errorMessage: '', isLoading: false });
   });

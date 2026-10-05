@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export function formatPointLabel(point) {
-  if (!point) return 'Not selected';
+  if (!point) return 'Sin seleccionar';
   return point.label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
 }
 

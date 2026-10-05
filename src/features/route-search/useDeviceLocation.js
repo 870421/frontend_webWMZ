@@ -8,22 +8,22 @@ const FALLBACK_GEOLOCATION_TIMEOUT_MS = 20000;
 
 function getGeolocationErrorMessage(error) {
   if (!error) {
-    return 'Unable to get your current location.';
+    return 'No se ha podido obtener tu ubicación actual.';
   }
 
   if (error.code === GEOLOCATION_PERMISSION_DENIED) {
-    return 'Location access was denied. Allow Location in this site’s browser settings, check your device’s location permissions, then press Use GPS again.';
+    return 'Se ha denegado el acceso a la ubicación. Permítelo en la configuración del navegador y del dispositivo y vuelve a pulsar Usar GPS.';
   }
 
   if (error.code === GEOLOCATION_POSITION_UNAVAILABLE) {
-    return 'Your current location is unavailable. Check that location services are enabled for your browser and operating system.';
+    return 'Tu ubicación actual no está disponible. Comprueba que los servicios de ubicación estén activados en el navegador y el sistema operativo.';
   }
 
   if (error.code === GEOLOCATION_TIMEOUT) {
-    return 'Location request timed out.';
+    return 'La solicitud de ubicación ha tardado demasiado.';
   }
 
-  return 'Unable to get your current location.';
+  return 'No se ha podido obtener tu ubicación actual.';
 }
 
 export function createDevicePoint(position) {
@@ -42,7 +42,7 @@ export function createDevicePoint(position) {
   return {
     lat: latitude,
     lng: longitude,
-    label: 'Current location',
+    label: 'Ubicación actual',
     source: 'device'
   };
 }
@@ -61,7 +61,7 @@ export function useDeviceLocation({ onLocated }) {
       setGeolocation({
         status: 'error',
         errorMessage:
-          'Location access requires HTTPS or localhost. Open the app on localhost or use HTTPS.'
+          'El acceso a la ubicación requiere HTTPS o localhost. Abre la aplicación en localhost o utiliza HTTPS.'
       });
       return;
     }
@@ -69,7 +69,7 @@ export function useDeviceLocation({ onLocated }) {
     if (!navigator.geolocation) {
       setGeolocation({
         status: 'unsupported',
-        errorMessage: 'Your browser does not support location access.'
+        errorMessage: 'Tu navegador no permite acceder a la ubicación.'
       });
       return;
     }
@@ -79,7 +79,7 @@ export function useDeviceLocation({ onLocated }) {
       setGeolocation({
         status: 'denied',
         errorMessage:
-          'Location is blocked by this page’s permissions policy. Open WeatherMapZ directly in a browser tab. If it is still blocked, the site administrator must enable geolocation.'
+          'La política de permisos de esta página bloquea la ubicación. Abre WeatherMapZ directamente en una pestaña. Si continúa bloqueada, el administrador debe habilitar la geolocalización.'
       });
       return;
     }
@@ -96,7 +96,7 @@ export function useDeviceLocation({ onLocated }) {
       if (!point) {
         setGeolocation({
           status: 'error',
-          errorMessage: 'Your browser returned an invalid location. Please try again.'
+          errorMessage: 'El navegador ha devuelto una ubicación no válida. Inténtalo de nuevo.'
         });
         return;
       }

@@ -21,7 +21,8 @@ jest.mock('react-leaflet', () => ({
     getZoom: () => 13
   }),
   useMapEvents: jest.fn(),
-  TileLayer: ({ url }) => <div data-testid="tile-layer" data-url={url} />
+  TileLayer: ({ url }) => <div data-testid="tile-layer" data-url={url} />,
+  ZoomControl: () => <div data-testid="zoom-control" />
 }));
 
 describe('MapView', () => {
@@ -30,7 +31,7 @@ describe('MapView', () => {
     expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-radius', '50');
     expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-center', '41.65,-0.89');
     expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-interactive', 'false');
-    expect(screen.getByText(/50 m reference circle/)).toBeInTheDocument();
+    expect(screen.getByText(/Círculo de referencia de 50 m/)).toBeInTheDocument();
     rerender(<MapView origin={{ lat: 41.65, lng: -0.89, source: 'map' }} />);
     expect(screen.queryByTestId('accuracy-circle')).not.toBeInTheDocument();
   });
@@ -56,8 +57,8 @@ describe('MapView', () => {
     );
 
     expect(screen.getAllByTestId('marker')).toHaveLength(2);
-    expect(screen.getByText('Origin')).toBeInTheDocument();
-    expect(screen.getByText('Destination')).toBeInTheDocument();
-    expect(screen.getByText('Tap the map to set destination.')).toBeInTheDocument();
+    expect(screen.getAllByText('Origen')).toHaveLength(2);
+    expect(screen.getAllByText('Destino')).toHaveLength(2);
+    expect(screen.getByText('Toca el mapa para fijar el destino.')).toBeInTheDocument();
   });
 });

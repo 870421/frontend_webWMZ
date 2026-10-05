@@ -46,8 +46,10 @@ export function App() {
             onSetPoint={withLocationCancelled(routePoints.setPoint)}
             origin={routePoints.origin}
           />
-          <RouteComparisonPanel />
-          <ComfortSummary />
+          <div className="future-panels">
+            <RouteComparisonPanel />
+            <ComfortSummary />
+          </div>
         </>
       }
     />

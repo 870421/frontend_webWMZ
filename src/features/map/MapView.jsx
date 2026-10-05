@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
 
 import { LocationMarker } from './LocationMarker.jsx';
 import { MapClickHandler } from './MapClickHandler.jsx';
@@ -19,6 +19,7 @@ export function MapView({
       <MapContainer
         center={ZARAGOZA_CENTER}
         zoom={13}
+        zoomControl={false}
         className="map-view"
         scrollWheelZoom
       >
@@ -26,13 +27,18 @@ export function MapView({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <ZoomControl position="bottomright" />
         <MapClickHandler onSelectPoint={onSelectPoint} />
         <MapFocusHandler point={focusPoint} />
-        <LocationMarker point={origin} title="Origin" />
-        <LocationMarker point={destination} title="Destination" />
+        <LocationMarker point={origin} title="Origen" type="origin" />
+        <LocationMarker point={destination} title="Destino" type="destination" />
       </MapContainer>
       <div className="map-selection-hint" aria-live="polite">
-        Tap the map to set {activePoint === 'origin' ? 'origin' : 'destination'}.
+        Toca el mapa para fijar el {activePoint === 'origin' ? 'origen' : 'destino'}.
+      </div>
+      <div className="map-legend" aria-label="Leyenda de marcadores del mapa">
+        <span><i className="legend-dot legend-dot-origin" aria-hidden="true" />Origen</span>
+        <span><i className="legend-dot legend-dot-destination" aria-hidden="true" />Destino</span>
       </div>
     </div>
   );
