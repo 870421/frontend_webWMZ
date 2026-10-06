@@ -8,3 +8,6 @@ coverage/
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# Local pull request descriptions (see AGENTS.md)
+PR-*.md

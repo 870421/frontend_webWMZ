@@ -1,9 +1,9 @@
-# WeatherMapZ Frontend - Codex Instructions
+# WeatherMapZ Frontend - Instrucciones para Codex
 
-This repository contains the WeatherMapZ frontend.
+Este repositorio contiene el frontend de WeatherMapZ.
 
-Before substantial changes, read the global WeatherMapZ documentation
-and this file.
+Antes de hacer cambios importantes, lee la documentación global de WeatherMapZ
+y este fichero.
 
 ## Stack
 
@@ -13,93 +13,113 @@ and this file.
 - Leaflet
 - OpenStreetMap
 
-## Responsive design
+## Diseño responsive
 
-Use Mobile-First Responsive Web Design.
+Usa diseño web responsive Mobile-First.
 
-The SAME application must work correctly on:
+La MISMA aplicación debe funcionar correctamente en:
 
 - smartphones
 - tablets
-- desktop/laptop browsers
+- navegadores de escritorio/portátil
 
-Do not create separate mobile and desktop applications.
+No crees aplicaciones separadas para móvil y escritorio.
 
-All relevant interactions must support touch devices and desktop input.
+Todas las interacciones relevantes deben funcionar con pantallas táctiles y con ratón y teclado.
 
-## Responsibilities
+## Responsabilidades
 
-The frontend handles:
+El frontend se encarga de:
 
-- interactive map
-- origin/destination interaction
-- route visualization
-- route comparison
-- comfort information
-- loading/error states
-- responsive UI
-- backend API communication
+- mapa interactivo
+- interacción de origen/destino
+- visualización de rutas
+- comparación de rutas
+- información de confort
+- estados de carga/error
+- interfaz responsive
+- comunicación con la API del backend
 
-Do NOT implement core routing or climatic-comfort calculations here.
+NO implementes aquí el cálculo de rutas ni los cálculos de confort climático.
 
-## Map UX
+## UX del mapa
 
-The map is the central element of the application.
+El mapa es el elemento central de la aplicación.
 
-Mobile:
-- prioritize map visibility
-- compact controls
-- collapsible panels/bottom sheets where appropriate
+Móvil:
+- prioriza la visibilidad del mapa
+- controles compactos
+- paneles plegables/bottom sheets donde corresponda
 
-Desktop:
-- sidebars or expanded panels may use additional screen space
+Escritorio:
+- las barras laterales o los paneles desplegados pueden aprovechar el espacio adicional
 
-Functionality should remain equivalent across screen sizes.
+La funcionalidad debe ser equivalente en todos los tamaños de pantalla.
 
-## Architecture
+## Arquitectura
 
-Prefer clear separation between:
+Prefiere una separación clara entre:
 
-- presentation components
+- componentes de presentación
 - features
 - hooks
-- API/services
-- utilities
+- API/servicios
+- utilidades
 
-Do not over-engineer the folder structure before it is needed.
+No compliques la estructura de carpetas antes de que haga falta.
 
-## API communication
+## Comunicación con la API
 
-Centralize backend communication.
+Centraliza la comunicación con el backend.
 
-Do not scatter fetch/API calls throughout presentation components.
+No repartas llamadas fetch/API por los componentes de presentación.
 
-Do not invent backend endpoints or response properties.
+No te inventes endpoints del backend ni propiedades de las respuestas.
 
-If a required API contract does not exist, define or confirm it before
-implementing frontend integration.
+Si no existe el contrato de API que necesitas, defínelo o confírmalo antes
+de implementar la integración en el frontend.
 
-## Accessibility
+## Accesibilidad
 
-Use:
+Usa:
 
-- semantic HTML
-- accessible controls
-- keyboard navigation where appropriate
-- sufficient contrast
-- meaningful labels
+- HTML semántico
+- controles accesibles
+- navegación por teclado donde corresponda
+- contraste suficiente
+- etiquetas con significado
 
-Do not rely only on color to distinguish routes.
+No distingas las rutas solo por el color.
 
 ## Testing
 
-Use Jest + React Testing Library.
+Usa Jest + React Testing Library.
 
-Minimum automated coverage: 50%.
-Target: 75%.
+Cobertura automática mínima: 50 %.
+Objetivo: 75 %.
 
-## Configuration
+## Configuración
 
-Do not hardcode backend URLs, credentials or environment-specific values.
+No escribas directamente en el código URLs del backend, credenciales ni valores específicos de un entorno.
 
-Use environment variables where appropriate.
+Usa variables de entorno donde corresponda.
+
+## Documentación obligatoria por PBI
+
+- Al terminar cada PBI, y antes de abrir su pull request, añade su entrada al principio del
+  "Registro de PBIs" del `docs/DECISIONS.md` del workspace (documentación global, fuera de este
+  repositorio), con: título, fecha, rama y estado (En revisión / Fusionada #N); qué se ha hecho,
+  en lenguaje claro; las condiciones de satisfacción marcadas, con dónde se comprueba cada una
+  (test, comando o query); los datos y resultados reales; los cambios técnicos (tablas,
+  migraciones, comandos npm, variables de entorno, endpoints); enlaces a los ADR tomados; lo
+  pendiente y los riesgos para siguientes PBIs; y cómo verificarlo a mano.
+- Registra cada decisión técnica no obvia como un ADR nuevo en el mismo fichero. Si una decisión
+  cambia, añade un ADR nuevo y marca el anterior como "Sustituido por ADR-00X". Nunca borres el
+  histórico.
+- Actualiza TODOS los ficheros Markdown afectados por el cambio: `DATA_SOURCES.md` si cambian
+  fuentes o datos, `README.md` si cambian el arranque, las variables de entorno, los comandos, el
+  esquema o la checklist manual, y la documentación de la API si cambian endpoints.
+- Antes de cerrar la PBI, haz un grep en todos los ficheros Markdown de los términos y cifras que
+  hayan cambiado, para no dejar información desactualizada en ninguno.
+- La descripción del pull request va en `PR-<pbi>.md` (solo en local, ignorado por Git) y es un
+  resumen breve que enlaza a la entrada de la PBI en el `docs/DECISIONS.md` del workspace.
