@@ -4,7 +4,7 @@ import { useMapEvents } from 'react-leaflet';
 import { MapClickHandler } from './MapClickHandler.jsx';
 
 jest.mock('react-leaflet', () => ({
-  useMapEvents: jest.fn()
+  useMapEvents: jest.fn(),
 }));
 
 describe('MapClickHandler', () => {
@@ -20,7 +20,7 @@ describe('MapClickHandler', () => {
     expect(onSelectPoint).toHaveBeenCalledWith({
       lat: 41.65,
       lng: -0.89,
-      source: 'map'
+      source: 'map',
     });
   });
 });

@@ -3,8 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { MapView } from './MapView.jsx';
 
 jest.mock('react-leaflet', () => ({
-  Circle: ({ center, radius, interactive }) => <div data-testid="accuracy-circle"
-    data-center={center.join(',')} data-radius={radius} data-interactive={String(interactive)} />,
+  Circle: ({ center, radius, interactive }) => (
+    <div
+      data-testid="accuracy-circle"
+      data-center={center.join(',')}
+      data-radius={radius}
+      data-interactive={String(interactive)}
+    />
+  ),
   MapContainer: ({ children, center, zoom }) => (
     <div data-center={center.join(',')} data-testid="map-container" data-zoom={zoom}>
       {children}
@@ -22,16 +28,18 @@ jest.mock('react-leaflet', () => ({
   useMap: () => ({
     fitBounds: jest.fn(),
     flyTo: jest.fn(),
-    getZoom: () => 13
+    getZoom: () => 13,
   }),
   useMapEvents: jest.fn(),
   TileLayer: ({ url }) => <div data-testid="tile-layer" data-url={url} />,
-  ZoomControl: () => <div data-testid="zoom-control" />
+  ZoomControl: () => <div data-testid="zoom-control" />,
 }));
 
 describe('MapView', () => {
   it('shows a fixed 50-metre reference circle and removes it when corrected on the map', () => {
-    const { rerender } = render(<MapView origin={{ lat: 41.65, lng: -0.89, source: 'device', accuracy: 500 }} />);
+    const { rerender } = render(
+      <MapView origin={{ lat: 41.65, lng: -0.89, source: 'device', accuracy: 500 }} />
+    );
     expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-radius', '50');
     expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-center', '41.65,-0.89');
     expect(screen.getByTestId('accuracy-circle')).toHaveAttribute('data-interactive', 'false');
@@ -72,15 +80,21 @@ describe('MapView', () => {
         route={{
           geometry: {
             type: 'LineString',
-            coordinates: [[-0.89, 41.65], [-0.88, 41.66]]
-          }
+            coordinates: [
+              [-0.89, 41.65],
+              [-0.88, 41.66],
+            ],
+          },
         }}
       />
     );
 
     expect(screen.getByTestId('route-line')).toHaveAttribute(
       'data-positions',
-      JSON.stringify([[41.65, -0.89], [41.66, -0.88]])
+      JSON.stringify([
+        [41.65, -0.89],
+        [41.66, -0.88],
+      ])
     );
   });
 });

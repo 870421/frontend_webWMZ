@@ -43,25 +43,31 @@ export function createDevicePoint(position) {
     lat: latitude,
     lng: longitude,
     label: 'Ubicación actual',
-    source: 'device'
+    source: 'device',
   };
 }
 
 export function useDeviceLocation({ onLocated }) {
   const requestId = useRef(0);
-  useEffect(() => () => { requestId.current += 1; }, []);
+  useEffect(
+    () => () => {
+      requestId.current += 1;
+    },
+    []
+  );
   const [geolocation, setGeolocation] = useState({
     status: 'idle',
-    errorMessage: ''
+    errorMessage: '',
   });
 
   function requestCurrentLocation(pointType = 'origin') {
-    const id = ++requestId.current;
+    requestId.current += 1;
+    const id = requestId.current;
     if (window.isSecureContext === false) {
       setGeolocation({
         status: 'error',
         errorMessage:
-          'El acceso a la ubicación requiere HTTPS o localhost. Abre la aplicación en localhost o utiliza HTTPS.'
+          'El acceso a la ubicación requiere HTTPS o localhost. Abre la aplicación en localhost o utiliza HTTPS.',
       });
       return;
     }
@@ -69,7 +75,7 @@ export function useDeviceLocation({ onLocated }) {
     if (!navigator.geolocation) {
       setGeolocation({
         status: 'unsupported',
-        errorMessage: 'Tu navegador no permite acceder a la ubicación.'
+        errorMessage: 'Tu navegador no permite acceder a la ubicación.',
       });
       return;
     }
@@ -79,14 +85,14 @@ export function useDeviceLocation({ onLocated }) {
       setGeolocation({
         status: 'denied',
         errorMessage:
-          'La política de permisos de esta página bloquea la ubicación. Abre WeatherMapZ directamente en una pestaña. Si continúa bloqueada, el administrador debe habilitar la geolocalización.'
+          'La política de permisos de esta página bloquea la ubicación. Abre WeatherMapZ directamente en una pestaña. Si continúa bloqueada, el administrador debe habilitar la geolocalización.',
       });
       return;
     }
 
     setGeolocation({
       status: 'loading',
-      errorMessage: ''
+      errorMessage: '',
     });
 
     function handleSuccess(position) {
@@ -96,7 +102,7 @@ export function useDeviceLocation({ onLocated }) {
       if (!point) {
         setGeolocation({
           status: 'error',
-          errorMessage: 'El navegador ha devuelto una ubicación no válida. Inténtalo de nuevo.'
+          errorMessage: 'El navegador ha devuelto una ubicación no válida. Inténtalo de nuevo.',
         });
         return;
       }
@@ -105,7 +111,7 @@ export function useDeviceLocation({ onLocated }) {
       setGeolocation({
         status: 'success',
         errorMessage: '',
-        pointType
+        pointType,
       });
     }
 
@@ -113,7 +119,7 @@ export function useDeviceLocation({ onLocated }) {
       if (id !== requestId.current) return;
       setGeolocation({
         status: error?.code === GEOLOCATION_PERMISSION_DENIED ? 'denied' : 'error',
-        errorMessage: getGeolocationErrorMessage(error)
+        errorMessage: getGeolocationErrorMessage(error),
       });
     }
 
@@ -121,7 +127,7 @@ export function useDeviceLocation({ onLocated }) {
       navigator.geolocation.getCurrentPosition(handleSuccess, handleFinalError, {
         enableHighAccuracy: false,
         maximumAge: 300000,
-        timeout: FALLBACK_GEOLOCATION_TIMEOUT_MS
+        timeout: FALLBACK_GEOLOCATION_TIMEOUT_MS,
       });
     }
 
@@ -142,7 +148,7 @@ export function useDeviceLocation({ onLocated }) {
       {
         enableHighAccuracy: true,
         maximumAge: 60000,
-        timeout: PRECISE_GEOLOCATION_TIMEOUT_MS
+        timeout: PRECISE_GEOLOCATION_TIMEOUT_MS,
       }
     );
   }
@@ -152,13 +158,13 @@ export function useDeviceLocation({ onLocated }) {
     setGeolocation({
       status: 'idle',
       errorMessage: '',
-      pointType: null
+      pointType: null,
     });
   }
 
   return {
     clearGeolocationMessage,
     geolocation,
-    requestCurrentLocation
+    requestCurrentLocation,
   };
 }

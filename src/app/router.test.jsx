@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { Router } from './router.jsx';
 
 jest.mock('./App.jsx', () => ({
-  App: () => <div>Application route</div>
+  App: () => <div>Application route</div>,
 }));
 
 describe('Router', () => {
@@ -13,4 +13,3 @@ describe('Router', () => {
     expect(screen.getByText('Application route')).toBeInTheDocument();
   });
 });
-

@@ -6,11 +6,10 @@ export function MapClickHandler({ onSelectPoint }) {
       onSelectPoint({
         lat: event.latlng.lat,
         lng: event.latlng.lng,
-        source: 'map'
+        source: 'map',
       });
-    }
+    },
   });
 
   return null;
 }
-

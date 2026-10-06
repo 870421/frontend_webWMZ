@@ -20,22 +20,25 @@ export default defineConfig({
             src: '/pwa-192x192.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
-            purpose: 'any'
+            purpose: 'any',
           },
           {
             src: '/pwa-512x512.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'any'
-          }
-        ]
-      }
-    })
+            purpose: 'any',
+          },
+        ],
+      },
+    }),
   ],
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: process.env.API_PROXY_TARGET || 'http://localhost:3000', changeOrigin: true }
-    }
-  }
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
 });

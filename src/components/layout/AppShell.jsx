@@ -19,4 +19,3 @@ export function AppShell({ map, sidebar }) {
     </main>
   );
 }
-

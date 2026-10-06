@@ -7,7 +7,8 @@ describe('ComfortSummary', () => {
     render(<ComfortSummary />);
 
     expect(screen.getByRole('heading', { name: 'Confort' })).toBeInTheDocument();
-    expect(screen.getByText('Los datos de confort aparecerán después de calcular una ruta.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Los datos de confort aparecerán después de calcular una ruta.')
+    ).toBeInTheDocument();
   });
 });
-

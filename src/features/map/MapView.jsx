@@ -14,7 +14,7 @@ export function MapView({
   focusPoint,
   onSelectPoint = noop,
   origin,
-  route
+  route,
 }) {
   return (
     <div className="map-wrapper">
@@ -40,8 +40,14 @@ export function MapView({
         Toca el mapa para fijar el {activePoint === 'origin' ? 'origen' : 'destino'}.
       </div>
       <div className="map-legend" aria-label="Leyenda de marcadores del mapa">
-        <span><i className="legend-dot legend-dot-origin" aria-hidden="true" />Origen</span>
-        <span><i className="legend-dot legend-dot-destination" aria-hidden="true" />Destino</span>
+        <span>
+          <i className="legend-dot legend-dot-origin" aria-hidden="true" />
+          Origen
+        </span>
+        <span>
+          <i className="legend-dot legend-dot-destination" aria-hidden="true" />
+          Destino
+        </span>
       </div>
     </div>
   );

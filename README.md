@@ -28,6 +28,29 @@ The development server runs on <http://localhost:5173>.
 npm test
 ```
 
+## Lint
+
+```bash
+npm run lint
+```
+
+ESLint checks the project using an Airbnb-compatible flat configuration for modern
+ESLint versions, including React Hooks rules.
+
+## Format
+
+Format the project automatically with Prettier:
+
+```bash
+npm run format
+```
+
+Check formatting without changing files:
+
+```bash
+npm run format:check
+```
+
 ## Production Build
 
 ```bash
@@ -39,6 +62,19 @@ npm run build
 ```bash
 npm run preview
 ```
+
+## Continuous integration
+
+Run the same checks used by GitHub Actions locally with:
+
+```bash
+npm run ci
+```
+
+This command runs ESLint, checks Prettier formatting, executes the complete Jest suite
+and creates the production build.
+The GitHub Actions workflow runs automatically for every pull request targeting
+`main`.
 
 ## Environment
 

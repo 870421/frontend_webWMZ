@@ -7,7 +7,8 @@ describe('RouteComparisonPanel', () => {
     render(<RouteComparisonPanel />);
 
     expect(screen.getByRole('heading', { name: 'Comparación' })).toBeInTheDocument();
-    expect(screen.getByText('Selecciona un origen y un destino para comparar rutas.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Selecciona un origen y un destino para comparar rutas.')
+    ).toBeInTheDocument();
   });
 });
-

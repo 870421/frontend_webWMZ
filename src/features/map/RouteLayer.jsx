@@ -6,7 +6,7 @@ const ROUTE_STYLE = {
   lineCap: 'round',
   lineJoin: 'round',
   opacity: 0.95,
-  weight: 4
+  weight: 4,
 };
 
 export function geometryToPositions(geometry) {
@@ -16,10 +16,10 @@ export function geometryToPositions(geometry) {
 
   return geometry.coordinates.reduce((positions, coordinate) => {
     if (
-      Array.isArray(coordinate)
-      && coordinate.length >= 2
-      && Number.isFinite(coordinate[0])
-      && Number.isFinite(coordinate[1])
+      Array.isArray(coordinate) &&
+      coordinate.length >= 2 &&
+      Number.isFinite(coordinate[0]) &&
+      Number.isFinite(coordinate[1])
     ) {
       positions.push([coordinate[1], coordinate[0]]);
     }
@@ -39,7 +39,7 @@ function RouteBounds({ positions }) {
     map.fitBounds(positions, {
       animate: true,
       maxZoom: 17,
-      padding: [48, 48]
+      padding: [48, 48],
     });
   }, [map, positions]);
 
@@ -55,11 +55,7 @@ export function RouteLayer({ geometry }) {
 
   return (
     <>
-      <Polyline
-        interactive={false}
-        pathOptions={ROUTE_STYLE}
-        positions={positions}
-      />
+      <Polyline interactive={false} pathOptions={ROUTE_STYLE} positions={positions} />
       <RouteBounds positions={positions} />
     </>
   );

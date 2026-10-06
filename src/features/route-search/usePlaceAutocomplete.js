@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import { autocompletePlaces } from '../../services/api/geocodingApi.js';
 
 const EMPTY = { errorMessage: '', isLoading: false, results: [] };
@@ -19,12 +20,14 @@ export function usePlaceAutocomplete(query, enabled = true, field = '') {
         const data = await autocompletePlaces(text, { signal: controller.signal });
         if (current) setState({ ...EMPTY, key, results: data.results });
       } catch (error) {
-        if (current) setState({
-          ...EMPTY, key,
-          errorMessage: controller.signal.aborted
-            ? 'La búsqueda ha tardado demasiado. Edita el texto para intentarlo de nuevo.'
-            : error.message || 'La búsqueda de lugares no está disponible ahora mismo.'
-        });
+        if (current)
+          setState({
+            ...EMPTY,
+            key,
+            errorMessage: controller.signal.aborted
+              ? 'La búsqueda ha tardado demasiado. Edita el texto para intentarlo de nuevo.'
+              : error.message || 'La búsqueda de lugares no está disponible ahora mismo.',
+          });
       } finally {
         window.clearTimeout(requestTimeout);
       }

@@ -1,10 +1,6 @@
 import { render, screen } from '@testing-library/react';
 
-import {
-  formatRouteDistance,
-  formatRouteDuration,
-  RouteSummary
-} from './RouteSummary.jsx';
+import { formatRouteDistance, formatRouteDuration, RouteSummary } from './RouteSummary.jsx';
 
 describe('RouteSummary', () => {
   test('muestra la duración total redondeada a minutos', () => {

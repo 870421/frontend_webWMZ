@@ -7,17 +7,27 @@ import { useRoutePoints } from './useRoutePoints.js';
 
 function StatefulPanel({ onSetPoint }) {
   const points = useRoutePoints();
-  return <RouteSearchPanel {...points} onSetActivePoint={points.setActivePoint}
-    onEditPoint={points.editPoint} onClearPoint={points.clearPoint} onResetPoints={points.resetPoints}
-    onSetPoint={(...args) => { points.setPoint(...args); onSetPoint?.(...args); }} />;
+  return (
+    <RouteSearchPanel
+      {...points}
+      onSetActivePoint={points.setActivePoint}
+      onEditPoint={points.editPoint}
+      onClearPoint={points.clearPoint}
+      onResetPoints={points.resetPoints}
+      onSetPoint={(...args) => {
+        points.setPoint(...args);
+        onSetPoint?.(...args);
+      }}
+    />
+  );
 }
 
 jest.mock('./usePlaceAutocomplete.js', () => ({
   usePlaceAutocomplete: jest.fn(() => ({
     errorMessage: '',
     isLoading: false,
-    results: []
-  }))
+    results: [],
+  })),
 }));
 
 describe('RouteSearchPanel', () => {
@@ -25,7 +35,7 @@ describe('RouteSearchPanel', () => {
     usePlaceAutocomplete.mockReturnValue({
       errorMessage: '',
       isLoading: false,
-      results: []
+      results: [],
     });
   });
 
@@ -33,7 +43,10 @@ describe('RouteSearchPanel', () => {
     render(<RouteSearchPanel />);
 
     expect(screen.getByRole('button', { name: 'Origen' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Destino' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Destino' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
     expect(screen.getByLabelText('Origen')).toBeEnabled();
     expect(screen.getByLabelText('Destino')).toBeEnabled();
     expect(screen.getAllByText('Sin seleccionar')).toHaveLength(2);
@@ -55,9 +68,9 @@ describe('RouteSearchPanel', () => {
           id: 'place-1',
           label: 'Plaza del Pilar, Zaragoza, Spain',
           lat: 41.656,
-          lng: -0.878
-        }
-      ]
+          lng: -0.878,
+        },
+      ],
     });
 
     render(<StatefulPanel onSetPoint={onSetPoint} />);
@@ -69,7 +82,7 @@ describe('RouteSearchPanel', () => {
       lat: 41.656,
       lng: -0.878,
       label: 'Plaza del Pilar, Zaragoza, Spain',
-      source: 'search'
+      source: 'search',
     });
     expect(screen.getByLabelText('Origen')).toHaveValue('Plaza del Pilar, Zaragoza, Spain');
     expect(screen.getByText('41.65600, -0.87800')).toBeInTheDocument();
@@ -115,23 +128,32 @@ describe('RouteSearchPanel', () => {
     const origin = { lat: 41.65, lng: -0.89, source: 'map' };
     const destination = { lat: 41.66, lng: -0.88, source: 'map' };
     const view = render(
-      <RouteSearchPanel origin={origin} destination={destination}
-        onCalculateRoute={onCalculateRoute} />
+      <RouteSearchPanel
+        origin={origin}
+        destination={destination}
+        onCalculateRoute={onCalculateRoute}
+      />
     );
 
     await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
     expect(onCalculateRoute).toHaveBeenCalledTimes(1);
 
     view.rerender(
-      <RouteSearchPanel origin={origin} destination={destination}
-        routeCalculation={{ status: 'loading', errorMessage: '' }} />
+      <RouteSearchPanel
+        origin={origin}
+        destination={destination}
+        routeCalculation={{ status: 'loading', errorMessage: '' }}
+      />
     );
     expect(screen.getByRole('button', { name: 'Calculando...' })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('Calculando la ruta más rápida');
 
     view.rerender(
-      <RouteSearchPanel origin={origin} destination={destination}
-        routeCalculation={{ status: 'error', errorMessage: 'No se ha podido calcular la ruta.' }} />
+      <RouteSearchPanel
+        origin={origin}
+        destination={destination}
+        routeCalculation={{ status: 'error', errorMessage: 'No se ha podido calcular la ruta.' }}
+      />
     );
     expect(screen.getByRole('alert')).toHaveTextContent('No se ha podido calcular la ruta.');
   });
@@ -144,7 +166,7 @@ describe('RouteSearchPanel', () => {
         routeCalculation={{
           status: 'success',
           errorMessage: '',
-          route: { distance: 1250.4, duration: 930.2 }
+          route: { distance: 1250.4, duration: 930.2 },
         }}
       />
     );
@@ -172,7 +194,9 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Se ha denegado el permiso de ubicación.');
 
     rerender(
-      <RouteSearchPanel geolocation={{ status: 'success', errorMessage: '', pointType: 'destination' }} />
+      <RouteSearchPanel
+        geolocation={{ status: 'success', errorMessage: '', pointType: 'destination' }}
+      />
     );
 
     expect(screen.getByRole('status')).toHaveTextContent('Ubicación actual asignada como destino.');
@@ -180,8 +204,11 @@ describe('RouteSearchPanel', () => {
 
   it('clears draft text and invalidates selected coordinates when editing', async () => {
     const user = userEvent.setup();
-    usePlaceAutocomplete.mockReturnValue({ errorMessage: '', isLoading: false,
-      results: [{ id: '1', label: 'Pilar', lat: 41.656, lng: -0.878 }] });
+    usePlaceAutocomplete.mockReturnValue({
+      errorMessage: '',
+      isLoading: false,
+      results: [{ id: '1', label: 'Pilar', lat: 41.656, lng: -0.878 }],
+    });
     render(<StatefulPanel />);
     const origin = screen.getByLabelText('Origen');
     await user.type(origin, 'Pilar');
@@ -201,8 +228,11 @@ describe('RouteSearchPanel', () => {
 
   it('supports keyboard selection, Escape, and blur dismissal', async () => {
     const user = userEvent.setup();
-    usePlaceAutocomplete.mockReturnValue({ errorMessage: '', isLoading: false,
-      results: [{ id: '1', label: 'Pilar', lat: 41.656, lng: -0.878 }] });
+    usePlaceAutocomplete.mockReturnValue({
+      errorMessage: '',
+      isLoading: false,
+      results: [{ id: '1', label: 'Pilar', lat: 41.656, lng: -0.878 }],
+    });
     render(<StatefulPanel />);
     const destination = screen.getByLabelText('Destino');
     await user.type(destination, 'Pilar');
@@ -226,7 +256,11 @@ describe('RouteSearchPanel', () => {
     usePlaceAutocomplete.mockReturnValue({ results: [], isLoading: true, errorMessage: '' });
     view.rerender(<StatefulPanel />);
     expect(screen.getByRole('status')).toHaveTextContent('Buscando lugares');
-    usePlaceAutocomplete.mockReturnValue({ results: [], isLoading: false, errorMessage: 'Búsqueda no disponible' });
+    usePlaceAutocomplete.mockReturnValue({
+      results: [],
+      isLoading: false,
+      errorMessage: 'Búsqueda no disponible',
+    });
     view.rerender(<StatefulPanel />);
     expect(screen.getByRole('alert')).toHaveTextContent('Búsqueda no disponible');
   });

@@ -14,7 +14,7 @@ export function App() {
     onLocated: (pointType, point) => {
       fastestRoute.clearRoute();
       routePoints.setPoint(pointType, point);
-    }
+    },
   });
   function withSelectionUpdated(action) {
     return (...args) => {
@@ -43,10 +43,9 @@ export function App() {
             destination={routePoints.destination}
             geolocation={geolocation.geolocation}
             onClearGeolocationMessage={geolocation.clearGeolocationMessage}
-            onCalculateRoute={() => fastestRoute.calculateRoute(
-              routePoints.origin,
-              routePoints.destination
-            )}
+            onCalculateRoute={() =>
+              fastestRoute.calculateRoute(routePoints.origin, routePoints.destination)
+            }
             originInput={routePoints.originInput}
             destinationInput={routePoints.destinationInput}
             onEditPoint={withSelectionUpdated(routePoints.editPoint)}

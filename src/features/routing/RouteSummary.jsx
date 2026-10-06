@@ -1,5 +1,5 @@
 const distanceFormatter = new Intl.NumberFormat('es-ES', {
-  maximumFractionDigits: 1
+  maximumFractionDigits: 1,
 });
 
 export function formatRouteDuration(durationInSeconds) {

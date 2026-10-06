@@ -18,7 +18,7 @@ export function MapFocusHandler({ point }) {
 
     map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 15), {
       animate: true,
-      duration: 0.7
+      duration: 0.7,
     });
   }, [map, point]);
 

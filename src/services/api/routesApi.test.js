@@ -7,20 +7,25 @@ describe('getFastestRoute', () => {
   const route = {
     geometry: {
       type: 'LineString',
-      coordinates: [[-0.8891, 41.6488], [-0.878, 41.656]]
+      coordinates: [
+        [-0.8891, 41.6488],
+        [-0.878, 41.656],
+      ],
     },
     distance: 1250.4,
-    duration: 930.2
+    duration: 930.2,
   };
 
-  afterEach(() => { global.fetch = originalFetch; });
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
 
   it('posts only the selected coordinates and returns the route', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ route })
+      json: async () => ({ route }),
     });
-    const signal = new AbortController().signal;
+    const { signal } = new AbortController();
 
     await expect(getFastestRoute({ origin, destination }, { signal })).resolves.toEqual(route);
     expect(global.fetch).toHaveBeenCalledWith('/api/routes/fastest', {
@@ -28,9 +33,9 @@ describe('getFastestRoute', () => {
       signal,
       body: JSON.stringify({
         origin: { lat: 41.6488, lng: -0.8891 },
-        destination: { lat: 41.656, lng: -0.878 }
+        destination: { lat: 41.656, lng: -0.878 },
       }),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   });
 
@@ -40,7 +45,7 @@ describe('getFastestRoute', () => {
     { route: {} },
     { route: { ...route, geometry: { type: 'Point', coordinates: [-0.8891, 41.6488] } } },
     { route: { ...route, distance: -1 } },
-    { route: { ...route, duration: '930.2' } }
+    { route: { ...route, duration: '930.2' } },
   ])('rejects an invalid route response', async (body) => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => body });
     await expect(getFastestRoute({ origin, destination })).rejects.toThrow(
@@ -53,7 +58,7 @@ describe('getFastestRoute', () => {
     [429, 'está ocupado'],
     [503, 'no está configurado'],
     [504, 'ha tardado demasiado'],
-    [502, 'No se ha podido calcular']
+    [502, 'No se ha podido calcular'],
   ])('shows a route-specific message for status %s', async (status, message) => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status });
     await expect(getFastestRoute({ origin, destination })).rejects.toThrow(message);

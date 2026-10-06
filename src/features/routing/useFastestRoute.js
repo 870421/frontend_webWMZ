@@ -34,7 +34,7 @@ export function useFastestRoute() {
       setState({
         status: 'error',
         route: null,
-        errorMessage: error.message || 'No se ha podido calcular la ruta. Inténtalo de nuevo.'
+        errorMessage: error.message || 'No se ha podido calcular la ruta. Inténtalo de nuevo.',
       });
       return null;
     } finally {
