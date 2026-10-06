@@ -63,7 +63,14 @@ function PointInput({ name, title, value, point, activePoint, isLocating,
 
   return (
     <div className={`point-field point-field-${name} ${activePoint === name ? 'is-active' : ''}`}>
-      <span className="point-symbol" aria-hidden="true" />
+      <span className={`point-symbol point-symbol-${name}`} aria-hidden="true">
+        {name === 'destination' && (
+          <svg viewBox="0 0 24 30">
+            <path d="M12 1C5.92 1 1 5.92 1 12c0 8.14 11 17 11 17s11-8.86 11-17C23 5.92 18.08 1 12 1Z" />
+            <circle cx="12" cy="12" r="4" />
+          </svg>
+        )}
+      </span>
       <div className="point-control">
         <label className="visually-hidden" htmlFor={name}>{title}</label>
         <div className="point-input-shell">
@@ -125,10 +132,21 @@ export function RouteSearchPanel({
   onRequestCurrentLocation = noop, onClearGeolocationMessage = noop
 }) {
   const isLocating = geolocation.status === 'loading';
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
+
   return (
-    <section className="panel-section route-search-panel" aria-labelledby="route-search-title">
+    <section className={`panel-section route-search-panel ${isMobilePanelOpen ? '' : 'is-collapsed'}`}
+      aria-labelledby="route-search-title">
       <h2 id="route-search-title" className="visually-hidden">Ruta</h2>
-      <div className="route-form">
+      <button type="button" className="mobile-panel-toggle"
+        aria-expanded={isMobilePanelOpen} aria-controls="route-search-content"
+        onClick={() => setIsMobilePanelOpen((open) => !open)}>
+        <span>{isMobilePanelOpen ? 'Ocultar' : 'Ruta'}</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="m5 8 5 5 5-5" />
+        </svg>
+      </button>
+      <div id="route-search-content" className="route-form">
         <fieldset className="selection-mode">
           <legend>El clic en el mapa fija</legend>
           <div className="segmented-control">
@@ -150,29 +168,34 @@ export function RouteSearchPanel({
               onRequestCurrentLocation={onRequestCurrentLocation} />
           ))}
         </div>
-        <div className="map-guidance">
-          <p>También puedes marcar el origen y el destino tocando directamente el mapa.</p>
-          <p className="active-map-target">
-            <span aria-hidden="true" />El siguiente clic en el mapa fija el {pointLabel(activePoint)}.
-          </p>
+        <div className="route-actions">
+          <div className="map-guidance">
+            <p>También puedes marcar el origen y el destino tocando directamente el mapa.</p>
+            <p className={`active-map-target active-map-target-${activePoint}`}>
+              <span className="active-map-dot" aria-hidden="true" />
+              <span>Selección en el mapa</span>
+              <strong>{pointTitle(activePoint)}</strong>
+            </p>
+          </div>
+          <button type="button" className="secondary-button clear-selection-button"
+            aria-label="Limpiar selección"
+            disabled={!origin && !destination && !originInput && !destinationInput && geolocation.status === 'idle'}
+            onClick={onResetPoints}><span aria-hidden="true">×</span> Limpiar</button>
+          {geolocation.errorMessage && <div className="form-message form-message-error" role="alert">
+            {geolocation.errorMessage}
+            <button type="button" onClick={onClearGeolocationMessage}>Cerrar</button>
+          </div>}
+          {isLocating && <div className="form-message" role="status">
+            Obteniendo la ubicación actual...
+            <button type="button" onClick={onClearGeolocationMessage}>Cancelar ubicación</button>
+          </div>}
+          {geolocation.status === 'success' && <p className="form-message" role="status">
+            Ubicación actual asignada como {pointLabel(geolocation.pointType)}.
+          </p>}
+          <button type="button" className="route-submit" disabled title="El cálculo de rutas se añadirá en el PBI 2">
+            Calcular ruta
+          </button>
         </div>
-        <button type="button" className="secondary-button clear-selection-button"
-          disabled={!origin && !destination && !originInput && !destinationInput && geolocation.status === 'idle'}
-          onClick={onResetPoints}><span aria-hidden="true">×</span> Limpiar selección</button>
-        {geolocation.errorMessage && <div className="form-message form-message-error" role="alert">
-          {geolocation.errorMessage}
-          <button type="button" onClick={onClearGeolocationMessage}>Cerrar</button>
-        </div>}
-        {isLocating && <div className="form-message" role="status">
-          Obteniendo la ubicación actual...
-          <button type="button" onClick={onClearGeolocationMessage}>Cancelar ubicación</button>
-        </div>}
-        {geolocation.status === 'success' && <p className="form-message" role="status">
-          Ubicación actual asignada como {pointLabel(geolocation.pointType)}.
-        </p>}
-        <button type="button" className="route-submit" disabled title="El cálculo de rutas se añadirá en el PBI 2">
-          Calcular ruta
-        </button>
       </div>
     </section>
   );

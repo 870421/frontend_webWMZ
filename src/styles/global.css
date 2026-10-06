@@ -17,12 +17,14 @@
 html,
 body,
 #root {
+  width: 100%;
   min-height: 100%;
   margin: 0;
 }
 
 body {
-  min-width: 320px;
+  min-width: 0;
+  overflow-x: hidden;
   background: #eef4f1;
 }
 
@@ -51,15 +53,16 @@ input:focus-visible {
 
 .app-shell {
   position: relative;
+  width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  overflow-x: clip;
   background: #eef4f1;
 }
 
 .map-region {
-  height: 48vh;
-  height: 48svh;
-  min-height: 20rem;
+  height: clamp(18rem, 42svh, 23rem);
+  min-height: 18rem;
 }
 
 .map-wrapper,
@@ -70,6 +73,8 @@ input:focus-visible {
 
 .map-wrapper {
   position: relative;
+  min-width: 0;
+  overflow: hidden;
   background: #dce9e2;
 }
 
@@ -77,11 +82,11 @@ input:focus-visible {
   position: relative;
   z-index: 600;
   display: grid;
-  width: calc(100% - 1.5rem);
-  max-width: 34rem;
-  gap: 1rem;
-  margin: -1.35rem auto 0;
-  padding: 1rem;
+  width: calc(100% - 1rem);
+  max-width: min(34rem, calc(100vw - 1rem));
+  gap: 0.85rem;
+  margin: -1rem auto 0.75rem;
+  padding: 0.9rem;
   border: 1px solid rgba(218, 226, 230, 0.82);
   border-radius: 1.4rem 1.4rem 0.75rem 0.75rem;
   background: rgba(255, 255, 255, 0.98);
@@ -96,6 +101,9 @@ input:focus-visible {
   min-width: 0;
   max-width: 100%;
 }
+
+.route-actions { display: contents; }
+.mobile-panel-toggle { display: none; }
 
 .app-header {
   display: flex;
@@ -198,25 +206,28 @@ input:focus-visible {
 }
 
 .point-list {
+  --point-gap: 0.8rem;
   position: relative;
   display: grid;
-  gap: 0.8rem;
+  gap: var(--point-gap);
 }
 
-.point-list::before {
+.point-field-origin::after {
   content: "";
   position: absolute;
-  top: 1.45rem;
-  bottom: 1.45rem;
-  left: 0.38rem;
+  z-index: 0;
+  top: 1.5rem;
+  left: 0.48rem;
+  height: calc(100% + var(--point-gap));
   border-left: 2px dashed #d2dce4;
+  pointer-events: none;
 }
 
 .point-field {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 0.85rem minmax(0, 1fr);
+  grid-template-columns: 1rem minmax(0, 1fr);
   gap: 0.7rem;
   align-items: start;
   min-width: 0;
@@ -227,9 +238,12 @@ input:focus-visible {
 }
 
 .point-symbol {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 0.82rem;
   height: 0.82rem;
+  justify-self: center;
   margin-top: 1.1rem;
   border: 3px solid #ffffff;
   border-radius: 50%;
@@ -237,13 +251,31 @@ input:focus-visible {
   box-shadow: 0 0 0 2px #dff1e9;
 }
 
-.point-field-destination .point-symbol {
-  background: var(--blue);
-  box-shadow: 0 0 0 2px #e0effa;
+.point-symbol-destination {
+  width: 1.15rem;
+  height: 1.45rem;
+  margin-top: 0.86rem;
+  border: 0;
+  border-radius: 0;
+  color: var(--blue);
+  background: transparent;
+  box-shadow: none;
 }
+
+.point-symbol-destination svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0.12rem 0.16rem rgba(34, 99, 145, 0.22));
+}
+
+.point-symbol-destination path { fill: currentColor; }
+.point-symbol-destination circle { fill: #ffffff; }
 
 .point-control {
   position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
@@ -422,20 +454,40 @@ input:focus-visible {
 .map-guidance .active-map-target {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  border-radius: 0.65rem;
-  padding: 0.6rem 0.7rem;
-  color: #168759;
-  background: var(--green-soft);
-  font-weight: 750;
+  gap: 0.45rem;
+  border: 1px solid #e0e9e5;
+  border-radius: 0.7rem;
+  padding: 0.42rem 0.5rem;
+  color: #718096;
+  background: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 650;
 }
 
-.active-map-target > span {
-  width: 0.55rem;
-  height: 0.55rem;
+.active-map-target .active-map-dot {
+  width: 0.45rem;
+  height: 0.45rem;
   flex: none;
   border-radius: 50%;
   background: var(--green);
+}
+
+.active-map-target strong {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  font-size: 0.72rem;
+}
+
+.active-map-target-destination .active-map-dot {
+  background: var(--blue);
+}
+
+.active-map-target-destination strong {
+  color: #2476b0;
+  background: #e8f4fc;
 }
 
 .secondary-button,
@@ -445,18 +497,29 @@ input:focus-visible {
 }
 
 .clear-selection-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   justify-self: start;
-  min-height: 2.45rem;
-  border: 1px solid #d6dfe6;
-  padding: 0 0.85rem;
-  color: #66758b;
-  background: #ffffff;
+  min-height: 2.1rem;
+  border: 0;
+  padding: 0 0.55rem;
+  color: #7b8798;
+  background: transparent;
+  font-size: 0.78rem;
   cursor: pointer;
 }
 
 .clear-selection-button > span {
-  margin-right: 0.35rem;
-  font-size: 1.08rem;
+  margin-right: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.clear-selection-button:hover:not(:disabled),
+.clear-selection-button:focus-visible {
+  color: #536174;
+  background: #f1f5f3;
 }
 
 .route-submit {
@@ -590,13 +653,389 @@ input:focus-visible {
   background: var(--green);
 }
 
-@media (min-width: 48rem) {
-  .map-region {
-    height: 56vh;
-    height: 56svh;
+.leaflet-control-attribution {
+  max-width: calc(100vw - 0.5rem);
+  overflow: hidden;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 56.24rem) {
+  .leaflet-control-attribution > a[href*="leafletjs.com"],
+  .leaflet-control-attribution > a[href*="leafletjs.com"] + span {
+    display: none;
   }
 
-  .control-panel { padding: 1.2rem; }
+  .leaflet-control-attribution {
+    display: block;
+    border-radius: 0.45rem 0 0 0;
+    padding: 0.08rem 0.28rem;
+    background: rgba(255, 255, 255, 0.76);
+    font-size: 0.55rem;
+    opacity: 0.8;
+  }
+
+  .app-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .map-region {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .map-wrapper,
+  .map-view {
+    min-height: 100%;
+  }
+
+  .control-panel {
+    position: absolute;
+    top: max(0.5rem, env(safe-area-inset-top));
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: calc(100% - 1rem);
+    height: auto;
+    max-width: 27rem;
+    max-height: none;
+    margin: 0 auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem;
+    overflow: visible;
+    border: 1px solid rgba(218, 226, 230, 0.82);
+    border-radius: 1.05rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 0.55rem 1.5rem rgba(24, 48, 39, 0.16);
+  }
+
+  .app-header {
+    grid-column: 1;
+    grid-row: 1;
+    gap: 0.4rem;
+    padding: 0 0.2rem;
+  }
+
+  .app-logo-frame {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .app-logo {
+    width: 2.85rem;
+    height: 2.85rem;
+  }
+
+  .app-header h1 {
+    font-size: 1rem;
+    letter-spacing: -0.025em;
+  }
+
+  .app-kicker { display: none; }
+
+  .route-search-panel { display: contents; }
+
+  .mobile-panel-toggle {
+    display: inline-flex;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 2rem;
+    align-items: center;
+    gap: 0.2rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 0.5rem 0 0.65rem;
+    color: #68778b;
+    background: #f1f5f3;
+    font-size: 0.72rem;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .mobile-panel-toggle svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    transform: rotate(180deg);
+    transition: transform 180ms ease;
+  }
+
+  .route-search-panel.is-collapsed .mobile-panel-toggle svg {
+    transform: rotate(0);
+  }
+
+  .route-form {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    gap: 0.4rem;
+  }
+
+  .route-search-panel.is-collapsed .point-list { display: none; }
+  .selection-mode { display: none; }
+  .point-list { --point-gap: 0.35rem; }
+
+  .point-input-shell {
+    min-height: 2.65rem;
+    border-color: #e1e8ec;
+    border-radius: 0.8rem;
+    background: rgba(248, 250, 251, 0.88);
+  }
+
+  .point-input-shell input {
+    min-height: 2.1rem;
+    font-size: 0.86rem;
+  }
+
+  .input-icon-button {
+    width: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+  }
+
+  .point-symbol { margin-top: 0.92rem; }
+
+  .point-symbol-destination { margin-top: 0.7rem; }
+
+  .point-field-origin::after {
+    top: 1.32rem;
+  }
+
+  .point-coordinate { display: none !important; }
+
+  .map-selection-hint { display: none; }
+
+  .route-actions {
+    position: fixed;
+    z-index: 650;
+    right: 0.65rem;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    left: 0.65rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+    width: auto;
+    max-width: 26rem;
+    margin: 0 auto;
+    border: 1px solid rgba(218, 226, 230, 0.9);
+    border-radius: 1rem;
+    padding: 0.55rem;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 0.7rem 2rem rgba(24, 48, 39, 0.2);
+    backdrop-filter: blur(0.65rem);
+  }
+
+  .route-actions .form-message {
+    grid-column: 1 / -1;
+  }
+
+  .route-actions .map-guidance {
+    grid-column: 1 / -1;
+    border: 0;
+    padding: 0;
+  }
+
+  .map-guidance > p:first-child { display: none; }
+
+  .route-actions .active-map-target {
+    gap: 0.4rem;
+    border: 1px solid #e5ece8;
+    padding: 0.35rem 0.45rem;
+    background: #f8faf9;
+  }
+
+  .route-actions .active-map-target strong {
+    margin-left: auto;
+    padding: 0.22rem 0.48rem;
+  }
+
+  .route-actions .clear-selection-button {
+    min-height: 2.35rem;
+    padding: 0 0.45rem;
+    white-space: nowrap;
+  }
+
+  .route-actions .route-submit {
+    min-height: 2.45rem;
+    padding: 0 0.7rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .route-actions .form-message { order: -1; }
+
+  .leaflet-bottom { bottom: 7rem; }
+}
+
+@media (min-width: 37.5rem) and (max-width: 43.74rem) and (orientation: portrait) {
+  .control-panel {
+    top: 0.75rem;
+    right: 0;
+    left: 0;
+    width: calc(100% - 1.5rem);
+    max-width: 30rem;
+    margin: 0 auto;
+    transform: none;
+  }
+
+  .route-actions {
+    right: 0;
+    left: 0;
+    width: calc(100% - 1.5rem);
+    max-width: 30rem;
+    margin: 0 auto;
+    transform: none;
+  }
+}
+
+@media (min-width: 43.75rem) and (max-width: 56.24rem) {
+  .control-panel {
+    top: 0.75rem;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: calc(100% - 1.5rem);
+    height: auto;
+    max-width: 32rem;
+    max-height: none;
+    margin: 0 auto;
+    overflow: visible;
+    border-radius: 1.25rem;
+    padding: 0.75rem;
+    transform: none;
+  }
+
+  .app-logo-frame {
+    width: 2.3rem;
+    height: 2.3rem;
+  }
+
+  .app-logo {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .app-header h1 { font-size: 1.08rem; }
+
+  .point-input-shell { min-height: 2.85rem; }
+
+  .point-input-shell input { min-height: 2.3rem; }
+
+  .route-actions {
+    right: 0;
+    left: 0;
+    width: calc(100% - 1.5rem);
+    max-width: 30rem;
+    margin: 0 auto;
+    transform: none;
+  }
+
+  .leaflet-bottom { bottom: 7rem; }
+}
+
+@media (max-width: 30rem) {
+  .app-header { gap: 0.55rem; }
+
+  .app-logo-frame {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  .app-logo {
+    width: 2.7rem;
+    height: 2.7rem;
+  }
+
+  .app-header h1 { font-size: 0.98rem; }
+
+  .app-kicker {
+    font-size: 0.72rem;
+    line-height: 1.2;
+  }
+
+  .route-search-panel { padding-top: 0.75rem; }
+  .route-form { gap: 0.35rem; }
+
+  .point-list { gap: 0.65rem; }
+
+  .point-list { --point-gap: 0.65rem; }
+
+  .point-field {
+    grid-template-columns: 0.95rem minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .point-field-origin::after { left: 0.45rem; }
+
+  .point-symbol {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-top: 1.08rem;
+  }
+
+  .point-input-shell {
+    min-height: 3rem;
+    padding-left: 0.65rem;
+  }
+
+  .point-input-shell input {
+    min-height: 2.4rem;
+    font-size: 0.9rem;
+  }
+
+  .input-icon-button {
+    width: 2.2rem;
+    min-width: 2.2rem;
+    min-height: 2.2rem;
+  }
+
+  .clear-selection-button {
+    width: auto;
+    justify-self: start;
+  }
+
+  .route-submit { min-height: 3rem; }
+
+  .leaflet-control-zoom a,
+  .leaflet-control-zoom a:first-child,
+  .leaflet-control-zoom a:last-child {
+    min-width: 40px;
+    min-height: 40px;
+    line-height: 40px;
+  }
+}
+
+@media (max-width: 20rem) {
+  .control-panel {
+    width: calc(100% - 0.5rem);
+    padding: 0.45rem;
+  }
+
+  .route-actions {
+    right: 0.3rem;
+    left: 0.3rem;
+  }
+
+  .app-header h1 { font-size: 0.92rem; }
+
+  .mobile-panel-toggle {
+    padding-right: 0.35rem;
+    padding-left: 0.45rem;
+  }
 }
 
 @media (min-width: 56.25rem) {
@@ -612,6 +1051,8 @@ input:focus-visible {
     height: 100%;
     min-height: 0;
   }
+
+  .selection-mode { display: none; }
 
   .control-panel {
     position: absolute;
