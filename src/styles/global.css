@@ -956,6 +956,7 @@ input:focus-visible {
   .route-actions .route-summary {
     grid-column: 1 / -1;
     width: 100%;
+    order: 1;
     padding: 0.48rem 0.55rem;
   }
 
@@ -987,13 +988,18 @@ input:focus-visible {
   }
 
   .route-actions .clear-selection-button {
+    grid-column: 1;
     min-height: 2.35rem;
+    order: 2;
     padding: 0 0.45rem;
     white-space: nowrap;
   }
 
   .route-actions .route-submit {
+    grid-column: 2;
+    width: 100%;
     min-height: 2.45rem;
+    order: 2;
     padding: 0 0.7rem;
     font-size: 0.82rem;
     white-space: nowrap;
