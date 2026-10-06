@@ -136,6 +136,24 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('No se ha podido calcular la ruta.');
   });
 
+  it('shows time and distance as soon as the route is calculated', () => {
+    render(
+      <RouteSearchPanel
+        destination={{ lat: 41.66, lng: -0.88, source: 'map' }}
+        origin={{ lat: 41.65, lng: -0.89, source: 'map' }}
+        routeCalculation={{
+          status: 'success',
+          errorMessage: '',
+          route: { distance: 1250.4, duration: 930.2 }
+        }}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: 'Ruta rápida' })).toBeInTheDocument();
+    expect(screen.getByText('16 min')).toBeInTheDocument();
+    expect(screen.getByText('1,3 km')).toBeInTheDocument();
+  });
+
   it('shows geolocation states', () => {
     const { rerender } = render(
       <RouteSearchPanel geolocation={{ status: 'loading', errorMessage: '' }} />

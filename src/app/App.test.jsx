@@ -89,5 +89,7 @@ describe('App', () => {
       origin: { lat: 41.65, lng: -0.89, source: 'map' },
       destination: { lat: 41.65, lng: -0.89, source: 'map' }
     }, { signal: expect.any(AbortSignal) });
+    expect(await screen.findByText('0 min')).toBeInTheDocument();
+    expect(screen.getByText('0 m')).toBeInTheDocument();
   });
 });

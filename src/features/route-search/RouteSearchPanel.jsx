@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
 
 const noop = () => {};
@@ -201,6 +202,12 @@ export function RouteSearchPanel({
           {isCalculating && <p className="form-message" role="status">
             Calculando la ruta más rápida...
           </p>}
+          {routeCalculation.route && (
+            <RouteSummary
+              distance={routeCalculation.route.distance}
+              duration={routeCalculation.route.duration}
+            />
+          )}
           <button type="button" className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
             disabled={!canCalculate} onClick={onCalculateRoute}
             title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}>
