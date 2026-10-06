@@ -8,14 +8,14 @@ describe('createDevicePoint', () => {
       createDevicePoint({
         coords: {
           latitude: 41.65,
-          longitude: -0.89
-        }
+          longitude: -0.89,
+        },
       })
     ).toEqual({
       lat: 41.65,
       lng: -0.89,
-      label: 'Current location',
-      source: 'device'
+      label: 'Ubicación actual',
+      source: 'device',
     });
   });
 
@@ -25,7 +25,7 @@ describe('createDevicePoint', () => {
     { coords: {} },
     { coords: { latitude: Number.NaN, longitude: -0.89 } },
     { coords: { latitude: 91, longitude: -0.89 } },
-    { coords: { latitude: 41.65, longitude: -181 } }
+    { coords: { latitude: 41.65, longitude: -181 } },
   ])('rejects invalid geolocation coordinates %#', (position) => {
     expect(createDevicePoint(position)).toBeNull();
   });
@@ -38,18 +38,18 @@ describe('useDeviceLocation', () => {
   afterEach(() => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
-      value: originalGeolocation
+      value: originalGeolocation,
     });
     Object.defineProperty(window, 'isSecureContext', {
       configurable: true,
-      value: originalIsSecureContext
+      value: originalIsSecureContext,
     });
   });
 
   it('explains when geolocation is blocked by an insecure context', () => {
     Object.defineProperty(window, 'isSecureContext', {
       configurable: true,
-      value: false
+      value: false,
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
@@ -58,14 +58,14 @@ describe('useDeviceLocation', () => {
 
     expect(result.current.geolocation.status).toBe('error');
     expect(result.current.geolocation.errorMessage).toBe(
-      'Location access requires HTTPS or localhost. Open the app on localhost or use HTTPS.'
+      'El acceso a la ubicación requiere HTTPS o localhost. Abre la aplicación en localhost o utiliza HTTPS.'
     );
   });
 
   it('handles unsupported browsers', () => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
-      value: undefined
+      value: undefined,
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
@@ -74,7 +74,7 @@ describe('useDeviceLocation', () => {
 
     expect(result.current.geolocation.status).toBe('unsupported');
     expect(result.current.geolocation.errorMessage).toBe(
-      'Your browser does not support location access.'
+      'Tu navegador no permite acceder a la ubicación.'
     );
   });
 
@@ -88,11 +88,11 @@ describe('useDeviceLocation', () => {
           onSuccess({
             coords: {
               latitude: 41.65,
-              longitude: -0.89
-            }
+              longitude: -0.89,
+            },
           })
-        )
-      }
+        ),
+      },
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated }));
@@ -102,8 +102,8 @@ describe('useDeviceLocation', () => {
     expect(onLocated).toHaveBeenCalledWith('destination', {
       lat: 41.65,
       lng: -0.89,
-      label: 'Current location',
-      source: 'device'
+      label: 'Ubicación actual',
+      source: 'device',
     });
     expect(result.current.geolocation.status).toBe('success');
     expect(result.current.geolocation.pointType).toBe('destination');
@@ -117,8 +117,8 @@ describe('useDeviceLocation', () => {
       value: {
         getCurrentPosition: jest.fn((onSuccess) =>
           onSuccess({ coords: { latitude: Number.NaN, longitude: -0.89 } })
-        )
-      }
+        ),
+      },
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated }));
@@ -128,14 +128,14 @@ describe('useDeviceLocation', () => {
     expect(onLocated).not.toHaveBeenCalled();
     expect(result.current.geolocation).toEqual({
       status: 'error',
-      errorMessage: 'Your browser returned an invalid location. Please try again.'
+      errorMessage: 'El navegador ha devuelto una ubicación no válida. Inténtalo de nuevo.',
     });
   });
 
   it('falls back to lower accuracy when precise location is unavailable', () => {
     const onLocated = jest.fn();
     const unavailableError = {
-      code: 2
+      code: 2,
     };
     const getCurrentPosition = jest
       .fn()
@@ -144,16 +144,16 @@ describe('useDeviceLocation', () => {
         onSuccess({
           coords: {
             latitude: 41.67,
-            longitude: -0.88
-          }
+            longitude: -0.88,
+          },
         })
       );
 
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition
-      }
+        getCurrentPosition,
+      },
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated }));
@@ -162,27 +162,27 @@ describe('useDeviceLocation', () => {
 
     expect(getCurrentPosition).toHaveBeenCalledTimes(2);
     expect(getCurrentPosition.mock.calls[1][2]).toMatchObject({
-      enableHighAccuracy: false
+      enableHighAccuracy: false,
     });
     expect(onLocated).toHaveBeenCalledWith('origin', {
       lat: 41.67,
       lng: -0.88,
-      label: 'Current location',
-      source: 'device'
+      label: 'Ubicación actual',
+      source: 'device',
     });
     expect(result.current.geolocation.status).toBe('success');
   });
 
   it('shows a useful unavailable message when fallback also fails', () => {
     const unavailableError = {
-      code: 2
+      code: 2,
     };
 
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition: jest.fn((_onSuccess, onError) => onError(unavailableError))
-      }
+        getCurrentPosition: jest.fn((_onSuccess, onError) => onError(unavailableError)),
+      },
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
@@ -191,21 +191,21 @@ describe('useDeviceLocation', () => {
 
     expect(result.current.geolocation.status).toBe('error');
     expect(result.current.geolocation.errorMessage).toBe(
-      'Your current location is unavailable. Check that location services are enabled for your browser and operating system.'
+      'Tu ubicación actual no está disponible. Comprueba que los servicios de ubicación estén activados en el navegador y el sistema operativo.'
     );
   });
 
   it('handles permission denial', () => {
     const permissionError = {
       code: 1,
-      PERMISSION_DENIED: 1
+      PERMISSION_DENIED: 1,
     };
 
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition: jest.fn((_onSuccess, onError) => onError(permissionError))
-      }
+        getCurrentPosition: jest.fn((_onSuccess, onError) => onError(permissionError)),
+      },
     });
 
     const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
@@ -213,23 +213,27 @@ describe('useDeviceLocation', () => {
     act(() => result.current.requestCurrentLocation());
 
     expect(result.current.geolocation.status).toBe('denied');
-    expect(result.current.geolocation.errorMessage).toContain('Allow Location in this site’s browser settings');
+    expect(result.current.geolocation.errorMessage).toContain(
+      'Permítelo en la configuración del navegador'
+    );
   });
 
   it('distinguishes a page policy block from a user permission denial', () => {
     const originalPolicy = Object.getOwnPropertyDescriptor(document, 'permissionsPolicy');
     const getCurrentPosition = jest.fn();
     Object.defineProperty(navigator, 'geolocation', {
-      configurable: true, value: { getCurrentPosition }
+      configurable: true,
+      value: { getCurrentPosition },
     });
     Object.defineProperty(document, 'permissionsPolicy', {
-      configurable: true, value: { allowsFeature: () => false }
+      configurable: true,
+      value: { allowsFeature: () => false },
     });
     try {
       const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
       act(() => result.current.requestCurrentLocation());
       expect(result.current.geolocation.status).toBe('denied');
-      expect(result.current.geolocation.errorMessage).toContain('permissions policy');
+      expect(result.current.geolocation.errorMessage).toContain('política de permisos');
       expect(getCurrentPosition).not.toHaveBeenCalled();
     } finally {
       if (originalPolicy) Object.defineProperty(document, 'permissionsPolicy', originalPolicy);
@@ -238,12 +242,17 @@ describe('useDeviceLocation', () => {
   });
 
   it('reports timeout after the fallback also times out', () => {
-    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
-      getCurrentPosition: jest.fn((_success, fail) => fail({ code: 3 }))
-    } });
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: jest.fn((_success, fail) => fail({ code: 3 })),
+      },
+    });
     const { result } = renderHook(() => useDeviceLocation({ onLocated: jest.fn() }));
     act(() => result.current.requestCurrentLocation());
-    expect(result.current.geolocation.errorMessage).toBe('Location request timed out.');
+    expect(result.current.geolocation.errorMessage).toBe(
+      'La solicitud de ubicación ha tardado demasiado.'
+    );
     expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(2);
   });
 
@@ -251,13 +260,22 @@ describe('useDeviceLocation', () => {
     let success;
     let fail;
     const onLocated = jest.fn();
-    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
-      getCurrentPosition: jest.fn((onSuccess, onError) => { success = onSuccess; fail = onError; })
-    } });
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: jest.fn((onSuccess, onError) => {
+          success = onSuccess;
+          fail = onError;
+        }),
+      },
+    });
     const { result, unmount } = renderHook(() => useDeviceLocation({ onLocated }));
     act(() => result.current.requestCurrentLocation());
     act(() => result.current.clearGeolocationMessage());
-    act(() => { success({ coords: { latitude: 41, longitude: -1 } }); fail({ code: 2 }); });
+    act(() => {
+      success({ coords: { latitude: 41, longitude: -1 } });
+      fail({ code: 2 });
+    });
     expect(onLocated).not.toHaveBeenCalled();
     expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
     act(() => result.current.requestCurrentLocation());
