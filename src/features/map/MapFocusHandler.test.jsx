@@ -4,7 +4,7 @@ import { useMap } from 'react-leaflet';
 import { MapFocusHandler } from './MapFocusHandler.jsx';
 
 jest.mock('react-leaflet', () => ({
-  useMap: jest.fn()
+  useMap: jest.fn(),
 }));
 
 describe('MapFocusHandler', () => {
@@ -13,14 +13,14 @@ describe('MapFocusHandler', () => {
 
     useMap.mockReturnValue({
       flyTo,
-      getZoom: () => 13
+      getZoom: () => 13,
     });
 
     render(<MapFocusHandler point={{ lat: 41.65, lng: -0.89 }} />);
 
     expect(flyTo).toHaveBeenCalledWith([41.65, -0.89], 15, {
       animate: true,
-      duration: 0.7
+      duration: 0.7,
     });
   });
 
@@ -29,7 +29,7 @@ describe('MapFocusHandler', () => {
 
     useMap.mockReturnValue({
       flyTo,
-      getZoom: () => 13
+      getZoom: () => 13,
     });
 
     render(<MapFocusHandler point={null} />);
