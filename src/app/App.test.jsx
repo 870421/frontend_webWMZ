@@ -1,6 +1,11 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App.jsx';
+import { getFastestRoute } from '../services/api/routesApi.js';
+
+jest.mock('../services/api/routesApi.js', () => ({
+  getFastestRoute: jest.fn()
+}));
 
 jest.mock('../features/map/MapView.jsx', () => ({
   MapView: ({ origin, destination, onSelectPoint }) => <div data-testid="map-view">
@@ -14,6 +19,10 @@ describe('App', () => {
   const originalLocation = navigator.geolocation;
   afterEach(() => {
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: originalLocation });
+  });
+
+  beforeEach(() => {
+    getFastestRoute.mockReset();
   });
 
   it('renders the base application shell', () => {
@@ -61,5 +70,24 @@ describe('App', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Ubicación actual asignada como destino');
     await user.clear(screen.getByLabelText('Destino'));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('requests the fastest route with the selected points', async () => {
+    const user = userEvent.setup();
+    getFastestRoute.mockResolvedValue({
+      geometry: { type: 'LineString', coordinates: [[-0.89, 41.65], [-0.89, 41.65]] },
+      distance: 0,
+      duration: 0
+    });
+    render(<App />);
+
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+
+    expect(getFastestRoute).toHaveBeenCalledWith({
+      origin: { lat: 41.65, lng: -0.89, source: 'map' },
+      destination: { lat: 41.65, lng: -0.89, source: 'map' }
+    }, { signal: expect.any(AbortSignal) });
   });
 });

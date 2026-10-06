@@ -523,11 +523,32 @@ input:focus-visible {
 }
 
 .route-submit {
+  display: inline-flex;
   min-height: 3.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   border: 0;
   color: #ffffff;
   background: var(--green);
   box-shadow: 0 0.45rem 1rem rgba(47, 170, 115, 0.22);
+}
+
+.route-submit-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: route-spinner 700ms linear infinite;
+}
+
+@keyframes route-spinner {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-submit-spinner { animation: none; }
 }
 
 .route-form button:disabled,

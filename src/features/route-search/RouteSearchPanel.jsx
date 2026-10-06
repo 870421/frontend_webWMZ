@@ -129,9 +129,12 @@ export function RouteSearchPanel({
   activePoint = 'origin', origin = null, destination = null, originInput = '', destinationInput = '',
   geolocation = { status: 'idle', errorMessage: '' }, onSetActivePoint = noop,
   onEditPoint = noop, onClearPoint = noop, onSetPoint = noop, onResetPoints = noop,
-  onRequestCurrentLocation = noop, onClearGeolocationMessage = noop
+  onRequestCurrentLocation = noop, onClearGeolocationMessage = noop, onCalculateRoute = noop,
+  routeCalculation = { status: 'idle', errorMessage: '' }
 }) {
   const isLocating = geolocation.status === 'loading';
+  const isCalculating = routeCalculation.status === 'loading';
+  const canCalculate = Boolean(origin && destination) && !isCalculating;
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
 
   return (
@@ -192,8 +195,17 @@ export function RouteSearchPanel({
           {geolocation.status === 'success' && <p className="form-message" role="status">
             Ubicación actual asignada como {pointLabel(geolocation.pointType)}.
           </p>}
-          <button type="button" className="route-submit" disabled title="El cálculo de rutas se añadirá en el PBI 2">
-            Calcular ruta
+          {routeCalculation.errorMessage && <p className="form-message form-message-error" role="alert">
+            {routeCalculation.errorMessage}
+          </p>}
+          {isCalculating && <p className="form-message" role="status">
+            Calculando la ruta más rápida...
+          </p>}
+          <button type="button" className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
+            disabled={!canCalculate} onClick={onCalculateRoute}
+            title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}>
+            {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
+            {isCalculating ? 'Calculando...' : 'Calcular ruta'}
           </button>
         </div>
       </div>

@@ -109,6 +109,33 @@ describe('RouteSearchPanel', () => {
     expect(onResetPoints).toHaveBeenCalledTimes(1);
   });
 
+  it('calculates only with both points and shows request states', async () => {
+    const user = userEvent.setup();
+    const onCalculateRoute = jest.fn();
+    const origin = { lat: 41.65, lng: -0.89, source: 'map' };
+    const destination = { lat: 41.66, lng: -0.88, source: 'map' };
+    const view = render(
+      <RouteSearchPanel origin={origin} destination={destination}
+        onCalculateRoute={onCalculateRoute} />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+    expect(onCalculateRoute).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <RouteSearchPanel origin={origin} destination={destination}
+        routeCalculation={{ status: 'loading', errorMessage: '' }} />
+    );
+    expect(screen.getByRole('button', { name: 'Calculando...' })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Calculando la ruta más rápida');
+
+    view.rerender(
+      <RouteSearchPanel origin={origin} destination={destination}
+        routeCalculation={{ status: 'error', errorMessage: 'No se ha podido calcular la ruta.' }} />
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('No se ha podido calcular la ruta.');
+  });
+
   it('shows geolocation states', () => {
     const { rerender } = render(
       <RouteSearchPanel geolocation={{ status: 'loading', errorMessage: '' }} />

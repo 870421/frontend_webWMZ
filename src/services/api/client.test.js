@@ -18,4 +18,15 @@ describe('apiRequest', () => {
       await expect(apiRequest('/geocoding/autocomplete')).rejects.toThrow(message);
     }
   );
+  it('supports endpoint-specific errors without forwarding client options to fetch', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 504 });
+    await expect(apiRequest('/routes/fastest', {
+      method: 'POST',
+      errorMessages: { 504: 'Tiempo de ruta agotado.' },
+      fallbackErrorMessage: 'Ruta no disponible.'
+    })).rejects.toThrow('Tiempo de ruta agotado.');
+    expect(global.fetch).toHaveBeenCalledWith('/api/routes/fastest', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    });
+  });
 });
