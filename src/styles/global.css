@@ -523,15 +523,55 @@ input:focus-visible {
 }
 
 .route-submit {
+  position: relative;
   display: inline-flex;
+  overflow: hidden;
   min-height: 3.25rem;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   border: 0;
   color: #ffffff;
-  background: var(--green);
+  background: linear-gradient(135deg, var(--green) 0%, #279b69 100%);
   box-shadow: 0 0.45rem 1rem rgba(47, 170, 115, 0.22);
+  cursor: pointer;
+  isolation: isolate;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.route-submit::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+  content: "";
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .route-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0.7rem 1.4rem rgba(30, 137, 91, 0.28),
+      0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+  }
+
+  .route-submit:hover:not(:disabled)::before { opacity: 1; }
+}
+
+.route-submit:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+  box-shadow: 0 0.3rem 0.7rem rgba(30, 137, 91, 0.22);
+}
+
+.route-submit:focus-visible {
+  outline-color: rgba(24, 136, 90, 0.42);
+  box-shadow:
+    0 0.45rem 1rem rgba(47, 170, 115, 0.24),
+    0 0 0 3px rgba(255, 255, 255, 0.92);
 }
 
 .route-submit-spinner {
@@ -638,6 +678,12 @@ input:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .route-submit-spinner { animation: none; }
+
+  .route-submit,
+  .route-submit::before { transition: none; }
+
+  .route-submit:hover:not(:disabled),
+  .route-submit:active:not(:disabled) { transform: none; }
 }
 
 .route-form button:disabled,
