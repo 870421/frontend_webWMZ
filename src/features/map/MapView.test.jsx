@@ -15,8 +15,12 @@ jest.mock('react-leaflet', () => ({
       {children}
     </div>
   ),
+  Polyline: ({ positions }) => (
+    <div data-positions={JSON.stringify(positions)} data-testid="route-line" />
+  ),
   Popup: ({ children }) => <div>{children}</div>,
   useMap: () => ({
+    fitBounds: jest.fn(),
     flyTo: jest.fn(),
     getZoom: () => 13
   }),
@@ -60,5 +64,23 @@ describe('MapView', () => {
     expect(screen.getAllByText('Origen')).toHaveLength(2);
     expect(screen.getAllByText('Destino')).toHaveLength(2);
     expect(screen.getByText('Toca el mapa para fijar el destino.')).toBeInTheDocument();
+  });
+
+  it('renders the route geometry received from the backend', () => {
+    render(
+      <MapView
+        route={{
+          geometry: {
+            type: 'LineString',
+            coordinates: [[-0.89, 41.65], [-0.88, 41.66]]
+          }
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('route-line')).toHaveAttribute(
+      'data-positions',
+      JSON.stringify([[41.65, -0.89], [41.66, -0.88]])
+    );
   });
 });

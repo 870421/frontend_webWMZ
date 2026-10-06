@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
 import { LocationMarker } from './LocationMarker.jsx';
 import { MapClickHandler } from './MapClickHandler.jsx';
 import { MapFocusHandler } from './MapFocusHandler.jsx';
+import { RouteLayer } from './RouteLayer.jsx';
 
 const ZARAGOZA_CENTER = [41.6488, -0.8891];
 const noop = () => {};
@@ -12,7 +13,8 @@ export function MapView({
   destination,
   focusPoint,
   onSelectPoint = noop,
-  origin
+  origin,
+  route
 }) {
   return (
     <div className="map-wrapper">
@@ -30,6 +32,7 @@ export function MapView({
         <ZoomControl position="bottomright" />
         <MapClickHandler onSelectPoint={onSelectPoint} />
         <MapFocusHandler point={focusPoint} />
+        <RouteLayer geometry={route?.geometry} />
         <LocationMarker point={origin} title="Origen" type="origin" />
         <LocationMarker point={destination} title="Destino" type="destination" />
       </MapContainer>

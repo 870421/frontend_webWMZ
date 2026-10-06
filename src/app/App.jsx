@@ -33,6 +33,7 @@ export function App() {
           focusPoint={routePoints.lastSelectedPoint}
           onSelectPoint={withSelectionUpdated(routePoints.selectPoint)}
           origin={routePoints.origin}
+          route={fastestRoute.route}
         />
       }
       sidebar={
