@@ -20,7 +20,9 @@ cp .env.example .env
 npm run dev
 ```
 
-El servidor de desarrollo se sirve en <http://localhost:5173>.
+El servidor de desarrollo se sirve en <http://localhost:5173>. Desde la PBI-4 la aplicación pide
+iniciar sesión, así que el backend tiene que estar arrancado (con `JWT_SECRET` y las migraciones
+aplicadas) para poder entrar.
 
 ## Tests
 
@@ -28,32 +30,30 @@ El servidor de desarrollo se sirve en <http://localhost:5173>.
 npm test
 ```
 
-## Build de producción
-=======
 ## Lint
 
 ```bash
 npm run lint
 ```
 
-ESLint checks the project using an Airbnb-compatible flat configuration for modern
-ESLint versions, including React Hooks rules.
+ESLint revisa el proyecto con una configuración plana compatible con Airbnb para las versiones
+actuales de ESLint, incluidas las reglas de React Hooks.
 
-## Format
+## Formato
 
-Format the project automatically with Prettier:
+Formatea el proyecto automáticamente con Prettier:
 
 ```bash
 npm run format
 ```
 
-Check formatting without changing files:
+Comprueba el formato sin modificar archivos:
 
 ```bash
 npm run format:check
 ```
 
-## Production Build
+## Build de producción
 
 ```bash
 npm run build
@@ -65,6 +65,18 @@ npm run build
 npm run preview
 ```
 
+## Integración continua
+
+Para ejecutar en local las mismas comprobaciones que GitHub Actions:
+
+```bash
+npm run ci
+```
+
+Este comando ejecuta ESLint, comprueba el formato con Prettier, lanza todos los tests de Jest y
+genera el build de producción. El workflow de GitHub Actions se ejecuta automáticamente en cada
+pull request hacia `main`.
+
 ## Variables de entorno
 
 - `VITE_API_BASE_URL`: URL base de la API del backend; por defecto `/api`. Vite redirige las
@@ -72,6 +84,18 @@ npm run preview
   en desarrollo (Compose usa `http://backend:3000`). En producción, el servidor debe redirigir
   `/api` al backend o hay que indicar una URL pública de la API al hacer el build. Nunca pongas una
   clave de un proveedor en una variable `VITE_`.
+
+El inicio de sesión con Google no necesita ninguna variable en el frontend: sus credenciales están
+solo en el backend.
+
+## Estructura de carpetas
+
+- `src/app/`: arranque de la aplicación (`App`, proveedores y router).
+- `src/components/`: componentes de presentación reutilizables (layout y UI).
+- `src/features/`: funcionalidades (mapa, búsqueda de origen/destino, rutas, autenticación...).
+- `src/services/`: comunicación con la API del backend y almacenamiento de la sesión.
+- `src/styles/`: estilos globales.
+- `src/tests/`: configuración y mocks compartidos de Jest.
 
 ## Comprobaciones de la PBI-1
 
@@ -87,39 +111,20 @@ npm run preview
 - Los marcadores de GPS tienen un círculo de referencia fijo de 50 metros, no una estimación de
   precisión. Corregir un punto en el mapa, Clear y Reset eliminan su círculo.
 - El cálculo de rutas queda fuera de la PBI-1 a propósito.
-=======
 
-## Continuous integration
+## Comprobaciones de la PBI-4
 
-Run the same checks used by GitHub Actions locally with:
-
-```bash
-npm run ci
-```
-
-This command runs ESLint, checks Prettier formatting, executes the complete Jest suite
-and creates the production build.
-The GitHub Actions workflow runs automatically for every pull request targeting
-`main`.
-
-## Environment
-
-- `VITE_API_BASE_URL`: backend API base URL, default `/api`. Vite proxies local `/api`
-  requests to `http://localhost:3000`; `API_PROXY_TARGET` overrides that development
-  target (Compose uses `http://backend:3000`). A production host must proxy `/api`
-  to the backend or provide a public API URL at build time. Never use a provider key
-  in a `VITE_` variable.
-
-## PBI-1 checks
-
-- Select origin/destination by map, address suggestions or GPS; mix methods.
-- Editing clears the old marker until another place is selected.
-- Clear removes a draft or point; Reset also cancels pending GPS and clears messages.
-- Autocomplete starts after 3 characters and 350 ms, with loading, empty and error states.
-- Use Arrow keys and Enter to select a suggestion; Escape or blur closes the list.
-- Check 375, 390, 768, 1366 and 1920 px widths, long labels and browser zoom.
-- GPS requires HTTPS or localhost. On a phone, plain HTTP over a LAN will show the
-  secure-context error; use HTTPS to test permission and location behavior.
-- GPS markers have a fixed 50-metre reference circle, not an accuracy estimate.
-  Correcting a point on the map, Clear and Reset remove its circle.
-- Route calculation is intentionally outside PBI-1.
+- Sin sesión iniciada solo se ve la pantalla de inicio de sesión; el mapa no aparece.
+- Registrarse con un correo no válido o una contraseña de menos de 8 caracteres muestra el error
+  debajo del campo que falla, y el foco va a ese campo.
+- Registrarse con un correo que ya existe muestra "Ya existe una cuenta con este correo
+  electrónico".
+- Un registro o inicio de sesión correcto entra al mapa con el nombre y "Cerrar sesión" en la
+  cabecera.
+- Al recargar la página se sigue dentro sin volver a iniciar sesión (la sesión dura 7 días).
+- "Cerrar sesión" vuelve a la pantalla de inicio de sesión.
+- "Continuar con Google" abre el selector de cuentas de Google y vuelve a la app con la sesión
+  iniciada. Si se cancela, o Google no está configurado en el backend, vuelve al inicio de sesión
+  con un aviso.
+- El botón del ojo muestra y oculta la contraseña.
+- Todo se puede usar con el teclado (Tab, Enter) y a 375 px no hay scroll horizontal.
