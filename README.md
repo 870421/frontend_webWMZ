@@ -128,3 +128,10 @@ solo en el backend.
   con un aviso.
 - El botón del ojo muestra y oculta la contraseña.
 - Todo se puede usar con el teclado (Tab, Enter) y a 375 px no hay scroll horizontal.
+
+## Despliegue
+
+Cada push a `main` ejecuta el workflow `Deploy`: pasa `npm run ci`, construye la imagen del
+`Dockerfile` (build de Vite servido con nginx en el puerto 8080) y la despliega en la máquina virtual
+de Azure. Caddy, la configuración de Compose y los pasos para preparar el servidor están en el
+`deploy/README.md` del repositorio backend.
