@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { Router } from './router.jsx';
 
 jest.mock('./App.jsx', () => ({
-  App: ({ headerActions }) => <div>Application route {headerActions}</div>,
+  App: ({ userMenu }) => <div>Application route {userMenu}</div>,
 }));
 
 jest.mock('../features/auth/AuthGate.jsx', () => ({

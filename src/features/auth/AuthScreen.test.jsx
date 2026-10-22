@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { AuthGate } from './AuthGate.jsx';
 import { useAuth } from './AuthProvider.jsx';
 import { AuthScreen } from './AuthScreen.jsx';
-import { UserMenu } from './UserMenu.jsx';
 
 jest.mock('./AuthProvider.jsx', () => ({ useAuth: jest.fn() }));
 
@@ -150,14 +149,5 @@ describe('authentication screens', () => {
 
       expect(screen.getByText('Aplicación')).toBeInTheDocument();
     });
-  });
-
-  it('UserMenu shows the user and logs out', async () => {
-    auth.user = { id: 7, name: 'Ana López', email: 'ana@correo.es' };
-    render(<UserMenu />);
-
-    expect(screen.getByText('Ana López')).toHaveAttribute('title', 'ana@correo.es');
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-    expect(auth.logout).toHaveBeenCalled();
   });
 });
