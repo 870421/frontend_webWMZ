@@ -7,6 +7,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // The service worker answers every navigation with the cached index.html. /api must reach
+        // the backend: "Continuar con Google" navigates to /api/auth/google and Google returns to
+        // /api/auth/google/callback.
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'WeatherMapZ',
         short_name: 'WeatherMapZ',
