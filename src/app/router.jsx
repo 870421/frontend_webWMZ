@@ -5,7 +5,7 @@ import { App } from './App.jsx';
 export function Router() {
   return (
     <AuthGate>
-      <App headerActions={<UserMenu />} />
+      <App userMenu={<UserMenu />} />
     </AuthGate>
   );
 }
