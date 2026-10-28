@@ -25,4 +25,13 @@ describe('RouteSummary', () => {
     expect(screen.getByText('16 min')).toBeInTheDocument();
     expect(screen.getByText('1,3 km')).toBeInTheDocument();
   });
+
+  test('presenta el título y la sombra cuando están disponibles', () => {
+    render(
+      <RouteSummary distance={1400} duration={1020} shadePercentage={74.4} title="Ruta Sombreada" />
+    );
+
+    expect(screen.getByRole('heading', { name: 'Ruta Sombreada' })).toBeInTheDocument();
+    expect(screen.getByText('74 %')).toBeInTheDocument();
+  });
 });

@@ -14,7 +14,9 @@ export function MapView({
   focusPoint,
   onSelectPoint = noop,
   origin,
-  route,
+  fastestRoute,
+  shadedRoute,
+  selectedRouteType = 'fastest',
 }) {
   return (
     <div className="map-wrapper">
@@ -32,7 +34,11 @@ export function MapView({
         <ZoomControl position="bottomright" />
         <MapClickHandler onSelectPoint={onSelectPoint} />
         <MapFocusHandler point={focusPoint} />
-        <RouteLayer geometry={route?.geometry} />
+        <RouteLayer
+          fastestGeometry={fastestRoute?.geometry}
+          shadedGeometry={shadedRoute?.geometry}
+          selectedRouteType={selectedRouteType}
+        />
         <LocationMarker point={origin} title="Origen" type="origin" />
         <LocationMarker point={destination} title="Destino" type="destination" />
       </MapContainer>
@@ -48,6 +54,18 @@ export function MapView({
           <i className="legend-dot legend-dot-destination" aria-hidden="true" />
           Destino
         </span>
+        {fastestRoute && (
+          <span>
+            <i className="legend-route legend-route-fastest" aria-hidden="true" />
+            Ruta rápida
+          </span>
+        )}
+        {shadedRoute && (
+          <span>
+            <i className="legend-route legend-route-shaded" aria-hidden="true" />
+            Ruta Sombreada
+          </span>
+        )}
       </div>
     </div>
   );

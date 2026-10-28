@@ -2,25 +2,38 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { App } from './App.jsx';
-import { getFastestRoute } from '../services/api/routesApi.js';
+import { getFastestRoute, getShadedRouteComparison } from '../services/api/routesApi.js';
 
 jest.mock('../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
+  getShadedRouteComparison: jest.fn(),
 }));
 
 jest.mock('../features/map/MapView.jsx', () => ({
-  MapView: ({ origin, destination, onSelectPoint, route }) => (
-    <div data-testid="map-view">
-      <button onClick={() => onSelectPoint({ lat: 41.65, lng: -0.89, source: 'map' })}>
-        Select map point
-      </button>
-      <span data-testid="origin-marker">{origin ? origin.lat : 'none'}</span>
-      <span data-testid="destination-marker">{destination ? destination.lat : 'none'}</span>
-      <span data-testid="route-geometry">
-        {route ? JSON.stringify(route.geometry.coordinates) : 'none'}
-      </span>
-    </div>
-  ),
+  MapView: ({
+    origin,
+    destination,
+    onSelectPoint,
+    fastestRoute,
+    shadedRoute,
+    selectedRouteType,
+  }) => {
+    let geometry = 'none';
+    if (fastestRoute) geometry = JSON.stringify(fastestRoute.geometry.coordinates);
+    if (selectedRouteType === 'shaded' && shadedRoute) {
+      geometry = JSON.stringify(shadedRoute.geometry.coordinates);
+    }
+    return (
+      <div data-testid="map-view">
+        <button onClick={() => onSelectPoint({ lat: 41.65, lng: -0.89, source: 'map' })}>
+          Select map point
+        </button>
+        <span data-testid="origin-marker">{origin ? origin.lat : 'none'}</span>
+        <span data-testid="destination-marker">{destination ? destination.lat : 'none'}</span>
+        <span data-testid="route-geometry">{geometry}</span>
+      </div>
+    );
+  },
 }));
 
 describe('App', () => {
@@ -34,6 +47,7 @@ describe('App', () => {
 
   beforeEach(() => {
     getFastestRoute.mockReset();
+    getShadedRouteComparison.mockReset();
   });
 
   it('renders the base application shell', () => {
@@ -148,5 +162,67 @@ describe('App', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido calcular la ruta');
     expect(screen.getByTestId('route-geometry')).toHaveTextContent('none');
+  });
+
+  it('calculates, compares and alternates a genuinely shaded route', async () => {
+    const user = userEvent.setup();
+    const fastest = {
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-0.89, 41.65],
+          [-0.88, 41.66],
+        ],
+      },
+      distance: 1000,
+      duration: 600,
+      exposure: { status: 'available', shadePercentage: 20, sunPercentage: 80 },
+    };
+    const shaded = {
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-0.89, 41.65],
+          [-0.87, 41.67],
+        ],
+      },
+      distance: 1100,
+      duration: 660,
+      exposure: { status: 'available', shadePercentage: 70, sunPercentage: 30 },
+    };
+    getShadedRouteComparison.mockResolvedValue({
+      status: 'selected',
+      fastest,
+      shaded,
+      additionalDurationSeconds: 60,
+      shadeImprovementPercentagePoints: 50,
+    });
+    render(<App />);
+
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByRole('button', { name: 'Con sombra' }));
+    await user.clear(screen.getByLabelText('Fecha'));
+    await user.type(screen.getByLabelText('Fecha'), '2026-06-21');
+    await user.clear(screen.getByLabelText('Hora'));
+    await user.type(screen.getByLabelText('Hora'), '14:00');
+    await user.click(screen.getByRole('button', { name: 'Calcular Ruta Sombreada' }));
+
+    expect(getShadedRouteComparison).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: '2026-06-21',
+        time: '14:00',
+        timeZone: 'Europe/Madrid',
+      }),
+      { signal: expect.any(AbortSignal) }
+    );
+    expect(await screen.findByText('70 % de sombra')).toBeInTheDocument();
+    expect(screen.getByTestId('route-geometry')).toHaveTextContent(
+      JSON.stringify(shaded.geometry.coordinates)
+    );
+    await user.click(screen.getByRole('button', { name: /Más rápida 10 min/ }));
+    expect(screen.getByTestId('route-geometry')).toHaveTextContent(
+      JSON.stringify(fastest.geometry.coordinates)
+    );
   });
 });

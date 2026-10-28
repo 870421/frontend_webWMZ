@@ -129,6 +129,20 @@ solo en el backend.
 - El botón del ojo muestra y oculta la contraseña.
 - Todo se puede usar con el teclado (Tab, Enter) y a 375 px no hay scroll horizontal.
 
+## Comprobaciones de PBI-5.4
+
+- Selecciona **Más rápida** y comprueba que conserva el flujo y endpoint anteriores.
+- Selecciona **Con sombra**, cambia fecha/hora y calcula; la petición usa `Europe/Madrid`.
+- Si existe alternativa, aparecen dos métricas y dos trazados: rápida discontinua y sombreada
+  continua. Las tarjetas permiten alternar el recorrido destacado sin recalcular.
+- Comprueba duración, porcentaje de sombra y tiempo adicional; un dato ausente se muestra como
+  no disponible, nunca como cero inventado.
+- Si no existe una alternativa adecuada, aparece un mensaje y no se dibuja una segunda copia de
+  la ruta rápida.
+- Repite a 375, 390, 768, 1366 y 1920 px: selector, fecha/hora y comparación siguen accesibles sin
+  aplicaciones ni controles duplicados.
+- Editar origen/destino o fecha/hora cancela peticiones pendientes y elimina trazados obsoletos.
+
 ## Despliegue
 
 Cada push a `main` ejecuta el workflow `Deploy`: pasa `npm run ci`, construye la imagen del

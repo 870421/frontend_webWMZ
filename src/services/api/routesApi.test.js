@@ -1,4 +1,4 @@
-import { getFastestRoute } from './routesApi.js';
+import { getFastestRoute, getShadedRouteComparison } from './routesApi.js';
 
 describe('getFastestRoute', () => {
   const originalFetch = global.fetch;
@@ -62,5 +62,67 @@ describe('getFastestRoute', () => {
   ])('shows a route-specific message for status %s', async (status, message) => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status });
     await expect(getFastestRoute({ origin, destination })).rejects.toThrow(message);
+  });
+
+  it('posts the solar instant and validates a shaded route comparison', async () => {
+    const environmentalRoute = {
+      ...route,
+      exposure: {
+        status: 'available',
+        shadePercentage: 60,
+        sunPercentage: 40,
+      },
+    };
+    const comparison = {
+      status: 'selected',
+      fastest: {
+        ...environmentalRoute,
+        exposure: { ...environmentalRoute.exposure, shadePercentage: 20, sunPercentage: 80 },
+      },
+      shaded: environmentalRoute,
+      additionalDurationSeconds: 120,
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ comparison }),
+    });
+
+    await expect(
+      getShadedRouteComparison({
+        origin,
+        destination,
+        date: '2026-06-21',
+        time: '14:00',
+        timeZone: 'Europe/Madrid',
+      })
+    ).resolves.toEqual(comparison);
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
+      origin: { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng },
+      date: '2026-06-21',
+      time: '14:00',
+      timeZone: 'Europe/Madrid',
+    });
+  });
+
+  it('rejects invented or out-of-range shaded metrics', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        comparison: {
+          status: 'selected',
+          fastest: {
+            ...route,
+            exposure: { status: 'available', shadePercentage: 120, sunPercentage: -20 },
+          },
+          shaded: null,
+          additionalDurationSeconds: null,
+        },
+      }),
+    });
+
+    await expect(
+      getShadedRouteComparison({ origin, destination, date: '2026-06-21', time: '14:00' })
+    ).rejects.toThrow('comparación no válida');
   });
 });

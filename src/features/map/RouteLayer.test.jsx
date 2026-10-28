@@ -36,7 +36,7 @@ describe('RouteLayer', () => {
     ]);
   });
 
-  test('dibuja la ruta en verde con 4 px y encuadra toda la geometría', () => {
+  test('dibuja la ruta rápida discontinua y encuadra toda la geometría', () => {
     const geometry = {
       type: 'LineString',
       coordinates: [
@@ -46,7 +46,7 @@ describe('RouteLayer', () => {
       ],
     };
 
-    render(<RouteLayer geometry={geometry} />);
+    render(<RouteLayer fastestGeometry={geometry} />);
 
     const routeLine = screen.getByTestId('route-line');
     expect(JSON.parse(routeLine.dataset.positions)).toEqual([
@@ -56,8 +56,9 @@ describe('RouteLayer', () => {
     ]);
     expect(JSON.parse(routeLine.dataset.options)).toEqual(
       expect.objectContaining({
-        color: '#2faa73',
-        weight: 4,
+        color: '#40566b',
+        dashArray: '8 7',
+        weight: 5,
       })
     );
     expect(mockFitBounds).toHaveBeenCalledWith(
@@ -69,7 +70,7 @@ describe('RouteLayer', () => {
   test('sustituye el trazado al recibir una ruta nueva', () => {
     const { rerender } = render(
       <RouteLayer
-        geometry={{
+        fastestGeometry={{
           type: 'LineString',
           coordinates: [
             [-0.9, 41.64],
@@ -81,7 +82,7 @@ describe('RouteLayer', () => {
 
     rerender(
       <RouteLayer
-        geometry={{
+        fastestGeometry={{
           type: 'LineString',
           coordinates: [
             [-0.88, 41.66],
@@ -106,9 +107,51 @@ describe('RouteLayer', () => {
   });
 
   test('no dibuja una geometría inválida', () => {
-    render(<RouteLayer geometry={{ type: 'Point', coordinates: [-0.8891, 41.6488] }} />);
+    render(<RouteLayer fastestGeometry={{ type: 'Point', coordinates: [-0.8891, 41.6488] }} />);
 
     expect(screen.queryByTestId('route-line')).not.toBeInTheDocument();
     expect(mockFitBounds).not.toHaveBeenCalled();
+  });
+
+  test('diferencia y encuadra conjuntamente la ruta rápida y la sombreada', () => {
+    render(
+      <RouteLayer
+        fastestGeometry={{
+          type: 'LineString',
+          coordinates: [
+            [-0.9, 41.64],
+            [-0.89, 41.65],
+          ],
+        }}
+        shadedGeometry={{
+          type: 'LineString',
+          coordinates: [
+            [-0.9, 41.64],
+            [-0.88, 41.66],
+          ],
+        }}
+        selectedRouteType="shaded"
+      />
+    );
+
+    const lines = screen.getAllByTestId('route-line');
+    expect(lines).toHaveLength(2);
+    expect(JSON.parse(lines[0].dataset.options)).toMatchObject({
+      dashArray: '8 7',
+      opacity: 0.45,
+    });
+    expect(JSON.parse(lines[1].dataset.options)).toMatchObject({
+      color: '#2faa73',
+      weight: 6,
+    });
+    expect(mockFitBounds).toHaveBeenCalledWith(
+      [
+        [41.64, -0.9],
+        [41.65, -0.89],
+        [41.64, -0.9],
+        [41.66, -0.88],
+      ],
+      expect.any(Object)
+    );
   });
 });

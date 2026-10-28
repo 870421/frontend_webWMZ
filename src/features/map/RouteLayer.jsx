@@ -1,7 +1,16 @@
 import { useEffect, useMemo } from 'react';
 import { Polyline, useMap } from 'react-leaflet';
 
-const ROUTE_STYLE = {
+const FASTEST_STYLE = {
+  color: '#40566b',
+  dashArray: '8 7',
+  lineCap: 'round',
+  lineJoin: 'round',
+  opacity: 0.78,
+  weight: 4,
+};
+
+const SHADED_STYLE = {
   color: '#2faa73',
   lineCap: 'round',
   lineJoin: 'round',
@@ -46,17 +55,43 @@ function RouteBounds({ positions }) {
   return null;
 }
 
-export function RouteLayer({ geometry }) {
-  const positions = useMemo(() => geometryToPositions(geometry), [geometry]);
+export function RouteLayer({ fastestGeometry, shadedGeometry, selectedRouteType = 'fastest' }) {
+  const fastestPositions = useMemo(() => geometryToPositions(fastestGeometry), [fastestGeometry]);
+  const shadedPositions = useMemo(() => geometryToPositions(shadedGeometry), [shadedGeometry]);
+  const allPositions = useMemo(
+    () => [...fastestPositions, ...shadedPositions],
+    [fastestPositions, shadedPositions]
+  );
 
-  if (positions.length < 2) {
+  if (allPositions.length < 2) {
     return null;
   }
 
   return (
     <>
-      <Polyline interactive={false} pathOptions={ROUTE_STYLE} positions={positions} />
-      <RouteBounds positions={positions} />
+      {fastestPositions.length >= 2 && (
+        <Polyline
+          interactive={false}
+          pathOptions={{
+            ...FASTEST_STYLE,
+            opacity: selectedRouteType === 'fastest' ? 0.95 : 0.45,
+            weight: selectedRouteType === 'fastest' ? 5 : 3,
+          }}
+          positions={fastestPositions}
+        />
+      )}
+      {shadedPositions.length >= 2 && (
+        <Polyline
+          interactive={false}
+          pathOptions={{
+            ...SHADED_STYLE,
+            opacity: selectedRouteType === 'shaded' ? 0.98 : 0.5,
+            weight: selectedRouteType === 'shaded' ? 6 : 4,
+          }}
+          positions={shadedPositions}
+        />
+      )}
+      <RouteBounds positions={allPositions} />
     </>
   );
 }

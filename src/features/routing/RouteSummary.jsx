@@ -35,13 +35,18 @@ function DistanceIcon() {
   );
 }
 
-export function RouteSummary({ distance, duration }) {
+export function RouteSummary({
+  distance,
+  duration,
+  shadePercentage = null,
+  title = 'Ruta rápida',
+}) {
   return (
     <section className="route-summary" aria-labelledby="route-summary-title">
       <div className="route-summary-heading">
         <span className="route-summary-mark" aria-hidden="true" />
         <div>
-          <h3 id="route-summary-title">Ruta rápida</h3>
+          <h3 id="route-summary-title">{title}</h3>
           <p>A pie</p>
         </div>
       </div>
@@ -51,6 +56,13 @@ export function RouteSummary({ distance, duration }) {
           <dt>Tiempo</dt>
           <dd>{formatRouteDuration(duration)}</dd>
         </div>
+        {Number.isFinite(shadePercentage) && (
+          <div className="route-summary-metric route-summary-shade">
+            <span aria-hidden="true">☂</span>
+            <dt>Sombra</dt>
+            <dd>{Math.round(shadePercentage)} %</dd>
+          </div>
+        )}
         <div className="route-summary-metric">
           <DistanceIcon />
           <dt>Distancia</dt>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { RouteSearchPanel } from './RouteSearchPanel.jsx';
@@ -174,6 +174,35 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('heading', { name: 'Ruta rápida' })).toBeInTheDocument();
     expect(screen.getByText('16 min')).toBeInTheDocument();
     expect(screen.getByText('1,3 km')).toBeInTheDocument();
+  });
+
+  it('selects shaded routing and exposes date/time controls on compact layouts', async () => {
+    const user = userEvent.setup();
+    const onRouteTypeChange = jest.fn();
+    const onSolarDateChange = jest.fn();
+    const onSolarTimeChange = jest.fn();
+    const { rerender } = render(
+      <RouteSearchPanel routeType="fastest" onRouteTypeChange={onRouteTypeChange} />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Con sombra' }));
+    expect(onRouteTypeChange).toHaveBeenCalledWith('shaded');
+
+    rerender(
+      <RouteSearchPanel
+        routeType="shaded"
+        solarDate="2026-06-21"
+        solarTime="14:00"
+        onRouteTypeChange={onRouteTypeChange}
+        onSolarDateChange={onSolarDateChange}
+        onSolarTimeChange={onSolarTimeChange}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-06-22' } });
+    fireEvent.change(screen.getByLabelText('Hora'), { target: { value: '15:30' } });
+    expect(onSolarDateChange).toHaveBeenLastCalledWith('2026-06-22');
+    expect(onSolarTimeChange).toHaveBeenLastCalledWith('15:30');
+    expect(screen.getByRole('button', { name: 'Calcular Ruta Sombreada' })).toBeDisabled();
   });
 
   it('shows geolocation states', () => {

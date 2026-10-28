@@ -96,6 +96,7 @@ input:focus-visible {
 .control-panel > *,
 .route-form,
 .selection-mode,
+.route-type-mode,
 .point-list,
 .map-guidance {
   min-width: 0;
@@ -163,14 +164,16 @@ input:focus-visible {
   gap: 0.85rem;
 }
 
-.selection-mode {
+.selection-mode,
+.route-type-mode {
   min-width: 0;
   border: 0;
   margin: 0;
   padding: 0;
 }
 
-.selection-mode legend {
+.selection-mode legend,
+.route-type-mode legend {
   margin-bottom: 0.4rem;
   color: #65758c;
   font-size: 0.72rem;
@@ -203,6 +206,35 @@ input:focus-visible {
   color: #166c4a;
   background: #ffffff;
   box-shadow: 0 0.15rem 0.45rem rgba(26, 63, 52, 0.1);
+}
+
+.route-type-control button:last-child.is-active {
+  color: #176d58;
+  background: #e5f7ef;
+}
+
+.solar-date-time {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.solar-date-time label {
+  display: grid;
+  gap: 0.28rem;
+  color: #65758c;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.solar-date-time input {
+  min-width: 0;
+  min-height: 2.6rem;
+  border: 1px solid #d9e2e8;
+  border-radius: 0.7rem;
+  padding: 0 0.6rem;
+  color: var(--ink);
+  background: #f8fafb;
 }
 
 .point-list {
@@ -658,6 +690,12 @@ input:focus-visible {
   stroke-width: 1.8;
 }
 
+.route-summary-shade > span {
+  grid-row: 1 / 3;
+  color: var(--green-dark);
+  font-size: 1rem;
+}
+
 .route-summary-metric dt {
   color: #82918b;
   font-size: 0.62rem;
@@ -725,6 +763,60 @@ input:focus-visible {
 }
 
 .future-panels { display: none; }
+
+.route-comparison {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.55rem;
+  border-top: 1px solid #dfe9e4;
+  padding-top: 0.65rem;
+}
+
+.route-comparison h2,
+.comparison-result { margin: 0; }
+
+.route-comparison h2 {
+  color: #35445a;
+  font-size: 0.82rem;
+}
+
+.comparison-routes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.comparison-routes button {
+  display: grid;
+  min-width: 0;
+  min-height: 4.4rem;
+  gap: 0.12rem;
+  border: 1px solid #dce6e1;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  color: #536174;
+  background: #f8faf9;
+  font-size: 0.7rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.comparison-routes button.is-selected {
+  border-color: var(--green);
+  background: var(--green-soft);
+  box-shadow: 0 0 0 2px rgba(47, 170, 115, 0.1);
+}
+
+.comparison-routes strong {
+  color: #214d3f;
+  font-size: 0.78rem;
+}
+
+.comparison-result {
+  color: #627268;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
 
 .status-message {
   margin: 0;
@@ -993,6 +1085,8 @@ input:focus-visible {
     background: rgba(255, 255, 255, 0.97);
     box-shadow: 0 0.7rem 2rem rgba(24, 48, 39, 0.2);
     backdrop-filter: blur(0.65rem);
+    max-height: min(55vh, 30rem);
+    overflow-y: auto;
   }
 
   .route-actions .form-message {
@@ -1291,6 +1385,18 @@ input:focus-visible {
 
   .legend-dot-origin { background: var(--green); }
   .legend-dot-destination { background: var(--blue); }
+
+  .legend-route {
+    width: 1.5rem;
+    height: 0;
+    border-top: 4px solid var(--green);
+    border-radius: 999px;
+  }
+
+  .legend-route-fastest {
+    border-top-color: #40566b;
+    border-top-style: dashed;
+  }
 }
 
 @media (max-height: 45rem) and (min-width: 56.25rem) {

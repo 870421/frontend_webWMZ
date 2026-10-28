@@ -220,11 +220,22 @@ export function RouteSearchPanel({
   onClearGeolocationMessage = noop,
   onCalculateRoute = noop,
   routeCalculation = { status: 'idle', errorMessage: '' },
+  routeType = 'fastest',
+  onRouteTypeChange = noop,
+  solarDate = '',
+  solarTime = '',
+  onSolarDateChange = noop,
+  onSolarTimeChange = noop,
+  comparisonContent = null,
 }) {
   const isLocating = geolocation.status === 'loading';
   const isCalculating = routeCalculation.status === 'loading';
   const canCalculate = Boolean(origin && destination) && !isCalculating;
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
+  const displayedRoute = routeCalculation.activeRoute || routeCalculation.route;
+  let calculateButtonLabel = 'Calcular ruta';
+  if (routeType === 'shaded') calculateButtonLabel = 'Calcular Ruta Sombreada';
+  if (isCalculating) calculateButtonLabel = 'Calculando...';
 
   return (
     <section
@@ -281,6 +292,49 @@ export function RouteSearchPanel({
             />
           ))}
         </div>
+        <fieldset className="route-type-mode">
+          <legend>Tipo de ruta</legend>
+          <div className="segmented-control route-type-control">
+            <button
+              type="button"
+              className={routeType === 'fastest' ? 'is-active' : ''}
+              aria-pressed={routeType === 'fastest'}
+              onClick={() => onRouteTypeChange('fastest')}
+            >
+              Más rápida
+            </button>
+            <button
+              type="button"
+              className={routeType === 'shaded' ? 'is-active' : ''}
+              aria-pressed={routeType === 'shaded'}
+              onClick={() => onRouteTypeChange('shaded')}
+            >
+              Con sombra
+            </button>
+          </div>
+        </fieldset>
+        {routeType === 'shaded' && (
+          <div className="solar-date-time" aria-label="Momento para estimar la sombra">
+            <label>
+              Fecha
+              <input
+                type="date"
+                value={solarDate}
+                required
+                onChange={(event) => onSolarDateChange(event.target.value)}
+              />
+            </label>
+            <label>
+              Hora
+              <input
+                type="time"
+                value={solarTime}
+                required
+                onChange={(event) => onSolarTimeChange(event.target.value)}
+              />
+            </label>
+          </div>
+        )}
         <div className="route-actions">
           <div className="map-guidance">
             <p>También puedes marcar el origen y el destino tocando directamente el mapa.</p>
@@ -333,15 +387,20 @@ export function RouteSearchPanel({
           )}
           {isCalculating && (
             <p className="form-message" role="status">
-              Calculando la ruta más rápida...
+              Calculando {routeType === 'shaded' ? 'la Ruta Sombreada' : 'la ruta más rápida'}...
             </p>
           )}
-          {routeCalculation.route && (
+          {displayedRoute && (
             <RouteSummary
-              distance={routeCalculation.route.distance}
-              duration={routeCalculation.route.duration}
+              distance={displayedRoute.distance}
+              duration={displayedRoute.duration}
+              shadePercentage={displayedRoute.exposure?.shadePercentage}
+              title={
+                routeType === 'shaded' && routeCalculation.shaded ? 'Ruta Sombreada' : 'Ruta rápida'
+              }
             />
           )}
+          {comparisonContent}
           <button
             type="button"
             className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
@@ -350,7 +409,7 @@ export function RouteSearchPanel({
             title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
           >
             {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
-            {isCalculating ? 'Calculando...' : 'Calcular ruta'}
+            {calculateButtonLabel}
           </button>
         </div>
       </div>

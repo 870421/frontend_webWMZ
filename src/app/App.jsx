@@ -1,27 +1,40 @@
+import { useState } from 'react';
+
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
 import { MapView } from '../features/map/MapView.jsx';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
-import { useFastestRoute } from '../features/routing/useFastestRoute.js';
+import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
+import { useRoutePlanner } from '../features/routing/useRoutePlanner.js';
 import { RouteSearchPanel } from '../features/route-search/RouteSearchPanel.jsx';
 import { useDeviceLocation } from '../features/route-search/useDeviceLocation.js';
 import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
 
 export function App({ userMenu = null }) {
   const routePoints = useRoutePoints();
-  const fastestRoute = useFastestRoute();
+  const routePlanner = useRoutePlanner();
+  const [routeType, setRouteType] = useState('fastest');
+  const [solarDateTime, setSolarDateTime] = useState(getZaragozaDateTime);
   const geolocation = useDeviceLocation({
     onLocated: (pointType, point) => {
-      fastestRoute.clearRoute();
+      routePlanner.clearRoutes();
       routePoints.setPoint(pointType, point);
     },
   });
   function withSelectionUpdated(action) {
     return (...args) => {
       geolocation.clearGeolocationMessage();
-      fastestRoute.clearRoute();
+      routePlanner.clearRoutes();
       action(...args);
     };
+  }
+
+  const selectedRouteType = routeType === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
+  const activeRoute = selectedRouteType === 'shaded' ? routePlanner.shaded : routePlanner.fastest;
+
+  function updateSolarDateTime(field, value) {
+    routePlanner.clearRoutes();
+    setSolarDateTime((current) => ({ ...current, [field]: value }));
   }
 
   return (
@@ -34,7 +47,9 @@ export function App({ userMenu = null }) {
           focusPoint={routePoints.lastSelectedPoint}
           onSelectPoint={withSelectionUpdated(routePoints.selectPoint)}
           origin={routePoints.origin}
-          route={fastestRoute.route}
+          fastestRoute={routePlanner.fastest}
+          shadedRoute={routePlanner.shaded}
+          selectedRouteType={selectedRouteType}
         />
       }
       sidebar={
@@ -45,7 +60,10 @@ export function App({ userMenu = null }) {
             geolocation={geolocation.geolocation}
             onClearGeolocationMessage={geolocation.clearGeolocationMessage}
             onCalculateRoute={() =>
-              fastestRoute.calculateRoute(routePoints.origin, routePoints.destination)
+              routePlanner.calculateRoute(routePoints.origin, routePoints.destination, {
+                routeType,
+                ...solarDateTime,
+              })
             }
             originInput={routePoints.originInput}
             destinationInput={routePoints.destinationInput}
@@ -56,10 +74,24 @@ export function App({ userMenu = null }) {
             onSetActivePoint={routePoints.setActivePoint}
             onSetPoint={withSelectionUpdated(routePoints.setPoint)}
             origin={routePoints.origin}
-            routeCalculation={fastestRoute}
+            routeCalculation={{ ...routePlanner, activeRoute }}
+            routeType={routeType}
+            onRouteTypeChange={setRouteType}
+            solarDate={solarDateTime.date}
+            solarTime={solarDateTime.time}
+            onSolarDateChange={(value) => updateSolarDateTime('date', value)}
+            onSolarTimeChange={(value) => updateSolarDateTime('time', value)}
+            comparisonContent={
+              routePlanner.comparison ? (
+                <RouteComparisonPanel
+                  comparison={routePlanner.comparison}
+                  selectedRouteType={selectedRouteType}
+                  onSelectRoute={setRouteType}
+                />
+              ) : null
+            }
           />
           <div className="future-panels">
-            <RouteComparisonPanel />
             <ComfortSummary />
           </div>
         </>

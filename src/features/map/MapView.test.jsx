@@ -77,7 +77,7 @@ describe('MapView', () => {
   it('renders the route geometry received from the backend', () => {
     render(
       <MapView
-        route={{
+        fastestRoute={{
           geometry: {
             type: 'LineString',
             coordinates: [
