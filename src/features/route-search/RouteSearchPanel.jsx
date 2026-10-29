@@ -194,7 +194,8 @@ function PointInput({
         )}
         <p
           id={`${name}-coordinates`}
-          className={`point-coordinate ${point ? 'has-point' : ''}`}
+          // Points picked on the map already show their coordinates in the input.
+          className={`point-coordinate ${point?.label ? 'has-point' : ''}`}
           aria-live="polite"
         >
           {point ? `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` : 'Sin seleccionar'}
@@ -405,7 +406,12 @@ export function RouteSearchPanel({
             type="button"
             className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
             disabled={!canCalculate}
-            onClick={onCalculateRoute}
+            onClick={() => {
+              // On mobile the open search panel covers most of the map; fold it so the route
+              // is visible. The toggle (and this state) only has an effect on small screens.
+              setIsMobilePanelOpen(false);
+              onCalculateRoute();
+            }}
             title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
           >
             {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}

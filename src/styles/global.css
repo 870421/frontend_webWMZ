@@ -812,6 +812,9 @@ input:focus-visible {
   font-size: 0.78rem;
 }
 
+/* The comparison cards already show time, distance and shade of each route. */
+.route-actions:has(.route-comparison) .route-summary { display: none; }
+
 .comparison-result {
   color: #627268;
   font-size: 0.74rem;
@@ -1148,6 +1151,43 @@ input:focus-visible {
   .route-actions .form-message { order: -1; }
 
   .leaflet-bottom { bottom: 7rem; }
+
+  /* Ruta Sombreada (PBI-5.4) en pantallas pequeñas: el panel superior y la hoja inferior tapaban
+     la mayor parte del mapa. Plegado, el panel solo deja la cabecera; con resultado, la hoja
+     inferior no repite la ruta en el resumen y en la comparación. */
+  .route-search-panel.is-collapsed .route-type-mode,
+  .route-search-panel.is-collapsed .solar-date-time { display: none; }
+
+  .route-type-mode legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .solar-date-time { gap: 0.4rem; }
+
+  .solar-date-time label { gap: 0.18rem; }
+
+  .solar-date-time input {
+    min-height: 2.3rem;
+    font-size: 0.86rem;
+  }
+
+  .route-actions:has(.route-summary, .route-comparison) .map-guidance { display: none; }
+
+  .route-actions .route-comparison {
+    gap: 0.4rem;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .comparison-routes button {
+    min-height: 3.5rem;
+    padding: 0.4rem 0.5rem;
+  }
 }
 
 @media (min-width: 37.5rem) and (max-width: 43.74rem) and (orientation: portrait) {
@@ -1330,11 +1370,25 @@ input:focus-visible {
     width: min(27rem, calc(100vw - 2.5rem));
     max-height: calc(100vh - 2.5rem);
     margin: 0;
-    overflow: visible;
+    /* With the shaded-route controls and the comparison the panel is taller than many laptop
+       screens; without scrolling its bottom (the comparison) was cut off. */
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border-radius: 1.45rem;
     padding: 1.15rem 1.25rem 1.25rem;
     box-shadow: 0 1.25rem 3.5rem rgba(31, 54, 46, 0.22);
     scrollbar-width: thin;
+  }
+
+  /* When the panel scrolls, the calculate button stays at its bottom edge. */
+  .route-submit {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    box-shadow:
+      0 0.45rem 1rem rgba(47, 170, 115, 0.22),
+      0 0 0 0.5rem #ffffff;
   }
 
   .app-header { gap: 0.65rem; }

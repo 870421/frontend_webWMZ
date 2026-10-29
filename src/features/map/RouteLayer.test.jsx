@@ -1,6 +1,44 @@
 import { render, screen } from '@testing-library/react';
 
-import { geometryToPositions, RouteLayer } from './RouteLayer.jsx';
+import { geometryToPositions, overlayPadding, RouteLayer } from './RouteLayer.jsx';
+
+const box = (left, top, width, height) => ({
+  getBoundingClientRect: () => ({
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+  }),
+});
+
+describe('overlayPadding', () => {
+  test('deja libre la zona bajo el panel superior y la hoja inferior del móvil', () => {
+    const map = box(0, 0, 390, 844);
+    expect(overlayPadding(map, [box(8, 8, 330, 296), box(10, 520, 370, 314)])).toEqual({
+      paddingTopLeft: [32, 336],
+      paddingBottomRight: [32, 356],
+    });
+  });
+
+  test('deja libre la zona a la derecha del panel lateral del escritorio', () => {
+    const map = box(0, 0, 1366, 768);
+    expect(overlayPadding(map, [box(20, 20, 432, 728), box(0, 0, 0, 0)])).toEqual({
+      paddingTopLeft: [484, 32],
+      paddingBottomRight: [32, 32],
+    });
+  });
+
+  test('reserva siempre una parte del mapa para la ruta', () => {
+    const map = box(0, 0, 400, 600);
+    const { paddingTopLeft, paddingBottomRight } = overlayPadding(map, [
+      box(0, 0, 400, 400),
+      box(0, 300, 400, 300),
+    ]);
+    expect(paddingTopLeft[1] - 32 + (paddingBottomRight[1] - 32)).toBeCloseTo(450);
+  });
+});
 
 const mockFitBounds = jest.fn();
 
@@ -36,7 +74,7 @@ describe('RouteLayer', () => {
     ]);
   });
 
-  test('dibuja la ruta rápida discontinua y encuadra toda la geometría', () => {
+  test('dibuja la ruta rápida sola con trazo continuo y encuadra toda la geometría', () => {
     const geometry = {
       type: 'LineString',
       coordinates: [
@@ -54,16 +92,12 @@ describe('RouteLayer', () => {
       [41.652, -0.882],
       [41.656, -0.875],
     ]);
-    expect(JSON.parse(routeLine.dataset.options)).toEqual(
-      expect.objectContaining({
-        color: '#40566b',
-        dashArray: '8 7',
-        weight: 5,
-      })
-    );
+    const options = JSON.parse(routeLine.dataset.options);
+    expect(options).toEqual(expect.objectContaining({ color: '#2faa73', weight: 5 }));
+    expect(options.dashArray).toBeUndefined();
     expect(mockFitBounds).toHaveBeenCalledWith(
       JSON.parse(routeLine.dataset.positions),
-      expect.objectContaining({ padding: [48, 48] })
+      expect.objectContaining({ padding: [32, 32] })
     );
   });
 
