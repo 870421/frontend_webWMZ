@@ -1,11 +1,20 @@
-import { formatRouteDuration } from '../routing/RouteSummary.jsx';
+import { formatRouteDistance, formatRouteDuration } from '../routing/RouteSummary.jsx';
 
 const statusMessages = {
   no_better_alternative:
     'No se ha encontrado una alternativa suficientemente más sombreada dentro del desvío permitido.',
   insufficient_exposure_data: 'No hay datos de exposición suficientes para comparar estas rutas.',
   sun_below_horizon: 'El Sol está bajo el horizonte en el momento seleccionado.',
+  sun_too_low:
+    'El Sol está demasiado bajo en el momento seleccionado para estimar la sombra. Prueba con una hora más central del día.',
 };
+
+// The comparison replaces the route summary when it is shown, so each card also carries the
+// distance.
+const formatTimeAndDistance = (route) =>
+  Number.isFinite(route.distance)
+    ? `${formatRouteDuration(route.duration)} · ${formatRouteDistance(route.distance)}`
+    : formatRouteDuration(route.duration);
 
 const formatShade = (route) =>
   route?.exposure?.status === 'available'
@@ -27,7 +36,7 @@ export function RouteComparisonPanel({ comparison, selectedRouteType, onSelectRo
           onClick={() => onSelectRoute('fastest')}
         >
           <strong>Más rápida</strong>
-          <span>{formatRouteDuration(comparison.fastest.duration)}</span>
+          <span>{formatTimeAndDistance(comparison.fastest)}</span>
           <span>{formatShade(comparison.fastest)} de sombra</span>
         </button>
         <button
@@ -39,7 +48,7 @@ export function RouteComparisonPanel({ comparison, selectedRouteType, onSelectRo
         >
           <strong>Con sombra</strong>
           <span>
-            {hasShadedRoute ? formatRouteDuration(comparison.shaded.duration) : 'Sin alternativa'}
+            {hasShadedRoute ? formatTimeAndDistance(comparison.shaded) : 'Sin alternativa'}
           </span>
           <span>{hasShadedRoute ? `${formatShade(comparison.shaded)} de sombra` : '—'}</span>
         </button>

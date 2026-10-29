@@ -158,6 +158,25 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('No se ha podido calcular la ruta.');
   });
 
+  it('folds the mobile search panel when the route is calculated', async () => {
+    const user = userEvent.setup();
+    const onCalculateRoute = jest.fn();
+    render(
+      <RouteSearchPanel
+        origin={{ lat: 41.65, lng: -0.89, source: 'map' }}
+        destination={{ lat: 41.66, lng: -0.88, source: 'map' }}
+        onCalculateRoute={onCalculateRoute}
+      />
+    );
+    const toggle = screen.getByRole('button', { name: 'Ocultar' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+
+    expect(onCalculateRoute).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Ruta' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('shows time and distance as soon as the route is calculated', () => {
     render(
       <RouteSearchPanel

@@ -37,6 +37,43 @@ export function geometryToPositions(geometry) {
   }, []);
 }
 
+const ROUTE_MARGIN_PX = 32;
+const OVERLAY_SELECTOR = '.control-panel, .route-actions';
+
+// The search panel and the mobile bottom sheet float over the map. Fitting the route with a fixed
+// padding hid it under them, so the padding grows on the side each visible overlay covers.
+export function overlayPadding(container, overlays) {
+  const box = container.getBoundingClientRect();
+  let top = 0;
+  let bottom = 0;
+  let left = 0;
+
+  overlays.forEach((overlay) => {
+    const rect = overlay.getBoundingClientRect();
+    if (!rect.width || !rect.height || rect.bottom <= box.top || rect.top >= box.bottom) return;
+    if (rect.width > box.width * 0.6) {
+      if (rect.top - box.top < box.bottom - rect.bottom) top = Math.max(top, rect.bottom - box.top);
+      else bottom = Math.max(bottom, box.bottom - rect.top);
+    } else if (rect.left - box.left < box.right - rect.right) {
+      left = Math.max(left, rect.right - box.left);
+    }
+  });
+
+  // Keep at least a quarter of the map for the route, whatever the overlays cover.
+  const maxVertical = box.height * 0.75;
+  if (top + bottom > maxVertical) {
+    const scale = maxVertical / (top + bottom);
+    top *= scale;
+    bottom *= scale;
+  }
+  left = Math.min(left, box.width * 0.75);
+
+  return {
+    paddingTopLeft: [left + ROUTE_MARGIN_PX, top + ROUTE_MARGIN_PX],
+    paddingBottomRight: [ROUTE_MARGIN_PX, bottom + ROUTE_MARGIN_PX],
+  };
+}
+
 function RouteBounds({ positions }) {
   const map = useMap();
 
@@ -45,10 +82,14 @@ function RouteBounds({ positions }) {
       return;
     }
 
+    const container = map.getContainer?.();
+    const padding = container
+      ? overlayPadding(container, document.querySelectorAll(OVERLAY_SELECTOR))
+      : { padding: [ROUTE_MARGIN_PX, ROUTE_MARGIN_PX] };
     map.fitBounds(positions, {
       animate: true,
       maxZoom: 17,
-      padding: [48, 48],
+      ...padding,
     });
   }, [map, positions]);
 
@@ -72,11 +113,16 @@ export function RouteLayer({ fastestGeometry, shadedGeometry, selectedRouteType 
       {fastestPositions.length >= 2 && (
         <Polyline
           interactive={false}
-          pathOptions={{
-            ...FASTEST_STYLE,
-            opacity: selectedRouteType === 'fastest' ? 0.95 : 0.45,
-            weight: selectedRouteType === 'fastest' ? 5 : 3,
-          }}
+          pathOptions={
+            // Alone, the fastest route is the route: a solid line, not the dashed "other option".
+            shadedPositions.length >= 2
+              ? {
+                  ...FASTEST_STYLE,
+                  opacity: selectedRouteType === 'fastest' ? 0.95 : 0.45,
+                  weight: selectedRouteType === 'fastest' ? 5 : 3,
+                }
+              : { ...SHADED_STYLE, weight: 5 }
+          }
           positions={fastestPositions}
         />
       )}
