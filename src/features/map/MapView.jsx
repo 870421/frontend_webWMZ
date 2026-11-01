@@ -21,6 +21,8 @@ export function MapView({
   selectedRouteType = 'fastest',
   selectedStepGeometry = null,
   navigationPosition = null,
+  followNavigation = false,
+  onNavigationDrag = noop,
 }) {
   return (
     <div className="map-wrapper">
@@ -50,7 +52,11 @@ export function MapView({
         />
         <LocationMarker point={origin} title="Origen" type="origin" />
         <LocationMarker point={destination} title="Destino" type="destination" />
-        <NavigationMarker position={navigationPosition} />
+        <NavigationMarker
+          position={navigationPosition}
+          follow={followNavigation}
+          onUserDrag={onNavigationDrag}
+        />
       </MapContainer>
       <div className="map-selection-hint" aria-live="polite">
         Toca el mapa para fijar el {activePoint === 'origin' ? 'origen' : 'destino'}.

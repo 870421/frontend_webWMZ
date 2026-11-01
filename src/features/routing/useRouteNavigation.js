@@ -4,6 +4,7 @@ import {
   createDevicePoint,
   getGeolocationErrorMessage,
 } from '../route-search/useDeviceLocation.js';
+import { isInsideZaragoza } from '../map/zaragozaArea.js';
 import { getNavigationProgress } from './navigation.js';
 
 const GEOLOCATION_PERMISSION_DENIED = 1;
@@ -44,6 +45,12 @@ function useScreenAwake(isActive) {
       lock?.release();
     };
   }, [isActive]);
+}
+
+// Far from the route the map keeps showing it, and outside Zaragoza the map cannot go there at all.
+function canFollowPosition(position, progress) {
+  if (!position || !isInsideZaragoza(position)) return false;
+  return !(progress.isOffRoute && !progress.hasStarted);
 }
 
 /**
@@ -93,11 +100,19 @@ export function useRouteNavigation(route) {
   function start() {
     const problem = getStartProblem();
     setErrorMessage(problem ?? '');
-    if (!problem) setSession({ route, position: null, progress: null, signalLost: false });
+    if (!problem) {
+      setSession({ route, position: null, progress: null, signalLost: false, isFollowing: true });
+    }
   }
+
+  const canFollow = activeRoute ? canFollowPosition(session.position, session.progress) : false;
 
   return {
     isActive: Boolean(activeRoute),
+    followsPosition: canFollow && session.isFollowing,
+    canRecenter: canFollow && !session.isFollowing,
+    pauseFollowing: () => setSession((current) => current && { ...current, isFollowing: false }),
+    resumeFollowing: () => setSession((current) => current && { ...current, isFollowing: true }),
     position: activeRoute ? session.position : null,
     progress: activeRoute ? session.progress : null,
     signalLost: activeRoute ? session.signalLost : false,

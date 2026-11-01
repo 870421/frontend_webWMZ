@@ -126,6 +126,8 @@ solo en el backend.
 - Tras calcular una ruta, "Iniciar ruta" pide la ubicación y sustituye el buscador por la indicación.
 - Al avanzar cambian la indicación y lo que queda; a más de 40 m de la ruta aparece el aviso.
 - A 20 m del destino dice que has llegado; "Terminar" vuelve al buscador con la ruta calculada.
+- Lejos de la ruta o fuera de Zaragoza el mapa sigue mostrando la ruta y se puede arrastrar.
+- Al arrastrar el mapa ya en la ruta deja de seguirte; "Centrar" vuelve a tu posición.
 - Para probarla sin salir de casa: Chrome DevTools > Sensors > Location.
 
 ## Comprobaciones del recorrido

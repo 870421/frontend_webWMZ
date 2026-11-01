@@ -874,6 +874,21 @@ input:focus-visible {
   cursor: pointer;
 }
 
+.navigation-recenter {
+  flex: none;
+  min-height: 2.5rem;
+  margin-left: auto;
+  border: 1px solid #b9dcce;
+  border-radius: 0.7rem;
+  padding: 0 0.8rem;
+  color: #175c4c;
+  background: #eaf7f1;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.navigation-recenter + .navigation-stop { margin-left: 0; }
+
 .route-steps {
   display: grid;
   gap: 0.45rem;

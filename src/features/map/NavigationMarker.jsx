@@ -1,19 +1,26 @@
 import { useEffect } from 'react';
-import { CircleMarker, useMap } from 'react-leaflet';
+import { CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 
 const FOLLOW_ZOOM = 17;
 const MARKER_STYLE = { color: '#ffffff', fillColor: '#1f6fa8', fillOpacity: 1, weight: 3 };
 
-// The position of the user while walking a route; the map follows it.
-export function NavigationMarker({ position }) {
+// The position of the user while walking a route. The map follows it if asked to, but moving the map
+// by hand wins: the next position must not take it away from the user.
+export function NavigationMarker({ position, follow = false, onUserDrag }) {
   const map = useMap();
   const lat = position?.lat;
   const lng = position?.lng;
 
+  useMapEvents({
+    dragstart: () => {
+      if (follow) onUserDrag();
+    },
+  });
+
   useEffect(() => {
-    if (lat === undefined || lng === undefined) return;
+    if (!follow) return;
     map.setView([lat, lng], Math.max(map.getZoom(), FOLLOW_ZOOM), { animate: true });
-  }, [map, lat, lng]);
+  }, [map, follow, lat, lng]);
 
   if (!position) return null;
 
