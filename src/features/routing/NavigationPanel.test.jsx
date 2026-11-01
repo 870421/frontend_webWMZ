@@ -79,6 +79,18 @@ describe('NavigationPanel', () => {
     expect(onStop).toHaveBeenCalledTimes(1);
   });
 
+  it('offers to center the map only when asked to', async () => {
+    const user = userEvent.setup();
+    const onRecenter = jest.fn();
+    const { rerender } = render(<NavigationPanel progress={progress} onStop={jest.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Centrar' })).not.toBeInTheDocument();
+
+    rerender(<NavigationPanel progress={progress} onStop={jest.fn()} onRecenter={onRecenter} />);
+    await user.click(screen.getByRole('button', { name: 'Centrar' }));
+
+    expect(onRecenter).toHaveBeenCalledTimes(1);
+  });
+
   it('works on routes without steps', () => {
     render(
       <NavigationPanel

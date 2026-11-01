@@ -72,6 +72,8 @@ export function App({ userMenu = null }) {
           selectedRouteType={selectedRouteType}
           selectedStepGeometry={navigation.isActive ? null : selectedStepGeometry}
           navigationPosition={navigation.position}
+          followNavigation={navigation.followsPosition}
+          onNavigationDrag={navigation.pauseFollowing}
         />
       }
       sidebar={
@@ -80,6 +82,7 @@ export function App({ userMenu = null }) {
             progress={navigation.progress}
             signalLost={navigation.signalLost}
             onStop={navigation.stop}
+            onRecenter={navigation.canRecenter ? navigation.resumeFollowing : null}
           />
         ) : (
           <>

@@ -16,7 +16,7 @@ function getInstruction(progress) {
   return progress.instruction ?? 'Sigue la línea del mapa';
 }
 
-export function NavigationPanel({ progress, signalLost = false, onStop }) {
+export function NavigationPanel({ progress, signalLost = false, onStop, onRecenter = null }) {
   const panelRef = useRef(null);
   useSheetHeight(panelRef);
   const offRouteMessage = getOffRouteMessage(progress);
@@ -54,6 +54,11 @@ export function NavigationPanel({ progress, signalLost = false, onStop }) {
             Quedan <strong>{formatRouteDistance(progress.remainingM)}</strong> ·{' '}
             <strong>{formatRouteDuration(progress.remainingSeconds)}</strong>
           </p>
+        )}
+        {onRecenter && (
+          <button type="button" className="navigation-recenter" onClick={onRecenter}>
+            Centrar
+          </button>
         )}
         <button type="button" className="navigation-stop" onClick={onStop}>
           Terminar

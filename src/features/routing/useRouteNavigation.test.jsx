@@ -85,6 +85,60 @@ describe('useRouteNavigation', () => {
     expect(result.current.progress.alongM).toBe(alongM);
   });
 
+  describe('following the position on the map', () => {
+    it('follows once on the route, until the user moves the map and asks to go back', () => {
+      const { result } = renderHook(() => useRouteNavigation(route));
+      act(() => result.current.start());
+      expect(result.current.followsPosition).toBe(false);
+
+      act(() => onPosition(at(41.65, -0.889)));
+      expect(result.current.followsPosition).toBe(true);
+      expect(result.current.canRecenter).toBe(false);
+
+      act(() => result.current.pauseFollowing());
+      act(() => onPosition(at(41.65, -0.8885)));
+      expect(result.current.followsPosition).toBe(false);
+      expect(result.current.canRecenter).toBe(true);
+
+      act(() => result.current.resumeFollowing());
+      expect(result.current.followsPosition).toBe(true);
+      expect(result.current.canRecenter).toBe(false);
+    });
+
+    it('keeps showing the route while the user has not reached it', () => {
+      const { result } = renderHook(() => useRouteNavigation(route));
+      act(() => result.current.start());
+
+      act(() => onPosition(at(41.66, -0.889)));
+
+      expect(result.current.progress).toMatchObject({ isOffRoute: true, hasStarted: false });
+      expect(result.current.followsPosition).toBe(false);
+      expect(result.current.canRecenter).toBe(false);
+    });
+
+    it('keeps following when the user leaves the route after starting it', () => {
+      const { result } = renderHook(() => useRouteNavigation(route));
+      act(() => result.current.start());
+
+      act(() => onPosition(at(41.65, -0.889)));
+      act(() => onPosition(at(41.651, -0.889)));
+
+      expect(result.current.progress.isOffRoute).toBe(true);
+      expect(result.current.followsPosition).toBe(true);
+    });
+
+    it('does not try to take the map outside Zaragoza', () => {
+      const { result } = renderHook(() => useRouteNavigation(route));
+      act(() => result.current.start());
+
+      act(() => onPosition(at(41.905, -1.725)));
+
+      expect(result.current.position).toMatchObject({ lat: 41.905, lng: -1.725 });
+      expect(result.current.followsPosition).toBe(false);
+      expect(result.current.canRecenter).toBe(false);
+    });
+  });
+
   it('ends when the route changes', () => {
     const { result, rerender } = renderHook((current) => useRouteNavigation(current), {
       initialProps: route,
