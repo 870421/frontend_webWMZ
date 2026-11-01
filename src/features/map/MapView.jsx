@@ -4,6 +4,7 @@ import { LocationMarker } from './LocationMarker.jsx';
 import { MapClickHandler } from './MapClickHandler.jsx';
 import { MapFocusHandler } from './MapFocusHandler.jsx';
 import { RouteLayer } from './RouteLayer.jsx';
+import { MAP_BOUNDS, MAP_MIN_ZOOM } from './zaragozaArea.js';
 
 const ZARAGOZA_CENTER = [41.6488, -0.8891];
 const noop = () => {};
@@ -23,15 +24,19 @@ export function MapView({
       <MapContainer
         center={ZARAGOZA_CENTER}
         zoom={13}
+        minZoom={MAP_MIN_ZOOM}
+        maxBounds={MAP_BOUNDS}
+        maxBoundsViscosity={1}
         zoomControl={false}
         className="map-view"
         scrollWheelZoom
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          bounds={MAP_BOUNDS}
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <ZoomControl position="bottomright" />
+        <ZoomControl position="topright" />
         <MapClickHandler onSelectPoint={onSelectPoint} />
         <MapFocusHandler point={focusPoint} />
         <RouteLayer
@@ -56,7 +61,11 @@ export function MapView({
         </span>
         {fastestRoute && (
           <span>
-            <i className="legend-route legend-route-fastest" aria-hidden="true" />
+            <i
+              // Same line as on the map: dashed only next to the shaded route.
+              className={`legend-route ${shadedRoute ? 'legend-route-fastest' : 'legend-route-shaded'}`}
+              aria-hidden="true"
+            />
             Ruta rápida
           </span>
         )}

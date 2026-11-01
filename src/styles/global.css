@@ -815,6 +815,19 @@ input:focus-visible {
 /* The comparison cards already show time, distance and shade of each route. */
 .route-actions:has(.route-comparison) .route-summary { display: none; }
 
+/* On small screens its two buttons are direct items of the bottom sheet grid. */
+.route-footer { display: contents; }
+
+.comparison-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Only small screens can collapse the comparison. */
+.comparison-toggle { display: none; }
+
 .comparison-result {
   color: #627268;
   font-size: 0.74rem;
@@ -869,29 +882,26 @@ input:focus-visible {
 .location-marker-icon-origin { color: var(--green); }
 .location-marker-icon-destination { color: var(--blue); }
 
-.leaflet-top.leaflet-left .leaflet-control-zoom {
-  display: none;
-}
-
-.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+/* Zoom below the user icon, in the column no panel covers. */
+.leaflet-top.leaflet-right .leaflet-control-zoom {
   overflow: hidden;
   border: 1px solid rgba(205, 218, 212, 0.9);
-  border-radius: 0.85rem;
-  margin-right: 1rem;
-  margin-bottom: 1.15rem;
-  box-shadow: 0 0.55rem 1.5rem rgba(27, 55, 46, 0.18);
+  border-radius: 0.75rem;
+  margin-top: calc(1.25rem + 2.75rem + 0.6rem);
+  margin-right: calc(1.25rem + 0.125rem);
+  box-shadow: 0 0.4rem 1.1rem rgba(27, 55, 46, 0.16);
 }
 
 .leaflet-control-zoom a,
 .leaflet-control-zoom a:first-child,
 .leaflet-control-zoom a:last-child {
-  min-width: 44px;
-  min-height: 44px;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 0;
   color: #176d4c;
   background: rgba(255, 255, 255, 0.96);
-  line-height: 44px;
+  line-height: 40px;
 }
 
 .leaflet-control-zoom a:first-child {
@@ -1150,7 +1160,14 @@ input:focus-visible {
 
   .route-actions .form-message { order: -1; }
 
-  .leaflet-bottom { bottom: 7rem; }
+  .leaflet-bottom {
+    bottom: calc(var(--route-sheet-height, 6.5rem) + max(0.65rem, env(safe-area-inset-bottom)));
+  }
+
+  .leaflet-top.leaflet-right .leaflet-control-zoom {
+    margin-top: calc(max(0.5rem, env(safe-area-inset-top)) + 2.75rem + 0.5rem);
+    margin-right: calc(0.5rem + 0.125rem);
+  }
 
   /* Ruta Sombreada (PBI-5.4) en pantallas pequeñas: el panel superior y la hoja inferior tapaban
      la mayor parte del mapa. Plegado, el panel solo deja la cabecera; con resultado, la hoja
@@ -1188,6 +1205,35 @@ input:focus-visible {
     min-height: 3.5rem;
     padding: 0.4rem 0.5rem;
   }
+
+  .comparison-toggle {
+    display: inline-flex;
+    min-height: 1.9rem;
+    align-items: center;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 0.65rem;
+    color: #68778b;
+    background: #f1f5f3;
+    font-size: 0.72rem;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  /* Comparación plegada: cada ruta en dos líneas cortas, sin distancia ni explicación. Las tarjetas
+     siguen siendo botones: se puede cambiar de ruta sin desplegar. */
+  .route-comparison.is-collapsed .comparison-routes button {
+    display: flex;
+    min-height: 0;
+    flex-wrap: wrap;
+    gap: 0 0.4rem;
+    align-items: baseline;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .route-comparison.is-collapsed .comparison-routes strong { flex-basis: 100%; }
+  .route-comparison.is-collapsed .comparison-distance { display: none; }
+  .route-comparison.is-collapsed .comparison-result:not(.comparison-result-important) { display: none; }
 }
 
 @media (min-width: 37.5rem) and (max-width: 43.74rem) and (orientation: portrait) {
@@ -1252,8 +1298,6 @@ input:focus-visible {
     margin: 0 auto;
     transform: none;
   }
-
-  .leaflet-bottom { bottom: 7rem; }
 }
 
 @media (max-width: 30rem) {
@@ -1318,14 +1362,6 @@ input:focus-visible {
   }
 
   .route-submit { min-height: 3rem; }
-
-  .leaflet-control-zoom a,
-  .leaflet-control-zoom a:first-child,
-  .leaflet-control-zoom a:last-child {
-    min-width: 40px;
-    min-height: 40px;
-    line-height: 40px;
-  }
 }
 
 @media (max-width: 20rem) {
@@ -1379,16 +1415,6 @@ input:focus-visible {
     padding: 1.15rem 1.25rem 1.25rem;
     box-shadow: 0 1.25rem 3.5rem rgba(31, 54, 46, 0.22);
     scrollbar-width: thin;
-  }
-
-  /* When the panel scrolls, the calculate button stays at its bottom edge. */
-  .route-submit {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    box-shadow:
-      0 0.45rem 1rem rgba(47, 170, 115, 0.22),
-      0 0 0 0.5rem #ffffff;
   }
 
   .app-header { gap: 0.65rem; }
@@ -1729,22 +1755,39 @@ input:focus-visible {
 
 .user-menu-dropdown {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.4rem);
   right: 0;
-  width: max-content;
-  min-width: 14rem;
-  max-width: min(20rem, calc(100vw - 1rem));
+  width: 15.5rem;
+  max-width: calc(100vw - 1rem);
   overflow: hidden;
   border: 1px solid rgba(218, 226, 230, 0.9);
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   background: #ffffff;
-  box-shadow: 0 1rem 2.5rem rgba(24, 48, 39, 0.2);
+  box-shadow: 0 0.6rem 1.6rem rgba(24, 48, 39, 0.18);
 }
 
 .user-menu-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   border-bottom: 1px solid #e8eef1;
-  padding: 0.85rem 1rem;
+  padding: 0.65rem 0.75rem;
 }
+
+.user-menu-avatar {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.user-menu-text { min-width: 0; }
 
 .user-menu-name,
 .user-menu-email {
@@ -1756,41 +1799,47 @@ input:focus-visible {
 
 .user-menu-name {
   color: var(--ink);
+  font-size: 0.86rem;
   font-weight: 700;
+  line-height: 1.25;
 }
 
 .user-menu-email {
-  margin-top: 0.15rem;
   color: #536174;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
+  line-height: 1.3;
 }
 
 .user-menu-items {
   display: grid;
-  padding: 0.35rem;
+  padding: 0.25rem;
 }
 
 .user-menu-item {
   display: flex;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
   border: 0;
-  border-radius: 0.65rem;
-  padding: 0 0.75rem;
-  color: var(--ink);
+  border-radius: 0.6rem;
+  padding: 0 0.6rem;
+  color: #536174;
   background: transparent;
+  font-size: 0.84rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 
 .user-menu-item:hover,
-.user-menu-item:focus-visible { background: #f1f5f3; }
+.user-menu-item:focus-visible {
+  color: #a2441f;
+  background: #fff1eb;
+}
 
 .user-menu-item svg {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1rem;
+  height: 1rem;
   flex: none;
   fill: none;
   stroke: currentColor;
@@ -1819,4 +1868,83 @@ input:focus-visible {
   }
 
   .auth-card { padding: 1.5rem 1rem; }
+}
+
+/* Pantallas muy bajas (móvil en horizontal): el panel abierto y la comparación no caben a la vez. */
+@media (max-width: 56.24rem) and (max-height: 30rem) {
+  .route-search-panel:not(.is-collapsed) .route-comparison { display: none; }
+
+  .control-panel:has(.route-search-panel:not(.is-collapsed)) {
+    max-height: calc(100dvh - var(--route-sheet-height, 6.5rem) - 1.75rem);
+    overflow-y: auto;
+  }
+}
+
+/* Pantallas pequeñas: con el menú de usuario abierto, el panel de búsqueda se recoge para que el
+   desplegable no se monte encima. Vuelve a como estaba al cerrar el menú. */
+@media (max-width: 56.24rem) {
+  .app-shell:has(.user-menu-dropdown) .point-list,
+  .app-shell:has(.user-menu-dropdown) .route-type-mode,
+  .app-shell:has(.user-menu-dropdown) .solar-date-time { display: none; }
+}
+
+/* El desplegable empieza por debajo de la barra superior, que llega hasta el icono de usuario. */
+@media (max-width: 56.24rem) {
+  .user-menu-dropdown { top: calc(100% + 1.2rem); }
+}
+
+@media (min-width: 43.75rem) and (max-width: 56.24rem) {
+  .user-menu-dropdown { top: calc(100% + 2.1rem); }
+}
+
+@media (max-width: 56.24rem) {
+  .app-shell:has(.user-menu-dropdown) .leaflet-control-zoom { visibility: hidden; }
+}
+
+/* Escritorio: el panel se desplaza sin barra visible y "Limpiar" y "Calcular" forman un pie fijo con
+   fondo propio, para que el contenido no asome por debajo. El degradado indica que hay más abajo. */
+@media (min-width: 56.25rem) {
+  .control-panel {
+    padding-bottom: 0;
+    scrollbar-width: none;
+  }
+
+  .control-panel::-webkit-scrollbar { display: none; }
+
+  .route-footer {
+    position: sticky;
+    z-index: 2;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0 1.15rem;
+    background: #ffffff;
+  }
+
+  .route-footer::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 1.25rem;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff);
+    pointer-events: none;
+  }
+
+  /* Con una ruta calculada ya no hace falta la explicación de cómo marcar puntos. */
+  .route-actions:has(.route-summary, .route-comparison) .map-guidance > p:first-child { display: none; }
+
+  .route-form { gap: 0.7rem; }
+}
+
+/* La leyenda va en la esquina inferior derecha, encima de la atribución: el panel la tapaba a la izquierda. */
+@media (min-width: 56.25rem) {
+  .map-legend {
+    right: 1.25rem;
+    bottom: 1.75rem;
+    left: auto;
+  }
 }

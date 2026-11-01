@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { isInsideZaragoza, OUTSIDE_ZARAGOZA_MESSAGE } from '../map/zaragozaArea.js';
+
 export function formatPointLabel(point) {
   if (!point) return 'Sin seleccionar';
   return point.label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
@@ -13,11 +15,17 @@ export function useRoutePoints() {
     destinationInput: '',
     activePoint: 'origin',
     lastSelectedPoint: null,
+    pointError: '',
   });
 
   function setPoint(pointType, point) {
+    if (!isInsideZaragoza(point)) {
+      setState((current) => ({ ...current, pointError: OUTSIDE_ZARAGOZA_MESSAGE }));
+      return;
+    }
     setState((current) => ({
       ...current,
+      pointError: '',
       [pointType]: point,
       [`${pointType}Input`]: formatPointLabel(point),
       lastSelectedPoint: point,
@@ -27,6 +35,7 @@ export function useRoutePoints() {
   function editPoint(pointType, value) {
     setState((current) => ({
       ...current,
+      pointError: '',
       [pointType]: null,
       [`${pointType}Input`]: value,
       activePoint: pointType,
@@ -42,6 +51,7 @@ export function useRoutePoints() {
       destinationInput: '',
       activePoint: 'origin',
       lastSelectedPoint: null,
+      pointError: '',
     });
   }
   return {

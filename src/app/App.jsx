@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
 import { MapView } from '../features/map/MapView.jsx';
+import { isInsideZaragoza, OUTSIDE_ZARAGOZA_MESSAGE } from '../features/map/zaragozaArea.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
 import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
 import { useRoutePlanner } from '../features/routing/useRoutePlanner.js';
@@ -20,6 +21,7 @@ export function App({ userMenu = null }) {
       routePlanner.clearRoutes();
       routePoints.setPoint(pointType, point);
     },
+    validatePoint: (point) => (isInsideZaragoza(point) ? null : OUTSIDE_ZARAGOZA_MESSAGE),
   });
   function withSelectionUpdated(action) {
     return (...args) => {
@@ -74,6 +76,7 @@ export function App({ userMenu = null }) {
             onSetActivePoint={routePoints.setActivePoint}
             onSetPoint={withSelectionUpdated(routePoints.setPoint)}
             origin={routePoints.origin}
+            pointErrorMessage={routePoints.pointError}
             routeCalculation={{ ...routePlanner, activeRoute }}
             routeType={routeType}
             onRouteTypeChange={setRouteType}
@@ -81,12 +84,13 @@ export function App({ userMenu = null }) {
             solarTime={solarDateTime.time}
             onSolarDateChange={(value) => updateSolarDateTime('date', value)}
             onSolarTimeChange={(value) => updateSolarDateTime('time', value)}
-            comparisonContent={
+            renderComparison={(collapse) =>
               routePlanner.comparison ? (
                 <RouteComparisonPanel
                   comparison={routePlanner.comparison}
                   selectedRouteType={selectedRouteType}
                   onSelectRoute={setRouteType}
+                  {...collapse}
                 />
               ) : null
             }

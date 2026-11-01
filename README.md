@@ -111,6 +111,15 @@ solo en el backend.
 - Los marcadores de GPS tienen un círculo de referencia fijo de 50 metros, no una estimación de
   precisión. Corregir un punto en el mapa, Clear y Reset eliminan su círculo.
 - El cálculo de rutas queda fuera de la PBI-1 a propósito.
+- El mapa no se aleja más que Zaragoza ni se puede arrastrar fuera. Un punto fuera del término
+  municipal (del buscador o del GPS) no se marca y sale el aviso "WeatherMapZ solo funciona dentro
+  de Zaragoza". Los límites están en `src/features/map/zaragozaArea.js`.
+
+## Comprobaciones de la Ruta Sombreada en pantallas pequeñas
+
+- La comparación sale compacta; "Ver más" muestra la distancia y la explicación.
+- Abrir "Ruta" recoge la comparación y "Ver más" pliega el panel: nunca se pisan.
+- Comprueba también el móvil en horizontal (844 x 390).
 
 ## Comprobaciones de la PBI-4
 

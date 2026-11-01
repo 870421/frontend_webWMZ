@@ -9,25 +9,57 @@ const statusMessages = {
     'El Sol está demasiado bajo en el momento seleccionado para estimar la sombra. Prueba con una hora más central del día.',
 };
 
-// The comparison replaces the route summary when it is shown, so each card also carries the
-// distance.
-const formatTimeAndDistance = (route) =>
-  Number.isFinite(route.distance)
-    ? `${formatRouteDuration(route.duration)} · ${formatRouteDistance(route.distance)}`
-    : formatRouteDuration(route.duration);
+// Without shade to compare, the reason must stay visible on small screens: the cards do not explain
+// it. "No better alternative" is already readable from the disabled card.
+const REASON_ALWAYS_VISIBLE = ['insufficient_exposure_data', 'sun_below_horizon', 'sun_too_low'];
 
 const formatShade = (route) =>
   route?.exposure?.status === 'available'
-    ? `${Math.round(route.exposure.shadePercentage)} %`
-    : 'No disponible';
+    ? `${Math.round(route.exposure.shadePercentage)} % de sombra`
+    : 'Sombra no disponible';
 
-export function RouteComparisonPanel({ comparison, selectedRouteType, onSelectRoute }) {
+function RouteTimeAndDistance({ route }) {
+  return (
+    <span>
+      {formatRouteDuration(route.duration)}
+      {Number.isFinite(route.distance) && (
+        <span className="comparison-distance"> · {formatRouteDistance(route.distance)}</span>
+      )}
+    </span>
+  );
+}
+
+export function RouteComparisonPanel({
+  comparison,
+  selectedRouteType,
+  onSelectRoute,
+  isExpanded = true,
+  onToggleExpanded = null,
+}) {
   if (!comparison) return null;
   const hasShadedRoute = Boolean(comparison.shaded);
+  const resultClass = REASON_ALWAYS_VISIBLE.includes(comparison.status)
+    ? 'comparison-result comparison-result-important'
+    : 'comparison-result';
 
   return (
-    <section className="panel-section route-comparison" aria-labelledby="route-comparison-title">
-      <h2 id="route-comparison-title">Comparación</h2>
+    <section
+      className={`panel-section route-comparison ${isExpanded ? '' : 'is-collapsed'}`}
+      aria-labelledby="route-comparison-title"
+    >
+      <div className="comparison-header">
+        <h2 id="route-comparison-title">Comparación</h2>
+        {onToggleExpanded && (
+          <button
+            type="button"
+            className="comparison-toggle"
+            aria-expanded={isExpanded}
+            onClick={onToggleExpanded}
+          >
+            {isExpanded ? 'Ver menos' : 'Ver más'}
+          </button>
+        )}
+      </div>
       <div className="comparison-routes">
         <button
           type="button"
@@ -36,8 +68,8 @@ export function RouteComparisonPanel({ comparison, selectedRouteType, onSelectRo
           onClick={() => onSelectRoute('fastest')}
         >
           <strong>Más rápida</strong>
-          <span>{formatTimeAndDistance(comparison.fastest)}</span>
-          <span>{formatShade(comparison.fastest)} de sombra</span>
+          <RouteTimeAndDistance route={comparison.fastest} />
+          <span>{formatShade(comparison.fastest)}</span>
         </button>
         <button
           type="button"
@@ -47,19 +79,23 @@ export function RouteComparisonPanel({ comparison, selectedRouteType, onSelectRo
           onClick={() => onSelectRoute('shaded')}
         >
           <strong>Con sombra</strong>
-          <span>
-            {hasShadedRoute ? formatTimeAndDistance(comparison.shaded) : 'Sin alternativa'}
-          </span>
-          <span>{hasShadedRoute ? `${formatShade(comparison.shaded)} de sombra` : '—'}</span>
+          {hasShadedRoute ? (
+            <>
+              <RouteTimeAndDistance route={comparison.shaded} />
+              <span>{formatShade(comparison.shaded)}</span>
+            </>
+          ) : (
+            <span>Sin alternativa</span>
+          )}
         </button>
       </div>
       {comparison.status === 'selected' ? (
-        <p className="comparison-result">
+        <p className={resultClass}>
           La Ruta Sombreada añade {formatRouteDuration(comparison.additionalDurationSeconds)} y
           mejora la sombra en {Math.round(comparison.shadeImprovementPercentagePoints)} puntos.
         </p>
       ) : (
-        <p className="comparison-result" role="status">
+        <p className={resultClass} role="status">
           {statusMessages[comparison.status] || 'No hay una comparación disponible.'}
         </p>
       )}

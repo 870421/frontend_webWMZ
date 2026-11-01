@@ -3,6 +3,34 @@ import { act, renderHook } from '@testing-library/react';
 import { formatPointLabel, useRoutePoints } from './useRoutePoints.js';
 
 describe('useRoutePoints', () => {
+  it('rejects points outside Zaragoza and clears the error on the next selection', () => {
+    const { result } = renderHook(() => useRoutePoints());
+
+    act(() => result.current.selectPoint({ lat: 40.4168, lng: -3.7038, source: 'search' }));
+
+    expect(result.current.origin).toBeNull();
+    expect(result.current.originInput).toBe('');
+    expect(result.current.pointError).toContain('solo funciona dentro de Zaragoza');
+
+    act(() => result.current.selectPoint({ lat: 41.65, lng: -0.89, source: 'map' }));
+
+    expect(result.current.origin).toMatchObject({ lat: 41.65 });
+    expect(result.current.pointError).toBe('');
+  });
+
+  it('clears the outside-Zaragoza error when editing or resetting', () => {
+    const { result } = renderHook(() => useRoutePoints());
+    const madrid = { lat: 40.4168, lng: -3.7038, source: 'search' };
+
+    act(() => result.current.setPoint('origin', madrid));
+    act(() => result.current.editPoint('origin', 'Pilar'));
+    expect(result.current.pointError).toBe('');
+
+    act(() => result.current.setPoint('origin', madrid));
+    act(() => result.current.resetPoints());
+    expect(result.current.pointError).toBe('');
+  });
+
   it('sets origin first, then destination', () => {
     const { result } = renderHook(() => useRoutePoints());
 

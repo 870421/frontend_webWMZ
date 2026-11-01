@@ -177,6 +177,37 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('button', { name: 'Ruta' })).toHaveAttribute('aria-expanded', 'false');
   });
 
+  it('never leaves the search panel and the comparison details open together', async () => {
+    const user = userEvent.setup();
+    render(
+      <RouteSearchPanel
+        renderComparison={({ isExpanded, onToggleExpanded }) => (
+          <button type="button" aria-expanded={isExpanded} onClick={onToggleExpanded}>
+            Detalle
+          </button>
+        )}
+      />
+    );
+    const details = screen.getByRole('button', { name: 'Detalle' });
+    expect(details).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Ocultar' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+
+    await user.click(details);
+    expect(details).toHaveAttribute('aria-expanded', 'true');
+    const toggle = screen.getByRole('button', { name: 'Ruta' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(toggle);
+    expect(details).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Ocultar' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
   it('shows time and distance as soon as the route is calculated', () => {
     render(
       <RouteSearchPanel

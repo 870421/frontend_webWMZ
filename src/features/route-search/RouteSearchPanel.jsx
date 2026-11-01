@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
@@ -227,12 +227,42 @@ export function RouteSearchPanel({
   solarTime = '',
   onSolarDateChange = noop,
   onSolarTimeChange = noop,
-  comparisonContent = null,
+  renderComparison = null,
+  pointErrorMessage = '',
 }) {
   const isLocating = geolocation.status === 'loading';
   const isCalculating = routeCalculation.status === 'loading';
   const canCalculate = Boolean(origin && destination) && !isCalculating;
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
+  // On small screens the search panel and the comparison details never open together: they would
+  // overlap. Opening one folds the other. On large screens neither state has any visual effect.
+  const [isComparisonExpanded, setIsComparisonExpanded] = useState(false);
+  const routeActionsRef = useRef(null);
+
+  // Keeps the map attribution just above the bottom sheet, whatever its current height.
+  useEffect(() => {
+    const sheet = routeActionsRef.current;
+    if (!sheet || typeof ResizeObserver === 'undefined') return undefined;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty('--route-sheet-height', `${sheet.getBoundingClientRect().height}px`);
+    });
+    observer.observe(sheet);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--route-sheet-height');
+    };
+  }, []);
+
+  function toggleMobilePanel() {
+    setIsComparisonExpanded(false);
+    setIsMobilePanelOpen((open) => !open);
+  }
+
+  function toggleComparison() {
+    setIsMobilePanelOpen(false);
+    setIsComparisonExpanded((expanded) => !expanded);
+  }
   const displayedRoute = routeCalculation.activeRoute || routeCalculation.route;
   let calculateButtonLabel = 'Calcular ruta';
   if (routeType === 'shaded') calculateButtonLabel = 'Calcular Ruta Sombreada';
@@ -251,7 +281,7 @@ export function RouteSearchPanel({
         className="mobile-panel-toggle"
         aria-expanded={isMobilePanelOpen}
         aria-controls="route-search-content"
-        onClick={() => setIsMobilePanelOpen((open) => !open)}
+        onClick={toggleMobilePanel}
       >
         <span>{isMobilePanelOpen ? 'Ocultar' : 'Ruta'}</span>
         <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -336,7 +366,7 @@ export function RouteSearchPanel({
             </label>
           </div>
         )}
-        <div className="route-actions">
+        <div className="route-actions" ref={routeActionsRef}>
           <div className="map-guidance">
             <p>También puedes marcar el origen y el destino tocando directamente el mapa.</p>
             <p className={`active-map-target active-map-target-${activePoint}`}>
@@ -345,21 +375,11 @@ export function RouteSearchPanel({
               <strong>{pointTitle(activePoint)}</strong>
             </p>
           </div>
-          <button
-            type="button"
-            className="secondary-button clear-selection-button"
-            aria-label="Limpiar selección"
-            disabled={
-              !origin &&
-              !destination &&
-              !originInput &&
-              !destinationInput &&
-              geolocation.status === 'idle'
-            }
-            onClick={onResetPoints}
-          >
-            <span aria-hidden="true">×</span> Limpiar
-          </button>
+          {pointErrorMessage && (
+            <p className="form-message form-message-error" role="alert">
+              {pointErrorMessage}
+            </p>
+          )}
           {geolocation.errorMessage && (
             <div className="form-message form-message-error" role="alert">
               {geolocation.errorMessage}
@@ -401,22 +421,43 @@ export function RouteSearchPanel({
               }
             />
           )}
-          {comparisonContent}
-          <button
-            type="button"
-            className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
-            disabled={!canCalculate}
-            onClick={() => {
-              // On mobile the open search panel covers most of the map; fold it so the route
-              // is visible. The toggle (and this state) only has an effect on small screens.
-              setIsMobilePanelOpen(false);
-              onCalculateRoute();
-            }}
-            title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
-          >
-            {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
-            {calculateButtonLabel}
-          </button>
+          {renderComparison?.({
+            isExpanded: isComparisonExpanded,
+            onToggleExpanded: toggleComparison,
+          })}
+          <div className="route-footer">
+            <button
+              type="button"
+              className="secondary-button clear-selection-button"
+              aria-label="Limpiar selección"
+              disabled={
+                !origin &&
+                !destination &&
+                !originInput &&
+                !destinationInput &&
+                geolocation.status === 'idle'
+              }
+              onClick={onResetPoints}
+            >
+              <span aria-hidden="true">×</span> Limpiar
+            </button>
+            <button
+              type="button"
+              className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
+              disabled={!canCalculate}
+              onClick={() => {
+                // On mobile the open search panel covers most of the map; fold it so the route
+                // is visible. The toggle (and this state) only has an effect on small screens.
+                setIsMobilePanelOpen(false);
+                setIsComparisonExpanded(false);
+                onCalculateRoute();
+              }}
+              title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
+            >
+              {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
+              {calculateButtonLabel}
+            </button>
+          </div>
         </div>
       </div>
     </section>

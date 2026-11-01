@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 
 import { MapView } from './MapView.jsx';
+import { MAP_BOUNDS } from './zaragozaArea.js';
 
 jest.mock('react-leaflet', () => ({
   Circle: ({ center, radius, interactive }) => (
@@ -11,8 +12,14 @@ jest.mock('react-leaflet', () => ({
       data-interactive={String(interactive)}
     />
   ),
-  MapContainer: ({ children, center, zoom }) => (
-    <div data-center={center.join(',')} data-testid="map-container" data-zoom={zoom}>
+  MapContainer: ({ children, center, zoom, minZoom, maxBounds }) => (
+    <div
+      data-bounds={JSON.stringify(maxBounds)}
+      data-center={center.join(',')}
+      data-min-zoom={minZoom}
+      data-testid="map-container"
+      data-zoom={zoom}
+    >
       {children}
     </div>
   ),
@@ -52,6 +59,8 @@ describe('MapView', () => {
 
     expect(screen.getByTestId('map-container')).toHaveAttribute('data-center', '41.6488,-0.8891');
     expect(screen.getByTestId('map-container')).toHaveAttribute('data-zoom', '13');
+    expect(screen.getByTestId('map-container')).toHaveAttribute('data-min-zoom', '11');
+    expect(JSON.parse(screen.getByTestId('map-container').dataset.bounds)).toEqual(MAP_BOUNDS);
     expect(screen.getByTestId('tile-layer')).toHaveAttribute(
       'data-url',
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'

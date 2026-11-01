@@ -85,7 +85,7 @@ describe('App', () => {
       },
     });
     render(<App />);
-    const position = { coords: { latitude: 42, longitude: -1 } };
+    const position = { coords: { latitude: 41.7, longitude: -1 } };
     await user.click(screen.getByLabelText('Usar GPS para origen'));
     await user.click(screen.getByRole('button', { name: 'Limpiar selección' }));
     act(() => success(position));
@@ -96,10 +96,28 @@ describe('App', () => {
     expect(screen.getByTestId('origin-marker')).toHaveTextContent('41.65');
     await user.click(screen.getByLabelText('Usar GPS para destino'));
     act(() => success(position));
-    expect(screen.getByTestId('destination-marker')).toHaveTextContent('42');
+    expect(screen.getByTestId('destination-marker')).toHaveTextContent('41.7');
     expect(screen.getByRole('status')).toHaveTextContent('Ubicación actual asignada como destino');
     await user.clear(screen.getByLabelText('Destino'));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('does not accept a GPS position outside Zaragoza', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: jest.fn((onSuccess) =>
+          onSuccess({ coords: { latitude: 40.4168, longitude: -3.7038 } })
+        ),
+      },
+    });
+    render(<App />);
+
+    await user.click(screen.getByLabelText('Usar GPS para origen'));
+
+    expect(screen.getByTestId('origin-marker')).toHaveTextContent('none');
+    expect(screen.getByRole('alert')).toHaveTextContent('solo funciona dentro de Zaragoza');
   });
 
   it('requests the fastest route with the selected points', async () => {
