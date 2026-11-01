@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { App } from './App.jsx';
 import { getFastestRoute, getShadedRouteComparison } from '../services/api/routesApi.js';
 
+jest.mock('../services/api/geocodingApi.js', () => ({
+  autocompletePlaces: jest.fn(),
+  reversePlace: jest.fn().mockResolvedValue({ place: null }),
+}));
+
 jest.mock('../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
   getShadedRouteComparison: jest.fn(),

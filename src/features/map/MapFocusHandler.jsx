@@ -11,16 +11,20 @@ export function MapFocusHandler({ point }) {
     return () => observer.disconnect();
   }, [map]);
 
+  // Depends on the position, not the object: receiving the name of a point must not move the map.
+  const lat = point?.lat;
+  const lng = point?.lng;
+
   useEffect(() => {
-    if (!point) {
+    if (lat === undefined || lng === undefined) {
       return;
     }
 
-    map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 15), {
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 15), {
       animate: true,
       duration: 0.7,
     });
-  }, [map, point]);
+  }, [map, lat, lng]);
 
   return null;
 }

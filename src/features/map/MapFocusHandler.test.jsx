@@ -24,6 +24,16 @@ describe('MapFocusHandler', () => {
     });
   });
 
+  it('does not move the map when the same point receives its name', () => {
+    const flyTo = jest.fn();
+    useMap.mockReturnValue({ flyTo, getZoom: () => 13 });
+
+    const { rerender } = render(<MapFocusHandler point={{ lat: 41.65, lng: -0.89 }} />);
+    rerender(<MapFocusHandler point={{ lat: 41.65, lng: -0.89, label: 'Calle Mayor 1' }} />);
+
+    expect(flyTo).toHaveBeenCalledTimes(1);
+  });
+
   it('does nothing without a selected point', () => {
     const flyTo = jest.fn();
 
