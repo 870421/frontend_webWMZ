@@ -47,7 +47,7 @@ export function createDevicePoint(position) {
   };
 }
 
-export function useDeviceLocation({ onLocated }) {
+export function useDeviceLocation({ onLocated, validatePoint = () => null }) {
   const requestId = useRef(0);
   useEffect(
     () => () => {
@@ -104,6 +104,12 @@ export function useDeviceLocation({ onLocated }) {
           status: 'error',
           errorMessage: 'El navegador ha devuelto una ubicación no válida. Inténtalo de nuevo.',
         });
+        return;
+      }
+
+      const pointProblem = validatePoint(point);
+      if (pointProblem) {
+        setGeolocation({ status: 'error', errorMessage: pointProblem });
         return;
       }
 

@@ -88,8 +88,13 @@ export function UserMenu() {
       {open && (
         <div className="user-menu-dropdown">
           <div className="user-menu-identity">
-            <p className="user-menu-name">{user.name}</p>
-            <p className="user-menu-email">{user.email}</p>
+            <span className="user-menu-avatar" aria-hidden="true">
+              {getInitials(user.name)}
+            </span>
+            <div className="user-menu-text">
+              <p className="user-menu-name">{user.name}</p>
+              <p className="user-menu-email">{user.email}</p>
+            </div>
           </div>
           <div
             aria-label="Opciones de usuario"

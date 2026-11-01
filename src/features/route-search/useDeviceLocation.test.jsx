@@ -132,6 +132,30 @@ describe('useDeviceLocation', () => {
     });
   });
 
+  it('rejects a location the app does not accept with its message', () => {
+    const onLocated = jest.fn();
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: jest.fn((onSuccess) =>
+          onSuccess({ coords: { latitude: 40.4, longitude: -3.7 } })
+        ),
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useDeviceLocation({ onLocated, validatePoint: () => 'Fuera de Zaragoza.' })
+    );
+
+    act(() => result.current.requestCurrentLocation('origin'));
+
+    expect(onLocated).not.toHaveBeenCalled();
+    expect(result.current.geolocation).toEqual({
+      status: 'error',
+      errorMessage: 'Fuera de Zaragoza.',
+    });
+  });
+
   it('falls back to lower accuracy when precise location is unavailable', () => {
     const onLocated = jest.fn();
     const unavailableError = {
