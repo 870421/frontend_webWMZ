@@ -22,6 +22,7 @@ jest.mock('../features/map/MapView.jsx', () => ({
     fastestRoute,
     shadedRoute,
     selectedRouteType,
+    selectedStepGeometry,
   }) => {
     let geometry = 'none';
     if (fastestRoute) geometry = JSON.stringify(fastestRoute.geometry.coordinates);
@@ -36,6 +37,9 @@ jest.mock('../features/map/MapView.jsx', () => ({
         <span data-testid="origin-marker">{origin ? origin.lat : 'none'}</span>
         <span data-testid="destination-marker">{destination ? destination.lat : 'none'}</span>
         <span data-testid="route-geometry">{geometry}</span>
+        <span data-testid="step-geometry">
+          {selectedStepGeometry ? JSON.stringify(selectedStepGeometry.coordinates) : 'none'}
+        </span>
       </div>
     );
   },
@@ -123,6 +127,43 @@ describe('App', () => {
 
     expect(screen.getByTestId('origin-marker')).toHaveTextContent('none');
     expect(screen.getByRole('alert')).toHaveTextContent('solo funciona dentro de Zaragoza');
+  });
+
+  it('highlights on the map the part of the route of the chosen step', async () => {
+    const user = userEvent.setup();
+    getFastestRoute.mockResolvedValue({
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-0.89, 41.65],
+          [-0.88, 41.65],
+          [-0.87, 41.65],
+        ],
+      },
+      distance: 200,
+      duration: 100,
+      steps: [
+        { instruction: 'Primero', name: null, distance: 100, duration: 50, wayPoints: [0, 1] },
+        { instruction: 'Después', name: null, distance: 100, duration: 50, wayPoints: [1, 2] },
+      ],
+    });
+    render(<App />);
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Ver recorrido' }));
+    expect(screen.getByTestId('step-geometry')).toHaveTextContent('none');
+
+    await user.click(screen.getByRole('button', { name: /Después/ }));
+
+    expect(screen.getByRole('button', { name: /Después/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('step-geometry')).toHaveTextContent(
+      JSON.stringify([
+        [-0.88, 41.65],
+        [-0.87, 41.65],
+      ])
+    );
   });
 
   it('requests the fastest route with the selected points', async () => {

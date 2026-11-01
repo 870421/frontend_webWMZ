@@ -41,6 +41,8 @@ describe('overlayPadding', () => {
 });
 
 const mockFitBounds = jest.fn();
+// Like the real hook, it always returns the same map.
+const mockMap = { fitBounds: mockFitBounds };
 
 jest.mock('react-leaflet', () => ({
   Polyline: ({ interactive, pathOptions, positions }) => (
@@ -51,7 +53,7 @@ jest.mock('react-leaflet', () => ({
       data-testid="route-line"
     />
   ),
-  useMap: () => ({ fitBounds: mockFitBounds }),
+  useMap: () => mockMap,
 }));
 
 describe('RouteLayer', () => {
@@ -138,6 +140,56 @@ describe('RouteLayer', () => {
       ],
       expect.any(Object)
     );
+  });
+
+  test('resalta y encuadra el tramo del paso elegido', () => {
+    const geometry = {
+      type: 'LineString',
+      coordinates: [
+        [-0.9, 41.64],
+        [-0.89, 41.65],
+        [-0.88, 41.66],
+      ],
+    };
+    const { rerender } = render(<RouteLayer fastestGeometry={geometry} />);
+    mockFitBounds.mockClear();
+
+    const stepGeometry = { type: 'LineString', coordinates: geometry.coordinates.slice(1) };
+    rerender(<RouteLayer fastestGeometry={geometry} selectedStepGeometry={stepGeometry} />);
+
+    const lines = screen.getAllByTestId('route-line');
+    expect(lines).toHaveLength(2);
+    expect(JSON.parse(lines[1].dataset.options)).toMatchObject({ weight: 9 });
+    expect(mockFitBounds).toHaveBeenCalledTimes(1);
+    expect(mockFitBounds).toHaveBeenCalledWith(
+      [
+        [41.65, -0.89],
+        [41.66, -0.88],
+      ],
+      expect.objectContaining({ maxZoom: 18 })
+    );
+  });
+
+  test('centra el mapa en el punto final, sin línea que resaltar', () => {
+    const geometry = {
+      type: 'LineString',
+      coordinates: [
+        [-0.9, 41.64],
+        [-0.89, 41.65],
+      ],
+    };
+    const { rerender } = render(<RouteLayer fastestGeometry={geometry} />);
+    mockFitBounds.mockClear();
+
+    rerender(
+      <RouteLayer
+        fastestGeometry={geometry}
+        selectedStepGeometry={{ type: 'LineString', coordinates: geometry.coordinates.slice(1) }}
+      />
+    );
+
+    expect(screen.getAllByTestId('route-line')).toHaveLength(1);
+    expect(mockFitBounds).toHaveBeenCalledWith([[41.65, -0.89]], expect.any(Object));
   });
 
   test('no dibuja una geometría inválida', () => {

@@ -18,6 +18,15 @@ const SHADED_STYLE = {
   weight: 4,
 };
 
+// Thicker than the routes as well as darker: the difference is not only the colour.
+const SELECTED_STEP_STYLE = {
+  color: '#0f4c3a',
+  lineCap: 'round',
+  lineJoin: 'round',
+  opacity: 1,
+  weight: 9,
+};
+
 export function geometryToPositions(geometry) {
   if (geometry?.type !== 'LineString' || !Array.isArray(geometry.coordinates)) {
     return [];
@@ -74,11 +83,11 @@ export function overlayPadding(container, overlays) {
   };
 }
 
-function RouteBounds({ positions }) {
+function RouteBounds({ positions, minPositions = 2, maxZoom = 17 }) {
   const map = useMap();
 
   useEffect(() => {
-    if (positions.length < 2) {
+    if (positions.length < minPositions) {
       return;
     }
 
@@ -88,15 +97,24 @@ function RouteBounds({ positions }) {
       : { padding: [ROUTE_MARGIN_PX, ROUTE_MARGIN_PX] };
     map.fitBounds(positions, {
       animate: true,
-      maxZoom: 17,
+      maxZoom,
       ...padding,
     });
-  }, [map, positions]);
+  }, [map, positions, minPositions, maxZoom]);
 
   return null;
 }
 
-export function RouteLayer({ fastestGeometry, shadedGeometry, selectedRouteType = 'fastest' }) {
+export function RouteLayer({
+  fastestGeometry,
+  shadedGeometry,
+  selectedRouteType = 'fastest',
+  selectedStepGeometry = null,
+}) {
+  const stepPositions = useMemo(
+    () => geometryToPositions(selectedStepGeometry),
+    [selectedStepGeometry]
+  );
   const fastestPositions = useMemo(() => geometryToPositions(fastestGeometry), [fastestGeometry]);
   const shadedPositions = useMemo(() => geometryToPositions(shadedGeometry), [shadedGeometry]);
   const allPositions = useMemo(
@@ -137,7 +155,12 @@ export function RouteLayer({ fastestGeometry, shadedGeometry, selectedRouteType 
           positions={shadedPositions}
         />
       )}
+      {stepPositions.length >= 2 && (
+        <Polyline interactive={false} pathOptions={SELECTED_STEP_STYLE} positions={stepPositions} />
+      )}
       <RouteBounds positions={allPositions} />
+      {/* The final step ("you have arrived") is a single point. */}
+      <RouteBounds positions={stepPositions} minPositions={1} maxZoom={18} />
     </>
   );
 }

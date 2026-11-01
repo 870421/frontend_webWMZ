@@ -121,6 +121,13 @@ solo en el backend.
 - Abrir "Ruta" recoge la comparación y "Ver más" pliega el panel: nunca se pisan.
 - Comprueba también el móvil en horizontal (844 x 390).
 
+## Comprobaciones del recorrido
+
+- Tras calcular una ruta, "Ver recorrido" muestra las calles por las que pasa y el paso a paso.
+- Tocar un paso resalta su tramo en el mapa y lo centra, sin que lo tapen los paneles.
+- Al cambiar entre la ruta rápida y la sombreada, la lista cambia y se pierde la selección.
+- En tramos sin nombre en OpenStreetMap solo sale la indicación ("Gire a la derecha").
+
 ## Comprobaciones de la PBI-4
 
 - Sin sesión iniciada solo se ve la pantalla de inicio de sesión; el mapa no aparece.

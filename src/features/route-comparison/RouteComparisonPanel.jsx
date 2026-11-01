@@ -38,6 +38,8 @@ export function RouteComparisonPanel({
 }) {
   if (!comparison) return null;
   const hasShadedRoute = Boolean(comparison.shaded);
+  const showsShadedRoute = selectedRouteType === 'shaded' && hasShadedRoute;
+  const selectedRoute = showsShadedRoute ? comparison.shaded : comparison.fastest;
   const resultClass = REASON_ALWAYS_VISIBLE.includes(comparison.status)
     ? 'comparison-result comparison-result-important'
     : 'comparison-result';
@@ -49,6 +51,12 @@ export function RouteComparisonPanel({
     >
       <div className="comparison-header">
         <h2 id="route-comparison-title">Comparación</h2>
+        {!isExpanded && (
+          <p className="comparison-collapsed-summary">
+            <strong>{showsShadedRoute ? 'Con sombra' : 'Más rápida'}</strong>
+            {` · ${formatRouteDuration(selectedRoute.duration)} · ${formatShade(selectedRoute)}`}
+          </p>
+        )}
         {onToggleExpanded && (
           <button
             type="button"

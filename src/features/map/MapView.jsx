@@ -18,6 +18,7 @@ export function MapView({
   fastestRoute,
   shadedRoute,
   selectedRouteType = 'fastest',
+  selectedStepGeometry = null,
 }) {
   return (
     <div className="map-wrapper">
@@ -43,6 +44,7 @@ export function MapView({
           fastestGeometry={fastestRoute?.geometry}
           shadedGeometry={shadedRoute?.geometry}
           selectedRouteType={selectedRouteType}
+          selectedStepGeometry={selectedStepGeometry}
         />
         <LocationMarker point={origin} title="Origen" type="origin" />
         <LocationMarker point={destination} title="Destino" type="destination" />

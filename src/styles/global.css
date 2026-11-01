@@ -818,6 +818,85 @@ input:focus-visible {
 /* On small screens its two buttons are direct items of the bottom sheet grid. */
 .route-footer { display: contents; }
 
+.route-steps {
+  display: grid;
+  gap: 0.45rem;
+  border-top: 1px solid #dfe9e4;
+  padding-top: 0.55rem;
+}
+
+.route-steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.route-steps-header h2 {
+  margin: 0;
+  color: #35445a;
+  font-size: 0.82rem;
+}
+
+.route-steps-header button {
+  min-height: 1.9rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 0.7rem;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  font-size: 0.74rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.route-steps-streets {
+  margin: 0;
+  color: #536174;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.route-steps-list {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-steps-list button {
+  display: flex;
+  width: 100%;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border: 0;
+  border-radius: 0.55rem;
+  padding: 0.35rem 0.55rem;
+  color: var(--ink);
+  background: transparent;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.route-steps-list button:hover { background: #f1f5f3; }
+
+.route-steps-list button[aria-pressed="true"] {
+  background: var(--green-soft);
+  box-shadow: inset 0 0 0 1px var(--green);
+  font-weight: 650;
+}
+
+.route-steps-list small {
+  flex: none;
+  color: #627268;
+  font-size: 0.72rem;
+}
+
 .comparison-header {
   display: flex;
   align-items: center;
@@ -826,7 +905,8 @@ input:focus-visible {
 }
 
 /* Only small screens can collapse the comparison. */
-.comparison-toggle { display: none; }
+.comparison-toggle,
+.comparison-collapsed-summary { display: none; }
 
 .comparison-result {
   color: #627268;
@@ -1206,6 +1286,36 @@ input:focus-visible {
     padding: 0.4rem 0.5rem;
   }
 
+  .route-actions .route-steps {
+    grid-column: 1 / -1;
+    order: 1;
+  }
+
+  /* Con el recorrido abierto, la hoja inferior deja sitio a la lista. */
+  .route-actions:has(.route-steps.is-open) .route-comparison { display: none; }
+
+  .route-actions:has(.route-steps.is-open) .route-steps {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  /* La hoja se desplaza entera y los botones se quedan fijos al pie, con fondo propio. */
+  .route-actions:has(.route-steps.is-open) { padding-bottom: 0; }
+
+  .route-actions:has(.route-steps.is-open) .route-footer {
+    position: sticky;
+    z-index: 2;
+    bottom: 0;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+    order: 2;
+    padding: 0.35rem 0 0.55rem;
+    background: #ffffff;
+  }
+
   .comparison-toggle {
     display: inline-flex;
     min-height: 1.9rem;
@@ -1220,20 +1330,50 @@ input:focus-visible {
     cursor: pointer;
   }
 
-  /* Comparación plegada: cada ruta en dos líneas cortas, sin distancia ni explicación. Las tarjetas
-     siguen siendo botones: se puede cambiar de ruta sin desplegar. */
-  .route-comparison.is-collapsed .comparison-routes button {
-    display: flex;
-    min-height: 0;
-    flex-wrap: wrap;
-    gap: 0 0.4rem;
-    align-items: baseline;
-    padding: 0.35rem 0.5rem;
+  /* Comparación plegada: una línea con la ruta elegida. Para cambiar de ruta, "Ver más". */
+  .route-comparison.is-collapsed .comparison-routes,
+  .route-comparison.is-collapsed .comparison-result:not(.comparison-result-important) { display: none; }
+
+  .route-comparison.is-collapsed .comparison-header h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
-  .route-comparison.is-collapsed .comparison-routes strong { flex-basis: 100%; }
-  .route-comparison.is-collapsed .comparison-distance { display: none; }
-  .route-comparison.is-collapsed .comparison-result:not(.comparison-result-important) { display: none; }
+  .comparison-collapsed-summary {
+    display: block;
+    min-width: 0;
+    margin: 0;
+    color: #536174;
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .comparison-collapsed-summary strong { color: #214d3f; }
+
+  .comparison-toggle { flex: none; }
+
+  /* La hoja inferior se desplaza sin barra visible. */
+  .route-actions,
+  .control-panel { scrollbar-width: none; }
+
+  .route-actions::-webkit-scrollbar,
+  .control-panel::-webkit-scrollbar { display: none; }
+
+  /* Degradado sobre los botones: indica que hay más recorrido abajo. */
+  .route-actions:has(.route-steps.is-open) .route-footer::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 1.25rem;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff);
+    pointer-events: none;
+  }
 }
 
 @media (min-width: 37.5rem) and (max-width: 43.74rem) and (orientation: portrait) {
