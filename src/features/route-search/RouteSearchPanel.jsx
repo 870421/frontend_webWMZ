@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { RouteSteps } from '../routing/RouteSteps.jsx';
 import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
 
@@ -228,15 +229,18 @@ export function RouteSearchPanel({
   onSolarDateChange = noop,
   onSolarTimeChange = noop,
   renderComparison = null,
+  selectedStepIndex = null,
+  onSelectStep = noop,
   pointErrorMessage = '',
 }) {
   const isLocating = geolocation.status === 'loading';
   const isCalculating = routeCalculation.status === 'loading';
   const canCalculate = Boolean(origin && destination) && !isCalculating;
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
-  // On small screens the search panel and the comparison details never open together: they would
-  // overlap. Opening one folds the other. On large screens neither state has any visual effect.
-  const [isComparisonExpanded, setIsComparisonExpanded] = useState(false);
+  // On small screens the search panel and the details of the bottom sheet (the comparison or the
+  // steps) never open together: they would overlap. Opening one folds the other. On large screens
+  // only the steps react to this state.
+  const [sheetDetail, setSheetDetail] = useState(null);
   const routeActionsRef = useRef(null);
 
   // Keeps the map attribution just above the bottom sheet, whatever its current height.
@@ -255,13 +259,13 @@ export function RouteSearchPanel({
   }, []);
 
   function toggleMobilePanel() {
-    setIsComparisonExpanded(false);
+    setSheetDetail(null);
     setIsMobilePanelOpen((open) => !open);
   }
 
-  function toggleComparison() {
+  function toggleSheetDetail(detail) {
     setIsMobilePanelOpen(false);
-    setIsComparisonExpanded((expanded) => !expanded);
+    setSheetDetail((current) => (current === detail ? null : detail));
   }
   const displayedRoute = routeCalculation.activeRoute || routeCalculation.route;
   let calculateButtonLabel = 'Calcular ruta';
@@ -422,9 +426,18 @@ export function RouteSearchPanel({
             />
           )}
           {renderComparison?.({
-            isExpanded: isComparisonExpanded,
-            onToggleExpanded: toggleComparison,
+            isExpanded: sheetDetail === 'comparison',
+            onToggleExpanded: () => toggleSheetDetail('comparison'),
           })}
+          {displayedRoute && (
+            <RouteSteps
+              steps={displayedRoute.steps ?? []}
+              isOpen={sheetDetail === 'steps'}
+              onToggle={() => toggleSheetDetail('steps')}
+              selectedStepIndex={selectedStepIndex}
+              onSelectStep={onSelectStep}
+            />
+          )}
           <div className="route-footer">
             <button
               type="button"
@@ -449,7 +462,7 @@ export function RouteSearchPanel({
                 // On mobile the open search panel covers most of the map; fold it so the route
                 // is visible. The toggle (and this state) only has an effect on small screens.
                 setIsMobilePanelOpen(false);
-                setIsComparisonExpanded(false);
+                setSheetDetail(null);
                 onCalculateRoute();
               }}
               title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}

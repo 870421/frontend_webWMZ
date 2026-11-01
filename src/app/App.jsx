@@ -11,11 +11,17 @@ import { RouteSearchPanel } from '../features/route-search/RouteSearchPanel.jsx'
 import { useDeviceLocation } from '../features/route-search/useDeviceLocation.js';
 import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
 
+function getStepGeometry(route, stepIndex) {
+  const [start, end] = route.steps[stepIndex].wayPoints;
+  return { type: 'LineString', coordinates: route.geometry.coordinates.slice(start, end + 1) };
+}
+
 export function App({ userMenu = null }) {
   const routePoints = useRoutePoints();
   const routePlanner = useRoutePlanner();
   const [routeType, setRouteType] = useState('fastest');
   const [solarDateTime, setSolarDateTime] = useState(getZaragozaDateTime);
+  const [selectedStep, setSelectedStep] = useState(null);
   const geolocation = useDeviceLocation({
     onLocated: (pointType, point) => {
       routePlanner.clearRoutes();
@@ -33,6 +39,10 @@ export function App({ userMenu = null }) {
 
   const selectedRouteType = routeType === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
   const activeRoute = selectedRouteType === 'shaded' ? routePlanner.shaded : routePlanner.fastest;
+  // The selected step belongs to one route: with another route (or none) nothing is selected.
+  const selectedStepIndex = selectedStep?.route === activeRoute ? selectedStep.index : null;
+  const selectedStepGeometry =
+    selectedStepIndex === null ? null : getStepGeometry(activeRoute, selectedStepIndex);
 
   function updateSolarDateTime(field, value) {
     routePlanner.clearRoutes();
@@ -52,6 +62,7 @@ export function App({ userMenu = null }) {
           fastestRoute={routePlanner.fastest}
           shadedRoute={routePlanner.shaded}
           selectedRouteType={selectedRouteType}
+          selectedStepGeometry={selectedStepGeometry}
         />
       }
       sidebar={
@@ -78,6 +89,8 @@ export function App({ userMenu = null }) {
             origin={routePoints.origin}
             pointErrorMessage={routePoints.pointError}
             routeCalculation={{ ...routePlanner, activeRoute }}
+            selectedStepIndex={selectedStepIndex}
+            onSelectStep={(index) => setSelectedStep({ route: activeRoute, index })}
             routeType={routeType}
             onRouteTypeChange={setRouteType}
             solarDate={solarDateTime.date}

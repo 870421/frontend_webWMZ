@@ -208,6 +208,39 @@ describe('RouteSearchPanel', () => {
     );
   });
 
+  it('offers the steps of the route, folding the search panel to show them', async () => {
+    const user = userEvent.setup();
+    const onSelectStep = jest.fn();
+    render(
+      <RouteSearchPanel
+        routeCalculation={{
+          status: 'success',
+          errorMessage: '',
+          route: {
+            distance: 100,
+            duration: 60,
+            steps: [
+              { instruction: 'Gire a la derecha', name: null, distance: 100, wayPoints: [0, 3] },
+            ],
+          },
+        }}
+        onSelectStep={onSelectStep}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+
+    expect(screen.getByRole('button', { name: 'Ruta' })).toHaveAttribute('aria-expanded', 'false');
+    await user.click(screen.getByRole('button', { name: /Gire a la derecha/ }));
+    expect(onSelectStep).toHaveBeenCalledWith(0);
+
+    await user.click(screen.getByRole('button', { name: 'Ruta' }));
+    expect(screen.getByRole('button', { name: 'Ver recorrido' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+  });
+
   it('shows time and distance as soon as the route is calculated', () => {
     render(
       <RouteSearchPanel

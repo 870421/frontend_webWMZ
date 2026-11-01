@@ -52,6 +52,47 @@ describe('RouteComparisonPanel', () => {
     expect(screen.getByRole('button', { name: /Con sombra/ })).toHaveTextContent('17 min · 980 m');
   });
 
+  it('sums up the selected route in one line when collapsed', () => {
+    const comparison = {
+      status: 'selected',
+      fastest: route(900, 20),
+      shaded: route(1020, 70),
+      additionalDurationSeconds: 120,
+      shadeImprovementPercentagePoints: 50,
+    };
+    const { container, rerender } = render(
+      <RouteComparisonPanel
+        comparison={comparison}
+        selectedRouteType="shaded"
+        onSelectRoute={jest.fn()}
+        isExpanded={false}
+        onToggleExpanded={jest.fn()}
+      />
+    );
+    const summary = () => container.querySelector('.comparison-collapsed-summary');
+    expect(summary()).toHaveTextContent('Con sombra · 17 min · 70 % de sombra');
+
+    rerender(
+      <RouteComparisonPanel
+        comparison={comparison}
+        selectedRouteType="fastest"
+        onSelectRoute={jest.fn()}
+        isExpanded={false}
+        onToggleExpanded={jest.fn()}
+      />
+    );
+    expect(summary()).toHaveTextContent('Más rápida · 15 min · 20 % de sombra');
+
+    rerender(
+      <RouteComparisonPanel
+        comparison={comparison}
+        selectedRouteType="fastest"
+        onSelectRoute={jest.fn()}
+      />
+    );
+    expect(summary()).not.toBeInTheDocument();
+  });
+
   it('offers a collapse toggle only when it can be collapsed', async () => {
     const user = userEvent.setup();
     const onToggleExpanded = jest.fn();
