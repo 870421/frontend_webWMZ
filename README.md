@@ -121,6 +121,13 @@ solo en el backend.
 - Abrir "Ruta" recoge la comparación y "Ver más" pliega el panel: nunca se pisan.
 - Comprueba también el móvil en horizontal (844 x 390).
 
+## Comprobaciones de Iniciar ruta
+
+- Tras calcular una ruta, "Iniciar ruta" pide la ubicación y sustituye el buscador por la indicación.
+- Al avanzar cambian la indicación y lo que queda; a más de 40 m de la ruta aparece el aviso.
+- A 20 m del destino dice que has llegado; "Terminar" vuelve al buscador con la ruta calculada.
+- Para probarla sin salir de casa: Chrome DevTools > Sensors > Location.
+
 ## Comprobaciones del recorrido
 
 - Tras calcular una ruta, "Ver recorrido" muestra las calles por las que pasa y el paso a paso.

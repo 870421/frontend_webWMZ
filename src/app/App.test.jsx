@@ -166,6 +166,104 @@ describe('App', () => {
     );
   });
 
+  describe('walking a route', () => {
+    const fastest = {
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-0.89, 41.65],
+          [-0.888, 41.65],
+        ],
+      },
+      distance: 170,
+      duration: 120,
+      steps: [
+        { instruction: 'Camina hacia el este', name: null, distance: 170, wayPoints: [0, 1] },
+        { instruction: 'Llegar a su destino', name: null, distance: 0, wayPoints: [1, 1] },
+      ],
+    };
+    let onPosition;
+    let clearWatch;
+
+    async function calculateAndStart(user) {
+      getFastestRoute.mockResolvedValue(fastest);
+      clearWatch = jest.fn();
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          clearWatch,
+          watchPosition: jest.fn((success) => {
+            onPosition = success;
+            return 1;
+          }),
+        },
+      });
+      render(<App />);
+      await user.click(screen.getByText('Select map point'));
+      await user.click(screen.getByText('Select map point'));
+      await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+      await user.click(await screen.findByRole('button', { name: 'Iniciar ruta' }));
+    }
+
+    it('replaces the search with the instructions until the user finishes', async () => {
+      const user = userEvent.setup();
+      await calculateAndStart(user);
+
+      expect(screen.getByText('Buscando tu ubicación…')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Origen')).not.toBeInTheDocument();
+
+      act(() => onPosition({ coords: { latitude: 41.65, longitude: -0.889 } }));
+      expect(screen.getByText('Llegar a su destino')).toBeInTheDocument();
+      expect(screen.getByText(/^En /)).toBeInTheDocument();
+
+      act(() => onPosition({ coords: { latitude: 41.65, longitude: -0.888 } }));
+      expect(screen.getByText('Has llegado a tu destino')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Terminar' }));
+
+      expect(clearWatch).toHaveBeenCalledWith(1);
+      expect(screen.getByLabelText('Origen')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Iniciar ruta' })).toBeInTheDocument();
+    });
+
+    it('does not change the route when the map is tapped while walking', async () => {
+      const user = userEvent.setup();
+      await calculateAndStart(user);
+
+      const geometry = screen.getByTestId('route-geometry').textContent;
+      await user.click(screen.getByText('Select map point'));
+
+      expect(screen.getByTestId('route-geometry')).toHaveTextContent(geometry);
+      expect(screen.getByText('Buscando tu ubicación…')).toBeInTheDocument();
+    });
+  });
+
+  it('asks to calculate again after choosing the shaded type with only the fastest route', async () => {
+    const user = userEvent.setup();
+    getFastestRoute.mockResolvedValue({
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-0.89, 41.65],
+          [-0.888, 41.65],
+        ],
+      },
+      distance: 170,
+      duration: 120,
+      steps: [],
+    });
+    render(<App />);
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+    await screen.findByRole('button', { name: 'Iniciar ruta' });
+
+    await user.click(screen.getByRole('button', { name: 'Con sombra' }));
+
+    expect(screen.getByRole('button', { name: 'Calcular Ruta Sombreada' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Iniciar ruta' })).not.toBeInTheDocument();
+  });
+
   it('requests the fastest route with the selected points', async () => {
     const user = userEvent.setup();
     getFastestRoute.mockResolvedValue({

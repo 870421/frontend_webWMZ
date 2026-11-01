@@ -6,7 +6,7 @@ const GEOLOCATION_TIMEOUT = 3;
 const PRECISE_GEOLOCATION_TIMEOUT_MS = 10000;
 const FALLBACK_GEOLOCATION_TIMEOUT_MS = 20000;
 
-function getGeolocationErrorMessage(error) {
+export function getGeolocationErrorMessage(error) {
   if (!error) {
     return 'No se ha podido obtener tu ubicación actual.';
   }

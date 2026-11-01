@@ -4,6 +4,7 @@ import { MapView } from './MapView.jsx';
 import { MAP_BOUNDS } from './zaragozaArea.js';
 
 jest.mock('react-leaflet', () => ({
+  CircleMarker: () => null,
   Circle: ({ center, radius, interactive }) => (
     <div
       data-testid="accuracy-circle"

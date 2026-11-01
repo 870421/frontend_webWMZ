@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { RouteSteps } from '../routing/RouteSteps.jsx';
 import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
+import { useSheetHeight } from './useSheetHeight.js';
 
 const noop = () => {};
 const pointLabel = (name) => (name === 'origin' ? 'origen' : 'destino');
@@ -231,6 +232,8 @@ export function RouteSearchPanel({
   renderComparison = null,
   selectedStepIndex = null,
   onSelectStep = noop,
+  onStartNavigation = noop,
+  navigationError = '',
   pointErrorMessage = '',
 }) {
   const isLocating = geolocation.status === 'loading';
@@ -243,20 +246,7 @@ export function RouteSearchPanel({
   const [sheetDetail, setSheetDetail] = useState(null);
   const routeActionsRef = useRef(null);
 
-  // Keeps the map attribution just above the bottom sheet, whatever its current height.
-  useEffect(() => {
-    const sheet = routeActionsRef.current;
-    if (!sheet || typeof ResizeObserver === 'undefined') return undefined;
-    const root = document.documentElement;
-    const observer = new ResizeObserver(() => {
-      root.style.setProperty('--route-sheet-height', `${sheet.getBoundingClientRect().height}px`);
-    });
-    observer.observe(sheet);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty('--route-sheet-height');
-    };
-  }, []);
+  useSheetHeight(routeActionsRef);
 
   function toggleMobilePanel() {
     setSheetDetail(null);
@@ -268,6 +258,12 @@ export function RouteSearchPanel({
     setSheetDetail((current) => (current === detail ? null : detail));
   }
   const displayedRoute = routeCalculation.activeRoute || routeCalculation.route;
+  // With the shaded type chosen but only the fastest route calculated, there is still a calculation
+  // to do.
+  const canStartRoute =
+    Boolean(displayedRoute) &&
+    !isCalculating &&
+    !(routeType === 'shaded' && !routeCalculation.comparison);
   let calculateButtonLabel = 'Calcular ruta';
   if (routeType === 'shaded') calculateButtonLabel = 'Calcular Ruta Sombreada';
   if (isCalculating) calculateButtonLabel = 'Calculando...';
@@ -379,6 +375,11 @@ export function RouteSearchPanel({
               <strong>{pointTitle(activePoint)}</strong>
             </p>
           </div>
+          {navigationError && (
+            <p className="form-message form-message-error" role="alert">
+              {navigationError}
+            </p>
+          )}
           {pointErrorMessage && (
             <p className="form-message form-message-error" role="alert">
               {pointErrorMessage}
@@ -454,22 +455,28 @@ export function RouteSearchPanel({
             >
               <span aria-hidden="true">×</span> Limpiar
             </button>
-            <button
-              type="button"
-              className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
-              disabled={!canCalculate}
-              onClick={() => {
-                // On mobile the open search panel covers most of the map; fold it so the route
-                // is visible. The toggle (and this state) only has an effect on small screens.
-                setIsMobilePanelOpen(false);
-                setSheetDetail(null);
-                onCalculateRoute();
-              }}
-              title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
-            >
-              {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
-              {calculateButtonLabel}
-            </button>
+            {canStartRoute ? (
+              <button type="button" className="route-submit" onClick={onStartNavigation}>
+                Iniciar ruta
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
+                disabled={!canCalculate}
+                onClick={() => {
+                  // On mobile the open search panel covers most of the map; fold it so the route
+                  // is visible. The toggle (and this state) only has an effect on small screens.
+                  setIsMobilePanelOpen(false);
+                  setSheetDetail(null);
+                  onCalculateRoute();
+                }}
+                title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
+              >
+                {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
+                {calculateButtonLabel}
+              </button>
+            )}
           </div>
         </div>
       </div>
