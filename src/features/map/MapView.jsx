@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
 import { LocationMarker } from './LocationMarker.jsx';
 import { MapClickHandler } from './MapClickHandler.jsx';
 import { MapFocusHandler } from './MapFocusHandler.jsx';
+import { NavigationMarker } from './NavigationMarker.jsx';
 import { RouteLayer } from './RouteLayer.jsx';
 import { MAP_BOUNDS, MAP_MIN_ZOOM } from './zaragozaArea.js';
 
@@ -19,6 +20,7 @@ export function MapView({
   shadedRoute,
   selectedRouteType = 'fastest',
   selectedStepGeometry = null,
+  navigationPosition = null,
 }) {
   return (
     <div className="map-wrapper">
@@ -48,6 +50,7 @@ export function MapView({
         />
         <LocationMarker point={origin} title="Origen" type="origin" />
         <LocationMarker point={destination} title="Destino" type="destination" />
+        <NavigationMarker position={navigationPosition} />
       </MapContainer>
       <div className="map-selection-hint" aria-live="polite">
         Toca el mapa para fijar el {activePoint === 'origin' ? 'origen' : 'destino'}.

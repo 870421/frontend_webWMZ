@@ -5,11 +5,15 @@ import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
 import { MapView } from '../features/map/MapView.jsx';
 import { isInsideZaragoza, OUTSIDE_ZARAGOZA_MESSAGE } from '../features/map/zaragozaArea.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
+import { NavigationPanel } from '../features/routing/NavigationPanel.jsx';
+import { useRouteNavigation } from '../features/routing/useRouteNavigation.js';
 import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
 import { useRoutePlanner } from '../features/routing/useRoutePlanner.js';
 import { RouteSearchPanel } from '../features/route-search/RouteSearchPanel.jsx';
 import { useDeviceLocation } from '../features/route-search/useDeviceLocation.js';
 import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
+
+const ignoreMapPoint = () => {};
 
 function getStepGeometry(route, stepIndex) {
   const [start, end] = route.steps[stepIndex].wayPoints;
@@ -43,6 +47,7 @@ export function App({ userMenu = null }) {
   const selectedStepIndex = selectedStep?.route === activeRoute ? selectedStep.index : null;
   const selectedStepGeometry =
     selectedStepIndex === null ? null : getStepGeometry(activeRoute, selectedStepIndex);
+  const navigation = useRouteNavigation(activeRoute);
 
   function updateSolarDateTime(field, value) {
     routePlanner.clearRoutes();
@@ -57,61 +62,75 @@ export function App({ userMenu = null }) {
           activePoint={routePoints.activePoint}
           destination={routePoints.destination}
           focusPoint={routePoints.lastSelectedPoint}
-          onSelectPoint={withSelectionUpdated(routePoints.selectPoint)}
+          // While walking a route, a tap on the map must not change it.
+          onSelectPoint={
+            navigation.isActive ? ignoreMapPoint : withSelectionUpdated(routePoints.selectPoint)
+          }
           origin={routePoints.origin}
           fastestRoute={routePlanner.fastest}
           shadedRoute={routePlanner.shaded}
           selectedRouteType={selectedRouteType}
-          selectedStepGeometry={selectedStepGeometry}
+          selectedStepGeometry={navigation.isActive ? null : selectedStepGeometry}
+          navigationPosition={navigation.position}
         />
       }
       sidebar={
-        <>
-          <RouteSearchPanel
-            activePoint={routePoints.activePoint}
-            destination={routePoints.destination}
-            geolocation={geolocation.geolocation}
-            onClearGeolocationMessage={geolocation.clearGeolocationMessage}
-            onCalculateRoute={() =>
-              routePlanner.calculateRoute(routePoints.origin, routePoints.destination, {
-                routeType,
-                ...solarDateTime,
-              })
-            }
-            originInput={routePoints.originInput}
-            destinationInput={routePoints.destinationInput}
-            onEditPoint={withSelectionUpdated(routePoints.editPoint)}
-            onClearPoint={withSelectionUpdated(routePoints.clearPoint)}
-            onRequestCurrentLocation={geolocation.requestCurrentLocation}
-            onResetPoints={withSelectionUpdated(routePoints.resetPoints)}
-            onSetActivePoint={routePoints.setActivePoint}
-            onSetPoint={withSelectionUpdated(routePoints.setPoint)}
-            origin={routePoints.origin}
-            pointErrorMessage={routePoints.pointError}
-            routeCalculation={{ ...routePlanner, activeRoute }}
-            selectedStepIndex={selectedStepIndex}
-            onSelectStep={(index) => setSelectedStep({ route: activeRoute, index })}
-            routeType={routeType}
-            onRouteTypeChange={setRouteType}
-            solarDate={solarDateTime.date}
-            solarTime={solarDateTime.time}
-            onSolarDateChange={(value) => updateSolarDateTime('date', value)}
-            onSolarTimeChange={(value) => updateSolarDateTime('time', value)}
-            renderComparison={(collapse) =>
-              routePlanner.comparison ? (
-                <RouteComparisonPanel
-                  comparison={routePlanner.comparison}
-                  selectedRouteType={selectedRouteType}
-                  onSelectRoute={setRouteType}
-                  {...collapse}
-                />
-              ) : null
-            }
+        navigation.isActive ? (
+          <NavigationPanel
+            progress={navigation.progress}
+            signalLost={navigation.signalLost}
+            onStop={navigation.stop}
           />
-          <div className="future-panels">
-            <ComfortSummary />
-          </div>
-        </>
+        ) : (
+          <>
+            <RouteSearchPanel
+              activePoint={routePoints.activePoint}
+              destination={routePoints.destination}
+              geolocation={geolocation.geolocation}
+              onClearGeolocationMessage={geolocation.clearGeolocationMessage}
+              onCalculateRoute={() =>
+                routePlanner.calculateRoute(routePoints.origin, routePoints.destination, {
+                  routeType,
+                  ...solarDateTime,
+                })
+              }
+              originInput={routePoints.originInput}
+              destinationInput={routePoints.destinationInput}
+              onEditPoint={withSelectionUpdated(routePoints.editPoint)}
+              onClearPoint={withSelectionUpdated(routePoints.clearPoint)}
+              onRequestCurrentLocation={geolocation.requestCurrentLocation}
+              onResetPoints={withSelectionUpdated(routePoints.resetPoints)}
+              onSetActivePoint={routePoints.setActivePoint}
+              onSetPoint={withSelectionUpdated(routePoints.setPoint)}
+              origin={routePoints.origin}
+              pointErrorMessage={routePoints.pointError}
+              routeCalculation={{ ...routePlanner, activeRoute }}
+              selectedStepIndex={selectedStepIndex}
+              onSelectStep={(index) => setSelectedStep({ route: activeRoute, index })}
+              onStartNavigation={navigation.start}
+              navigationError={navigation.errorMessage}
+              routeType={routeType}
+              onRouteTypeChange={setRouteType}
+              solarDate={solarDateTime.date}
+              solarTime={solarDateTime.time}
+              onSolarDateChange={(value) => updateSolarDateTime('date', value)}
+              onSolarTimeChange={(value) => updateSolarDateTime('time', value)}
+              renderComparison={(collapse) =>
+                routePlanner.comparison ? (
+                  <RouteComparisonPanel
+                    comparison={routePlanner.comparison}
+                    selectedRouteType={selectedRouteType}
+                    onSelectRoute={setRouteType}
+                    {...collapse}
+                  />
+                ) : null
+              }
+            />
+            <div className="future-panels">
+              <ComfortSummary />
+            </div>
+          </>
+        )
       }
     />
   );
