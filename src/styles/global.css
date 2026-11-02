@@ -2175,3 +2175,11 @@ input:focus-visible {
     left: auto;
   }
 }
+
+/* Al final, para ganar a los tamaños anteriores. Safari del iPhone acerca la pantalla al tocar un
+   campo con letra de menos de 16 px y no siempre la devuelve. No se usa maximum-scale porque también
+   impediría ampliar con dos dedos. */
+@media (pointer: coarse) {
+  .point-input-shell input,
+  .solar-date-time input { font-size: 16px; }
+}
