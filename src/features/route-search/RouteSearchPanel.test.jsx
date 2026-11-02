@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { RouteSearchPanel } from './RouteSearchPanel.jsx';
@@ -377,6 +377,25 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByText('41.65600, -0.87800')).toBeInTheDocument();
     await user.type(destination, ' new');
     await user.tab();
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+  });
+
+  it('selects a suggestion when the field loses the focus before the tap arrives', async () => {
+    const user = userEvent.setup();
+    usePlaceAutocomplete.mockReturnValue({
+      errorMessage: '',
+      isLoading: false,
+      results: [{ id: '1', label: 'Plaza del Pilar', lat: 41.656, lng: -0.878 }],
+    });
+    render(<StatefulPanel />);
+    const origin = screen.getByLabelText('Origen');
+    await user.type(origin, 'Pilar');
+
+    // The order of Safari on iPhone.
+    act(() => origin.blur());
+    fireEvent.click(screen.getByRole('option', { name: 'Plaza del Pilar' }));
+
+    expect(origin).toHaveValue('Plaza del Pilar');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
