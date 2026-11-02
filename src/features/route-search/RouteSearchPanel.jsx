@@ -1,9 +1,13 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { RouteSteps } from '../routing/RouteSteps.jsx';
 import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
 import { useSheetHeight } from './useSheetHeight.js';
+
+// Safari on iPhone takes the focus away from the field before delivering the tap on a suggestion:
+// closing the list at once would leave the tap without a target, and it would reach the map below.
+const LIST_CLOSE_DELAY_MS = 200;
 
 const noop = () => {};
 const pointLabel = (name) => (name === 'origin' ? 'origen' : 'destino');
@@ -45,10 +49,13 @@ function PointInput({
   const [dismissed, setDismissed] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const inputRef = useRef(null);
+  const closeTimer = useRef(null);
   const open = focused && !dismissed && activePoint === name && !point && value.trim().length >= 3;
   const search = usePlaceAutocomplete(value, open, name);
   const listId = `${name}-suggestions`;
   const selectedIndex = highlight < search.results.length ? highlight : -1;
+
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   function choose(result) {
     setDismissed(true);
@@ -119,12 +126,14 @@ function PointInput({
             placeholder={name === 'origin' ? 'Elige un origen' : 'Elige un destino'}
             value={value}
             onFocus={() => {
+              window.clearTimeout(closeTimer.current);
               setFocused(true);
               setDismissed(false);
               onActivate(name);
             }}
             onBlur={() => {
-              setFocused(false);
+              window.clearTimeout(closeTimer.current);
+              closeTimer.current = window.setTimeout(() => setFocused(false), LIST_CLOSE_DELAY_MS);
               setHighlight(-1);
             }}
             onChange={(event) => {
