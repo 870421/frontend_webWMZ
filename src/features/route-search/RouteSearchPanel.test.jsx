@@ -393,6 +393,8 @@ describe('RouteSearchPanel', () => {
 
     // The order of Safari on iPhone.
     act(() => origin.blur());
+    // Without the focus, the field must keep its list above the next field.
+    expect(origin.closest('.point-field')).toHaveClass('is-list-open');
     fireEvent.click(screen.getByRole('option', { name: 'Plaza del Pilar' }));
 
     expect(origin).toHaveValue('Plaza del Pilar');

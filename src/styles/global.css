@@ -265,7 +265,10 @@ input:focus-visible {
   min-width: 0;
 }
 
-.point-field:focus-within {
+/* La lista sigue abierta un instante sin foco (LIST_CLOSE_DELAY_MS) y debe seguir por encima del otro
+   campo: si no, este recibe el toque dirigido a la primera sugerencia. */
+.point-field:focus-within,
+.point-field.is-list-open {
   z-index: 50;
 }
 

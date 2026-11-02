@@ -90,7 +90,11 @@ function PointInput({
   }
 
   return (
-    <div className={`point-field point-field-${name} ${activePoint === name ? 'is-active' : ''}`}>
+    <div
+      className={`point-field point-field-${name} ${activePoint === name ? 'is-active' : ''} ${
+        open ? 'is-list-open' : ''
+      }`}
+    >
       <span className={`point-symbol point-symbol-${name}`} aria-hidden="true">
         {name === 'destination' && (
           <svg viewBox="0 0 24 30">
