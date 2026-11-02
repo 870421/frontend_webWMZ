@@ -89,6 +89,26 @@ describe('RouteSearchPanel', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
+  it('keeps the chosen result when a phone keyboard commits its text on leaving the field', async () => {
+    const user = userEvent.setup();
+    usePlaceAutocomplete.mockReturnValue({
+      errorMessage: '',
+      isLoading: false,
+      results: [{ id: 'place-1', label: 'Plaza del Pilar', lat: 41.656, lng: -0.878 }],
+    });
+    render(<StatefulPanel />);
+    const input = screen.getByLabelText('Origen');
+    await user.type(input, 'Pilar');
+    input.addEventListener('blur', () => fireEvent.change(input, { target: { value: 'Pila' } }));
+
+    await user.click(screen.getByRole('option', { name: 'Plaza del Pilar' }));
+
+    expect(input).not.toHaveFocus();
+    expect(input).toHaveValue('Plaza del Pilar');
+    expect(screen.getByText('41.65600, -0.87800')).toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
   it('calls selection and reset handlers', async () => {
     const user = userEvent.setup();
     const onClearPoint = jest.fn();

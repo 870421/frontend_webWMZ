@@ -44,6 +44,7 @@ function PointInput({
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+  const inputRef = useRef(null);
   const open = focused && !dismissed && activePoint === name && !point && value.trim().length >= 3;
   const search = usePlaceAutocomplete(value, open, name);
   const listId = `${name}-suggestions`;
@@ -52,6 +53,9 @@ function PointInput({
   function choose(result) {
     setDismissed(true);
     setHighlight(-1);
+    // Before setting the point: on leaving the field a phone keyboard commits the text it was still
+    // composing, which would count as editing and clear the point. It also closes the keyboard.
+    inputRef.current?.blur();
     onSetPoint(name, { lat: result.lat, lng: result.lng, label: result.label, source: 'search' });
   }
 
@@ -97,6 +101,7 @@ function PointInput({
             <SearchIcon />
           </span>
           <input
+            ref={inputRef}
             id={name}
             name={name}
             type="text"
