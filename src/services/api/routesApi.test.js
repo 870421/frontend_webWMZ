@@ -1,4 +1,4 @@
-import { getFastestRoute, getShadedRouteComparison } from './routesApi.js';
+import { getFastestRoute, getWeightedRouteComparison } from './routesApi.js';
 
 describe('getFastestRoute', () => {
   const originalFetch = global.fetch;
@@ -64,7 +64,7 @@ describe('getFastestRoute', () => {
     await expect(getFastestRoute({ origin, destination })).rejects.toThrow(message);
   });
 
-  it('posts the solar instant and validates a shaded route comparison', async () => {
+  it('posts the solar instant and the weights and validates the comparison', async () => {
     const environmentalRoute = {
       ...route,
       exposure: {
@@ -79,8 +79,9 @@ describe('getFastestRoute', () => {
         ...environmentalRoute,
         exposure: { ...environmentalRoute.exposure, shadePercentage: 20, sunPercentage: 80 },
       },
-      shaded: environmentalRoute,
+      selected: environmentalRoute,
       additionalDurationSeconds: 120,
+      shadeChangePercentagePoints: 40,
     };
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -88,20 +89,28 @@ describe('getFastestRoute', () => {
     });
 
     await expect(
-      getShadedRouteComparison({
+      getWeightedRouteComparison({
         origin,
         destination,
         date: '2026-06-21',
         time: '14:00',
         timeZone: 'Europe/Madrid',
+        weights: { shade: 50, sun: 0 },
       })
-    ).resolves.toEqual(comparison);
+    ).resolves.toEqual({
+      ...comparison,
+      // The chosen route takes the place of the shaded one in the app.
+      shaded: environmentalRoute,
+      shadeImprovementPercentagePoints: 40,
+    });
+    expect(global.fetch.mock.calls[0][0]).toMatch(/\/routes\/weighted$/);
     expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
       origin: { lat: origin.lat, lng: origin.lng },
       destination: { lat: destination.lat, lng: destination.lng },
       date: '2026-06-21',
       time: '14:00',
       timeZone: 'Europe/Madrid',
+      weights: { shade: 50, sun: 0 },
     });
   });
 
@@ -115,14 +124,20 @@ describe('getFastestRoute', () => {
             ...route,
             exposure: { status: 'available', shadePercentage: 120, sunPercentage: -20 },
           },
-          shaded: null,
+          selected: null,
           additionalDurationSeconds: null,
         },
       }),
     });
 
     await expect(
-      getShadedRouteComparison({ origin, destination, date: '2026-06-21', time: '14:00' })
+      getWeightedRouteComparison({
+        origin,
+        destination,
+        date: '2026-06-21',
+        time: '14:00',
+        weights: { shade: 50, sun: 0 },
+      })
     ).rejects.toThrow('comparación no válida');
   });
 });

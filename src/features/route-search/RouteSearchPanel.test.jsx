@@ -279,24 +279,20 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByText('1,3 km')).toBeInTheDocument();
   });
 
-  it('selects shaded routing and exposes date/time controls on compact layouts', async () => {
-    const user = userEvent.setup();
-    const onRouteTypeChange = jest.fn();
+  it('asks for the date and time only for routes that weigh shade or sun', () => {
     const onSolarDateChange = jest.fn();
     const onSolarTimeChange = jest.fn();
     const { rerender } = render(
-      <RouteSearchPanel routeType="fastest" onRouteTypeChange={onRouteTypeChange} />
+      <RouteSearchPanel routeType="fastest" profilePicker={<p>Selector de rutas</p>} />
     );
-
-    await user.click(screen.getByRole('button', { name: 'Con sombra' }));
-    expect(onRouteTypeChange).toHaveBeenCalledWith('shaded');
+    expect(screen.getByText('Selector de rutas')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
 
     rerender(
       <RouteSearchPanel
         routeType="shaded"
         solarDate="2026-06-21"
         solarTime="14:00"
-        onRouteTypeChange={onRouteTypeChange}
         onSolarDateChange={onSolarDateChange}
         onSolarTimeChange={onSolarTimeChange}
       />
@@ -305,7 +301,7 @@ describe('RouteSearchPanel', () => {
     fireEvent.change(screen.getByLabelText('Hora'), { target: { value: '15:30' } });
     expect(onSolarDateChange).toHaveBeenLastCalledWith('2026-06-22');
     expect(onSolarTimeChange).toHaveBeenLastCalledWith('15:30');
-    expect(screen.getByRole('button', { name: 'Calcular Ruta Sombreada' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Calcular ruta' })).toBeDisabled();
   });
 
   it('shows geolocation states', () => {

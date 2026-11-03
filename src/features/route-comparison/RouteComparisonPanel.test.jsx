@@ -144,7 +144,46 @@ describe('RouteComparisonPanel', () => {
     );
 
     expect(screen.getByRole('button', { name: /Con sombra/ })).toBeDisabled();
-    expect(screen.getByRole('status')).toHaveTextContent('No se ha encontrado una alternativa');
+    expect(screen.getByRole('status')).toHaveTextContent('No hay una alternativa');
+  });
+
+  it('says how much extra time the chosen route allowed', () => {
+    render(
+      <RouteComparisonPanel
+        comparison={{
+          status: 'no_better_alternative',
+          fastest: route(900, 20),
+          shaded: null,
+          strategy: { maximumDurationFactor: 1.1 },
+        }}
+        selectedRouteType="fastest"
+        onSelectRoute={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('sin tardar más de un 10 % extra');
+  });
+
+  it('names the alternative after the chosen route and says when it has less shade', () => {
+    render(
+      <RouteComparisonPanel
+        comparison={{
+          status: 'selected',
+          fastest: route(900, 80),
+          shaded: route(960, 10),
+          additionalDurationSeconds: 60,
+          shadeImprovementPercentagePoints: -70,
+        }}
+        selectedRouteType="shaded"
+        alternativeLabel="Soleada"
+        onSelectRoute={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /Soleada/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByText(/Soleada añade 1 min y tiene 70 puntos menos de sombra/)
+    ).toBeInTheDocument();
   });
 
   it('explains when the sun is too low to estimate shade', () => {

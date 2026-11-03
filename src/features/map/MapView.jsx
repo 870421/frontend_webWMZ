@@ -18,6 +18,7 @@ export function MapView({
   origin,
   fastestRoute,
   shadedRoute,
+  alternativeLabel = 'Ruta Sombreada',
   selectedRouteType = 'fastest',
   selectedStepGeometry = null,
   navigationPosition = null,
@@ -83,7 +84,7 @@ export function MapView({
         {shadedRoute && (
           <span>
             <i className="legend-route legend-route-shaded" aria-hidden="true" />
-            Ruta Sombreada
+            {alternativeLabel}
           </span>
         )}
       </div>

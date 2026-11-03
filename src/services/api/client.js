@@ -49,5 +49,7 @@ export async function apiRequest(
     throw error;
   }
 
+  // No content, for example after deleting.
+  if (response.status === 204) return null;
   return response.json();
 }

@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import { getFastestRoute, getShadedRouteComparison } from '../../services/api/routesApi.js';
+import { getFastestRoute, getWeightedRouteComparison } from '../../services/api/routesApi.js';
 import { useRoutePlanner } from './useRoutePlanner.js';
 
 jest.mock('../../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
-  getShadedRouteComparison: jest.fn(),
+  getWeightedRouteComparison: jest.fn(),
 }));
 
 const origin = { lat: 41.6488, lng: -0.8891 };
@@ -25,7 +25,7 @@ const route = {
 describe('useRoutePlanner', () => {
   beforeEach(() => {
     getFastestRoute.mockReset();
-    getShadedRouteComparison.mockReset();
+    getWeightedRouteComparison.mockReset();
   });
 
   it('keeps the existing fastest route flow independent from environmental data', async () => {
@@ -38,17 +38,18 @@ describe('useRoutePlanner', () => {
 
     expect(result.current.fastest).toEqual(route);
     expect(result.current.shaded).toBeNull();
-    expect(getShadedRouteComparison).not.toHaveBeenCalled();
+    expect(getWeightedRouteComparison).not.toHaveBeenCalled();
   });
 
   it('stores both routes and their comparison for shaded routing', async () => {
     const comparison = { status: 'selected', fastest: route, shaded: { ...route, duration: 660 } };
-    getShadedRouteComparison.mockResolvedValue(comparison);
+    getWeightedRouteComparison.mockResolvedValue(comparison);
     const { result } = renderHook(() => useRoutePlanner());
 
     await act(async () => {
       await result.current.calculateRoute(origin, destination, {
         routeType: 'shaded',
+        weights: { shade: 50, sun: 0 },
         date: '2026-06-21',
         time: '14:00',
         timeZone: 'Europe/Madrid',
@@ -61,6 +62,10 @@ describe('useRoutePlanner', () => {
       shaded: comparison.shaded,
       comparison,
     });
+    expect(getWeightedRouteComparison).toHaveBeenCalledWith(
+      expect.objectContaining({ weights: { shade: 50, sun: 0 }, date: '2026-06-21' }),
+      { signal: expect.any(AbortSignal) }
+    );
   });
 
   it('clears and aborts an obsolete request', async () => {

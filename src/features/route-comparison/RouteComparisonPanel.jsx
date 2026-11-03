@@ -2,7 +2,7 @@ import { formatRouteDistance, formatRouteDuration } from '../routing/RouteSummar
 
 const statusMessages = {
   no_better_alternative:
-    'No se ha encontrado una alternativa suficientemente más sombreada dentro del desvío permitido.',
+    'No hay una alternativa que mejore lo suficiente lo que has elegido dentro del tiempo extra permitido.',
   insufficient_exposure_data: 'No hay datos de exposición suficientes para comparar estas rutas.',
   sun_below_horizon: 'El Sol está bajo el horizonte en el momento seleccionado.',
   sun_too_low:
@@ -32,11 +32,16 @@ function RouteTimeAndDistance({ route }) {
 export function RouteComparisonPanel({
   comparison,
   selectedRouteType,
+  alternativeLabel = 'Con sombra',
   onSelectRoute,
   isExpanded = true,
   onToggleExpanded = null,
 }) {
   if (!comparison) return null;
+  const durationFactor = comparison.strategy?.maximumDurationFactor;
+  const maxDetourPercentage = Number.isFinite(durationFactor)
+    ? Math.round((durationFactor - 1) * 100)
+    : null;
   const hasShadedRoute = Boolean(comparison.shaded);
   const showsShadedRoute = selectedRouteType === 'shaded' && hasShadedRoute;
   const selectedRoute = showsShadedRoute ? comparison.shaded : comparison.fastest;
@@ -53,7 +58,7 @@ export function RouteComparisonPanel({
         <h2 id="route-comparison-title">Comparación</h2>
         {!isExpanded && (
           <p className="comparison-collapsed-summary">
-            <strong>{showsShadedRoute ? 'Con sombra' : 'Más rápida'}</strong>
+            <strong>{showsShadedRoute ? alternativeLabel : 'Más rápida'}</strong>
             {` · ${formatRouteDuration(selectedRoute.duration)} · ${formatShade(selectedRoute)}`}
           </p>
         )}
@@ -86,7 +91,7 @@ export function RouteComparisonPanel({
           disabled={!hasShadedRoute}
           onClick={() => onSelectRoute('shaded')}
         >
-          <strong>Con sombra</strong>
+          <strong>{alternativeLabel}</strong>
           {hasShadedRoute ? (
             <>
               <RouteTimeAndDistance route={comparison.shaded} />
@@ -99,12 +104,15 @@ export function RouteComparisonPanel({
       </div>
       {comparison.status === 'selected' ? (
         <p className={resultClass}>
-          La Ruta Sombreada añade {formatRouteDuration(comparison.additionalDurationSeconds)} y
-          mejora la sombra en {Math.round(comparison.shadeImprovementPercentagePoints)} puntos.
+          {alternativeLabel} añade {formatRouteDuration(comparison.additionalDurationSeconds)} y
+          tiene {Math.abs(Math.round(comparison.shadeImprovementPercentagePoints))} puntos{' '}
+          {comparison.shadeImprovementPercentagePoints >= 0 ? 'más' : 'menos'} de sombra.
         </p>
       ) : (
         <p className={resultClass} role="status">
-          {statusMessages[comparison.status] || 'No hay una comparación disponible.'}
+          {comparison.status === 'no_better_alternative' && maxDetourPercentage !== null
+            ? `No hay una alternativa que mejore lo suficiente lo que has elegido sin tardar más de un ${maxDetourPercentage} % extra.`
+            : statusMessages[comparison.status] || 'No hay una comparación disponible.'}
         </p>
       )}
     </section>

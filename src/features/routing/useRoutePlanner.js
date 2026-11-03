@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { getFastestRoute, getShadedRouteComparison } from '../../services/api/routesApi.js';
+import { getFastestRoute, getWeightedRouteComparison } from '../../services/api/routesApi.js';
 
 const EMPTY_STATE = {
   status: 'idle',
@@ -31,14 +31,17 @@ export function useRoutePlanner() {
     setState({ ...EMPTY_STATE, status: 'loading' });
 
     try {
+      // Any route that weighs shade or sun is compared with the fastest one (ADR-023).
       if (options.routeType === 'shaded') {
-        const comparison = await getShadedRouteComparison(
+        const comparison = await getWeightedRouteComparison(
           {
             origin,
             destination,
             date: options.date,
             time: options.time,
             timeZone: options.timeZone,
+            weights: options.weights,
+            maxDetourPercentage: options.maxDetourPercentage,
           },
           { signal: controller.signal }
         );

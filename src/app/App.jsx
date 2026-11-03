@@ -5,6 +5,11 @@ import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
 import { MapView } from '../features/map/MapView.jsx';
 import { isInsideZaragoza, OUTSIDE_ZARAGOZA_MESSAGE } from '../features/map/zaragozaArea.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
+import { RouteProfilePicker } from '../features/route-profiles/RouteProfilePicker.jsx';
+import {
+  hasEnvironmentalWeight,
+  useRouteProfiles,
+} from '../features/route-profiles/useRouteProfiles.js';
 import { NavigationPanel } from '../features/routing/NavigationPanel.jsx';
 import { useRouteNavigation } from '../features/routing/useRouteNavigation.js';
 import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
@@ -23,7 +28,10 @@ function getStepGeometry(route, stepIndex) {
 export function App({ userMenu = null }) {
   const routePoints = useRoutePoints();
   const routePlanner = useRoutePlanner();
-  const [routeType, setRouteType] = useState('fastest');
+  const routeProfiles = useRouteProfiles();
+  const [profileId, setProfileId] = useState(null);
+  // Which of the two calculated routes is shown: the fastest one or the one chosen with the weights.
+  const [shownRoute, setShownRoute] = useState('shaded');
   const [solarDateTime, setSolarDateTime] = useState(getZaragozaDateTime);
   const [selectedStep, setSelectedStep] = useState(null);
   const geolocation = useDeviceLocation({
@@ -41,13 +49,43 @@ export function App({ userMenu = null }) {
     };
   }
 
-  const selectedRouteType = routeType === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
+  // While loading, the presets are shown with their presetKey as id: a choice made then is kept
+  // once the routes of the user arrive.
+  const profile =
+    routeProfiles.profiles.find(({ id }) => id === profileId) ??
+    routeProfiles.profiles.find(({ presetKey }) => presetKey && presetKey === profileId) ??
+    routeProfiles.profiles[0] ??
+    null;
+  // Internally "shaded" is still the route chosen with the weights: it is shown like the Shaded
+  // Route of PBI-5.4, with the name of the profile.
+  const routeType = profile && hasEnvironmentalWeight(profile.weights) ? 'shaded' : 'fastest';
+  const alternativeLabel = profile?.name ?? 'Con sombra';
+  const selectedRouteType =
+    routeType === 'shaded' && shownRoute === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
   const activeRoute = selectedRouteType === 'shaded' ? routePlanner.shaded : routePlanner.fastest;
   // The selected step belongs to one route: with another route (or none) nothing is selected.
   const selectedStepIndex = selectedStep?.route === activeRoute ? selectedStep.index : null;
   const selectedStepGeometry =
     selectedStepIndex === null ? null : getStepGeometry(activeRoute, selectedStepIndex);
   const navigation = useRouteNavigation(activeRoute);
+
+  function selectProfile(id) {
+    routePlanner.clearRoutes();
+    setShownRoute('shaded');
+    setProfileId(id);
+  }
+
+  async function saveProfile(id, draft) {
+    const saved = await routeProfiles.saveProfile(id, draft);
+    // The calculated routes were chosen with the old weights.
+    if (saved.id === profile?.id) routePlanner.clearRoutes();
+    return saved;
+  }
+
+  async function deleteProfile(id) {
+    await routeProfiles.deleteProfile(id);
+    if (id === profile?.id) selectProfile(null);
+  }
 
   function updateSolarDateTime(field, value) {
     routePlanner.clearRoutes();
@@ -69,6 +107,7 @@ export function App({ userMenu = null }) {
           origin={routePoints.origin}
           fastestRoute={routePlanner.fastest}
           shadedRoute={routePlanner.shaded}
+          alternativeLabel={alternativeLabel}
           selectedRouteType={selectedRouteType}
           selectedStepGeometry={navigation.isActive ? null : selectedStepGeometry}
           navigationPosition={navigation.position}
@@ -91,12 +130,15 @@ export function App({ userMenu = null }) {
               destination={routePoints.destination}
               geolocation={geolocation.geolocation}
               onClearGeolocationMessage={geolocation.clearGeolocationMessage}
-              onCalculateRoute={() =>
+              onCalculateRoute={() => {
+                setShownRoute('shaded');
                 routePlanner.calculateRoute(routePoints.origin, routePoints.destination, {
                   routeType,
+                  weights: profile?.weights,
+                  maxDetourPercentage: profile?.maxDetourPercentage,
                   ...solarDateTime,
-                })
-              }
+                });
+              }}
               originInput={routePoints.originInput}
               destinationInput={routePoints.destinationInput}
               onEditPoint={withSelectionUpdated(routePoints.editPoint)}
@@ -113,7 +155,18 @@ export function App({ userMenu = null }) {
               onStartNavigation={navigation.start}
               navigationError={navigation.errorMessage}
               routeType={routeType}
-              onRouteTypeChange={setRouteType}
+              alternativeLabel={alternativeLabel}
+              profilePicker={
+                <RouteProfilePicker
+                  profiles={routeProfiles.profiles}
+                  selectedId={profile?.id ?? null}
+                  isEditable={routeProfiles.isEditable}
+                  loadFailed={routeProfiles.loadFailed}
+                  onSelect={selectProfile}
+                  onSave={saveProfile}
+                  onDelete={deleteProfile}
+                />
+              }
               solarDate={solarDateTime.date}
               solarTime={solarDateTime.time}
               onSolarDateChange={(value) => updateSolarDateTime('date', value)}
@@ -123,7 +176,8 @@ export function App({ userMenu = null }) {
                   <RouteComparisonPanel
                     comparison={routePlanner.comparison}
                     selectedRouteType={selectedRouteType}
-                    onSelectRoute={setRouteType}
+                    alternativeLabel={alternativeLabel}
+                    onSelectRoute={setShownRoute}
                     {...collapse}
                   />
                 ) : null
