@@ -242,7 +242,8 @@ export function RouteSearchPanel({
   onCalculateRoute = noop,
   routeCalculation = { status: 'idle', errorMessage: '' },
   routeType = 'fastest',
-  onRouteTypeChange = noop,
+  alternativeLabel = 'Con sombra',
+  profilePicker = null,
   solarDate = '',
   solarTime = '',
   onSolarDateChange = noop,
@@ -282,9 +283,9 @@ export function RouteSearchPanel({
     Boolean(displayedRoute) &&
     !isCalculating &&
     !(routeType === 'shaded' && !routeCalculation.comparison);
-  let calculateButtonLabel = 'Calcular ruta';
-  if (routeType === 'shaded') calculateButtonLabel = 'Calcular Ruta Sombreada';
-  if (isCalculating) calculateButtonLabel = 'Calculando...';
+  const calculateButtonLabel = isCalculating ? 'Calculando...' : 'Calcular ruta';
+  const showsAlternative =
+    Boolean(routeCalculation.shaded) && displayedRoute === routeCalculation.shaded;
 
   return (
     <section
@@ -341,27 +342,7 @@ export function RouteSearchPanel({
             />
           ))}
         </div>
-        <fieldset className="route-type-mode">
-          <legend>Tipo de ruta</legend>
-          <div className="segmented-control route-type-control">
-            <button
-              type="button"
-              className={routeType === 'fastest' ? 'is-active' : ''}
-              aria-pressed={routeType === 'fastest'}
-              onClick={() => onRouteTypeChange('fastest')}
-            >
-              Más rápida
-            </button>
-            <button
-              type="button"
-              className={routeType === 'shaded' ? 'is-active' : ''}
-              aria-pressed={routeType === 'shaded'}
-              onClick={() => onRouteTypeChange('shaded')}
-            >
-              Con sombra
-            </button>
-          </div>
-        </fieldset>
+        {profilePicker}
         {routeType === 'shaded' && (
           <div className="solar-date-time" aria-label="Momento para estimar la sombra">
             <label>
@@ -431,7 +412,8 @@ export function RouteSearchPanel({
           )}
           {isCalculating && (
             <p className="form-message" role="status">
-              Calculando {routeType === 'shaded' ? 'la Ruta Sombreada' : 'la ruta más rápida'}...
+              Calculando{' '}
+              {routeType === 'shaded' ? `la ruta «${alternativeLabel}»` : 'la ruta más rápida'}...
             </p>
           )}
           {displayedRoute && (
@@ -439,9 +421,7 @@ export function RouteSearchPanel({
               distance={displayedRoute.distance}
               duration={displayedRoute.duration}
               shadePercentage={displayedRoute.exposure?.shadePercentage}
-              title={
-                routeType === 'shaded' && routeCalculation.shaded ? 'Ruta Sombreada' : 'Ruta rápida'
-              }
+              title={showsAlternative ? alternativeLabel : 'Ruta rápida'}
             />
           )}
           {renderComparison?.({

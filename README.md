@@ -121,6 +121,19 @@ solo en el backend.
 - Abrir "Ruta" recoge la comparación y "Ver más" pliega el panel: nunca se pisan.
 - Comprueba también el móvil en horizontal (844 x 390).
 
+## Comprobaciones de la PBI-6
+
+- Bajo origen y destino aparecen tus rutas como tarjetas con icono: Rápida, Sombreada, Soleada y las
+  que crees. Con sombra y sol a la vez salen los dos iconos.
+- Si alguna tarjeta queda cortada aparece una flecha en ese lado, que mueve la fila; desde 4 rutas,
+  "Ver todas" abre un pop-up con todas y un buscador que no distingue tildes ni mayúsculas.
+- Los iconos ＋ y lápiz abren un pop-up con el nombre, dos barras de 0 a 100 % (sombra y sol) y el tiempo
+  extra máximo (0 a 40 %, desactivado si sombra y sol están a 0); en el móvil sube desde abajo. Un nombre repetido se marca en el campo; Escape o tocar fuera lo cierran.
+- Con sombra o sol por encima de 0 se piden fecha y hora; la comparación y la leyenda usan el nombre
+  de la ruta elegida.
+- La papelera pide confirmación en otro pop-up y solo borra de tu cuenta; siempre queda al menos una
+  ruta.
+
 ## Comprobaciones de Iniciar ruta
 
 - Tras calcular una ruta, "Iniciar ruta" pide la ubicación y sustituye el buscador por la indicación.

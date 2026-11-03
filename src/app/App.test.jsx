@@ -2,7 +2,13 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { App } from './App.jsx';
-import { getFastestRoute, getShadedRouteComparison } from '../services/api/routesApi.js';
+import {
+  createRouteProfile,
+  deleteRouteProfile,
+  listRouteProfiles,
+  updateRouteProfile,
+} from '../services/api/routeProfilesApi.js';
+import { getFastestRoute, getWeightedRouteComparison } from '../services/api/routesApi.js';
 
 jest.mock('../services/api/geocodingApi.js', () => ({
   autocompletePlaces: jest.fn(),
@@ -11,8 +17,21 @@ jest.mock('../services/api/geocodingApi.js', () => ({
 
 jest.mock('../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
-  getShadedRouteComparison: jest.fn(),
+  getWeightedRouteComparison: jest.fn(),
 }));
+
+jest.mock('../services/api/routeProfilesApi.js', () => ({
+  listRouteProfiles: jest.fn(),
+  createRouteProfile: jest.fn(),
+  updateRouteProfile: jest.fn(),
+  deleteRouteProfile: jest.fn(),
+}));
+
+const PROFILES = [
+  { id: 1, name: 'Rápida', presetKey: 'fastest', weights: { shade: 0, sun: 0 } },
+  { id: 2, name: 'Sombreada', presetKey: 'shaded', weights: { shade: 50, sun: 0 } },
+  { id: 3, name: 'Soleada', presetKey: 'sunny', weights: { shade: 0, sun: 50 } },
+].map((profile) => ({ ...profile, maxDetourPercentage: 25 }));
 
 jest.mock('../features/map/MapView.jsx', () => ({
   MapView: ({
@@ -56,7 +75,11 @@ describe('App', () => {
 
   beforeEach(() => {
     getFastestRoute.mockReset();
-    getShadedRouteComparison.mockReset();
+    getWeightedRouteComparison.mockReset();
+    listRouteProfiles.mockReset().mockResolvedValue(PROFILES);
+    createRouteProfile.mockReset();
+    updateRouteProfile.mockReset();
+    deleteRouteProfile.mockReset();
   });
 
   it('renders the base application shell', () => {
@@ -258,10 +281,11 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
     await screen.findByRole('button', { name: 'Iniciar ruta' });
 
-    await user.click(screen.getByRole('button', { name: 'Con sombra' }));
+    await user.click(await screen.findByRole('button', { name: 'Sombreada' }));
 
-    expect(screen.getByRole('button', { name: 'Calcular Ruta Sombreada' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Calcular ruta' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Iniciar ruta' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('route-geometry')).toHaveTextContent('none');
   });
 
   it('requests the fastest route with the selected points', async () => {
@@ -352,7 +376,7 @@ describe('App', () => {
       duration: 660,
       exposure: { status: 'available', shadePercentage: 70, sunPercentage: 30 },
     };
-    getShadedRouteComparison.mockResolvedValue({
+    getWeightedRouteComparison.mockResolvedValue({
       status: 'selected',
       fastest,
       shaded,
@@ -363,18 +387,19 @@ describe('App', () => {
 
     await user.click(screen.getByText('Select map point'));
     await user.click(screen.getByText('Select map point'));
-    await user.click(screen.getByRole('button', { name: 'Con sombra' }));
+    await user.click(await screen.findByRole('button', { name: 'Sombreada' }));
     await user.clear(screen.getByLabelText('Fecha'));
     await user.type(screen.getByLabelText('Fecha'), '2026-06-21');
     await user.clear(screen.getByLabelText('Hora'));
     await user.type(screen.getByLabelText('Hora'), '14:00');
-    await user.click(screen.getByRole('button', { name: 'Calcular Ruta Sombreada' }));
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
 
-    expect(getShadedRouteComparison).toHaveBeenCalledWith(
+    expect(getWeightedRouteComparison).toHaveBeenCalledWith(
       expect.objectContaining({
         date: '2026-06-21',
         time: '14:00',
         timeZone: 'Europe/Madrid',
+        weights: { shade: 50, sun: 0 },
       }),
       { signal: expect.any(AbortSignal) }
     );
@@ -386,5 +411,94 @@ describe('App', () => {
     expect(screen.getByTestId('route-geometry')).toHaveTextContent(
       JSON.stringify(fastest.geometry.coordinates)
     );
+    // Showing the fastest one does not change the chosen route type.
+    expect(screen.getByRole('button', { name: 'Sombreada' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
+  describe('routes of the user', () => {
+    it('starts with the fastest route and only asks for it, without weights', async () => {
+      const user = userEvent.setup();
+      getFastestRoute.mockReturnValue(new Promise(() => {}));
+      render(<App />);
+
+      expect(await screen.findByRole('button', { name: 'Rápida' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
+      await user.click(screen.getByText('Select map point'));
+      await user.click(screen.getByText('Select map point'));
+      await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+
+      expect(getFastestRoute).toHaveBeenCalledTimes(1);
+      expect(getWeightedRouteComparison).not.toHaveBeenCalled();
+    });
+
+    it('calculates with the weights of a route created by the user', async () => {
+      const user = userEvent.setup();
+      const summer = {
+        id: 4,
+        name: 'Verano',
+        presetKey: null,
+        weights: { shade: 80, sun: 0 },
+        maxDetourPercentage: 10,
+      };
+      createRouteProfile.mockResolvedValue(summer);
+      getWeightedRouteComparison.mockReturnValue(new Promise(() => {}));
+      render(<App />);
+
+      await user.click(await screen.findByRole('button', { name: 'Nueva ruta' }));
+      await user.type(screen.getByLabelText('Nombre'), 'Verano');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(createRouteProfile).toHaveBeenCalledWith({
+        name: 'Verano',
+        weights: { shade: 50, sun: 0 },
+        maxDetourPercentage: 25,
+      });
+      expect(await screen.findByRole('button', { name: 'Verano' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      await user.click(screen.getByText('Select map point'));
+      await user.click(screen.getByText('Select map point'));
+      await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+      expect(getWeightedRouteComparison).toHaveBeenCalledWith(
+        expect.objectContaining({ weights: { shade: 80, sun: 0 }, maxDetourPercentage: 10 }),
+        { signal: expect.any(AbortSignal) }
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('Calculando la ruta «Verano»');
+    });
+
+    it('goes back to the first route after deleting the chosen one', async () => {
+      const user = userEvent.setup();
+      deleteRouteProfile.mockResolvedValue();
+      render(<App />);
+      // Editing is offered once the routes of the user have arrived.
+      await screen.findByRole('button', { name: 'Nueva ruta' });
+
+      await user.click(screen.getByRole('button', { name: 'Soleada' }));
+      await user.click(screen.getByRole('button', { name: 'Borrar Soleada' }));
+      await user.click(screen.getByRole('button', { name: 'Borrar' }));
+
+      expect(deleteRouteProfile).toHaveBeenCalledWith(3);
+      expect(screen.queryByRole('button', { name: 'Soleada' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Rápida' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+    });
+
+    it('offers the presets without editing when the routes cannot be loaded', async () => {
+      listRouteProfiles.mockRejectedValue(new Error('offline'));
+      render(<App />);
+
+      expect(await screen.findByText(/No se han podido cargar tus rutas/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sombreada' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Nueva ruta' })).not.toBeInTheDocument();
+    });
   });
 });

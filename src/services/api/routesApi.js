@@ -80,11 +80,13 @@ function isValidComparison(comparison) {
   );
 }
 
-export async function getShadedRouteComparison(
-  { origin, destination, date, time, timeZone },
+// Same shape as the Shaded Route comparison: the route chosen with the weights takes the place of
+// the shaded one.
+export async function getWeightedRouteComparison(
+  { origin, destination, date, time, timeZone, weights, maxDetourPercentage },
   { signal } = {}
 ) {
-  const data = await apiRequest('/routes/shaded', {
+  const data = await apiRequest('/routes/weighted', {
     method: 'POST',
     signal,
     body: JSON.stringify({
@@ -93,14 +95,21 @@ export async function getShadedRouteComparison(
       date,
       time,
       timeZone,
+      weights,
+      maxDetourPercentage,
     }),
     errorMessages: ROUTE_ERROR_MESSAGES,
-    fallbackErrorMessage: 'No se ha podido calcular la Ruta Sombreada. Inténtalo de nuevo.',
+    fallbackErrorMessage: 'No se ha podido calcular la ruta. Inténtalo de nuevo.',
   });
+  const comparison = data?.comparison && {
+    ...data.comparison,
+    shaded: data.comparison.selected ?? null,
+    shadeImprovementPercentagePoints: data.comparison.shadeChangePercentagePoints ?? null,
+  };
 
-  if (!isValidComparison(data?.comparison)) {
+  if (!isValidComparison(comparison)) {
     throw new Error('El servidor ha devuelto una comparación no válida. Inténtalo de nuevo.');
   }
 
-  return data.comparison;
+  return comparison;
 }
