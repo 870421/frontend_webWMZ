@@ -23,6 +23,7 @@ import { useDeviceLocation } from '../features/route-search/useDeviceLocation.js
 import { RouteHistory } from '../features/route-history/RouteHistory.jsx';
 import { useRouteHistory } from '../features/route-history/useRouteHistory.js';
 import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
+import { WeatherPanel } from '../features/weather/WeatherPanel.jsx';
 
 const ignoreMapPoint = () => {};
 
@@ -130,6 +131,7 @@ export function App({ userMenu = null }) {
   return (
     <AppShell
       userMenu={userMenu}
+      weather={<WeatherPanel />}
       map={
         <MapView
           activePoint={routePoints.activePoint}
@@ -218,13 +220,21 @@ export function App({ userMenu = null }) {
                       onSelectRoute={setShownRoute}
                       {...collapse}
                     />
+                    <ComfortSummary
+                      comparison={routePlanner.comparison}
+                      selectedRouteType={selectedRouteType}
+                      alternativeLabel={alternativeLabel}
+                      weights={
+                        isRecommended
+                          ? routePlanner.comparison.recommendation?.weights
+                          : profile?.weights
+                      }
+                      isExpanded={collapse.isExpanded}
+                    />
                   </>
                 ) : null
               }
             />
-            <div className="future-panels">
-              <ComfortSummary />
-            </div>
           </>
         )
       }
