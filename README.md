@@ -255,6 +255,27 @@ usa con el peso de vegetación (ADR-031: ver DECISIONS.md en la carpeta docs del
   el 50 % verde frente a la rápida de 31 min con el 31 % ("añade 1 min y tiene 19 puntos más de
   verde"). Sin scroll horizontal, barra de 44 px en el móvil y todo con el teclado.
 
+## Comprobaciones de la PBI-12 (recientes y favoritos)
+
+El historial y los favoritos se guardan en la cuenta (backend, ADR-032): se ven igual en el móvil y
+en el ordenador.
+
+- Bajo los campos de origen y destino hay un botón "Recientes y favoritos" que abre un pop-up con
+  dos apartados: Favoritos y Recientes.
+- Cada ruta que se calcula bien aparece arriba en Recientes con "Hoy, HH:MM" o la fecha; una ruta
+  que falla no. El mismo trayecto no se repite y solo se guardan las 10 últimas búsquedas.
+- La estrella de un reciente abre un campo para ponerle nombre (opcional; sin nombre, "Origen →
+  Destino"). Guardado, sale en Favoritos y su estrella queda llena y desactivada.
+- Tocar un favorito o un reciente pone los dos puntos con sus nombres, cierra el pop-up y calcula la
+  ruta con el tipo de ruta elegido y la hora de ahora (también se actualiza el selector de hora).
+- La papelera de un favorito lo quita. "Borrar historial" pide confirmación y deja los favoritos.
+- Sin conexión con el backend, el pop-up lo dice y la app sigue funcionando; si falla apuntar una
+  búsqueda, no se avisa: el historial no interrumpe la ruta.
+- Prueba real del 2026-11-14 con Playwright y Chrome a 1366 y 390 px: Plaza del Pilar → Plaza de los
+  Sitios con "Rápida" aparece en Recientes, se guarda como "Paseo al Pilar", el historial se borra
+  conservando el favorito y al tocarlo se calcula otra vez (15 min, 1,2 km). Sin scroll horizontal y
+  con botones de 44 px en el móvil.
+
 ## Comprobaciones de Iniciar ruta
 
 - Tras calcular una ruta, "Iniciar ruta" pide la ubicación y sustituye el buscador por la indicación.

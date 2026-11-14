@@ -263,6 +263,7 @@ export function RouteSearchPanel({
   asksSolarDateTime = routeType === 'shaded',
   alternativeLabel = 'Con sombra',
   profilePicker = null,
+  routeHistory = null,
   solarDate = '',
   solarTime = '',
   onSolarDateChange = noop,
@@ -361,6 +362,7 @@ export function RouteSearchPanel({
             />
           ))}
         </div>
+        {routeHistory}
         {profilePicker}
         {asksSolarDateTime && (
           <div className="solar-date-time" aria-label="Momento para estimar la sombra">
