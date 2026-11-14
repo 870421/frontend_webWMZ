@@ -20,6 +20,8 @@ import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
 import { useRoutePlanner } from '../features/routing/useRoutePlanner.js';
 import { RouteSearchPanel } from '../features/route-search/RouteSearchPanel.jsx';
 import { useDeviceLocation } from '../features/route-search/useDeviceLocation.js';
+import { RouteHistory } from '../features/route-history/RouteHistory.jsx';
+import { useRouteHistory } from '../features/route-history/useRouteHistory.js';
 import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
 import { WeatherPanel } from '../features/weather/WeatherPanel.jsx';
 
@@ -34,6 +36,7 @@ export function App({ userMenu = null }) {
   const routePoints = useRoutePoints();
   const routePlanner = useRoutePlanner();
   const routeProfiles = useRouteProfiles();
+  const routeHistory = useRouteHistory();
   const [profileId, setProfileId] = useState(null);
   // Which of the two calculated routes is shown: the fastest one or the one chosen with the weights.
   const [shownRoute, setShownRoute] = useState('shaded');
@@ -97,6 +100,29 @@ export function App({ userMenu = null }) {
     if (id === profile?.id) selectProfile(null);
   }
 
+  // A route that is calculated goes to the history (PBI-12); a failed one does not.
+  async function calculateRoute(origin, destination, dateTime = solarDateTime) {
+    setShownRoute('shaded');
+    const result = await routePlanner.calculateRoute(origin, destination, {
+      routeType,
+      recommended: isRecommended,
+      weights: profile?.weights,
+      maxDetourPercentage: profile?.maxDetourPercentage,
+      ...dateTime,
+    });
+    if (result) routeHistory.recordSearch({ origin, destination });
+  }
+
+  // A recent or favourite trip is calculated again for now, with the route type chosen.
+  function repeatTrip({ origin, destination }) {
+    geolocation.clearGeolocationMessage();
+    routePlanner.clearRoutes();
+    if (!routePoints.setTrip(origin, destination)) return;
+    const now = getZaragozaDateTime();
+    setSolarDateTime(now);
+    calculateRoute(origin, destination, now);
+  }
+
   function updateSolarDateTime(field, value) {
     routePlanner.clearRoutes();
     setSolarDateTime((current) => ({ ...current, [field]: value }));
@@ -141,16 +167,7 @@ export function App({ userMenu = null }) {
               destination={routePoints.destination}
               geolocation={geolocation.geolocation}
               onClearGeolocationMessage={geolocation.clearGeolocationMessage}
-              onCalculateRoute={() => {
-                setShownRoute('shaded');
-                routePlanner.calculateRoute(routePoints.origin, routePoints.destination, {
-                  routeType,
-                  recommended: isRecommended,
-                  weights: profile?.weights,
-                  maxDetourPercentage: profile?.maxDetourPercentage,
-                  ...solarDateTime,
-                });
-              }}
+              onCalculateRoute={() => calculateRoute(routePoints.origin, routePoints.destination)}
               originInput={routePoints.originInput}
               destinationInput={routePoints.destinationInput}
               onEditPoint={withSelectionUpdated(routePoints.editPoint)}
@@ -172,6 +189,7 @@ export function App({ userMenu = null }) {
                 !isRecommended && routeType === 'shaded' && hasShadeWeight(profile.weights)
               }
               alternativeLabel={alternativeLabel}
+              routeHistory={<RouteHistory history={routeHistory} onSelectTrip={repeatTrip} />}
               profilePicker={
                 <RouteProfilePicker
                   profiles={pickerProfiles}

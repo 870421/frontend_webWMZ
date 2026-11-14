@@ -66,6 +66,24 @@ export function useRoutePoints() {
       activePoint: 'destination',
     }));
   }
+  // A trip of the history or the favourites (PBI-12): both points at once, with their names.
+  function setTrip(origin, destination) {
+    if (!isInsideZaragoza(origin) || !isInsideZaragoza(destination)) {
+      setState((current) => ({ ...current, pointError: OUTSIDE_ZARAGOZA_MESSAGE }));
+      return false;
+    }
+    setState((current) => ({
+      ...current,
+      pointError: '',
+      origin,
+      destination,
+      originInput: formatPointLabel(origin),
+      destinationInput: formatPointLabel(destination),
+      lastSelectedPoint: destination,
+      activePoint: 'destination',
+    }));
+    return true;
+  }
   function selectPoint(point) {
     const pointType = state.activePoint;
     setPoint(pointType, point);
@@ -96,6 +114,7 @@ export function useRoutePoints() {
   return {
     ...state,
     setPoint,
+    setTrip,
     editPoint,
     resetPoints,
     selectPoint,

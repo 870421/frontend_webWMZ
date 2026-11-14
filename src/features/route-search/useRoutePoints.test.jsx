@@ -13,6 +13,33 @@ describe('useRoutePoints', () => {
     reversePlace.mockResolvedValue({ place: null });
   });
 
+  it('sets both points of a trip at once with their names, only inside Zaragoza (PBI-12)', () => {
+    const { result } = renderHook(() => useRoutePoints());
+    const origin = { lat: 41.66, lng: -0.88, label: 'Calle Mayor' };
+    const destination = { lat: 41.64, lng: -0.9, label: null };
+
+    let accepted;
+    act(() => {
+      accepted = result.current.setTrip(origin, destination);
+    });
+    expect(accepted).toBe(true);
+    expect(result.current).toMatchObject({
+      origin,
+      destination,
+      originInput: 'Calle Mayor',
+      destinationInput: '41.64000, -0.90000',
+      activePoint: 'destination',
+      pointError: '',
+    });
+
+    act(() => {
+      accepted = result.current.setTrip({ lat: 40.4, lng: -3.7 }, destination);
+    });
+    expect(accepted).toBe(false);
+    expect(result.current.pointError).not.toBe('');
+    expect(result.current.origin).toBe(origin);
+  });
+
   describe('naming points chosen on the map', () => {
     const mapPoint = { lat: 41.65, lng: -0.89, source: 'map' };
     const place = (label) => ({ place: { label } });
