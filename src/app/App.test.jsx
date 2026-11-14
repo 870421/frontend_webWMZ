@@ -52,6 +52,10 @@ const PROFILES = [
   { id: 3, name: 'Soleada', presetKey: 'sunny', weights: { shade: 0, sun: 50 } },
 ].map((profile) => ({ ...profile, maxDetourPercentage: 25 }));
 
+jest.mock('../features/weather/WeatherPanel.jsx', () => ({
+  WeatherPanel: () => <section data-testid="weather-panel" />,
+}));
+
 jest.mock('../features/map/MapView.jsx', () => ({
   MapView: ({
     origin,
@@ -115,6 +119,13 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'WeatherMapZ' })).toBeInTheDocument();
     expect(screen.getByLabelText('Controles de ruta')).toBeInTheDocument();
     expect(screen.getByTestId('map-view')).toBeInTheDocument();
+  });
+
+  it('shows the current weather outside the map and the route controls', () => {
+    render(<App />);
+    const weather = screen.getByTestId('weather-panel');
+    expect(screen.getByTestId('map-view')).not.toContainElement(weather);
+    expect(screen.getByLabelText('Controles de ruta')).not.toContainElement(weather);
   });
 
   it('keeps map selection, editable inputs and markers synchronized', async () => {
@@ -704,9 +715,14 @@ describe('App', () => {
         'Sombra 50 %'
       );
       expect(screen.getByText(/Tiempo usado \(dato de las 13:00\): 30 °C/)).toBeInTheDocument();
+      expect(screen.getByText('Recomendada añade 1 min.')).toBeInTheDocument();
+      // The comfort breakdown (PBI-11) explains the recommended route with the weights applied.
       expect(
-        screen.getByText(/Recomendada añade 1 min y tiene 70 puntos más de sombra/)
-      ).toBeInTheDocument();
+        screen.getByRole('heading', { name: 'Confort de la ruta «Recomendada»' })
+      ).toBeVisible();
+      expect(screen.getByText(/«Recomendada» va a la sombra el \d+ % del recorrido/)).toHaveClass(
+        'is-asked'
+      );
       expect(screen.getByTestId('route-geometry')).toHaveTextContent(
         JSON.stringify(shaded.geometry.coordinates)
       );
