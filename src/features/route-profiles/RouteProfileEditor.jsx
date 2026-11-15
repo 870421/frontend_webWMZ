@@ -27,8 +27,18 @@ const FACTOR_FIELDS = [
 const MAX_DETOUR_PERCENTAGE = 40;
 
 // `profiles` are the saved routes, to warn about a repeated name while typing (#165).
-export function RouteProfileEditor({ profile = null, profiles = [], onSave, onReplace, onCancel }) {
-  const [name, setName] = useState(profile?.name ?? '');
+// `initialValues` fills a NEW route (name, weights, extra time), for example with the weights of the
+// route assistant (PBI-9.2); it is ignored when editing. A new route never deletes another one.
+export function RouteProfileEditor({
+  profile = null,
+  initialValues = null,
+  profiles = [],
+  onSave,
+  onReplace,
+  onCancel,
+}) {
+  const initial = profile ?? initialValues;
+  const [name, setName] = useState(initial?.name ?? '');
   const nameInput = useRef(null);
   const replaceButton = useRef(null);
   const confirmButton = useRef(null);
@@ -38,11 +48,11 @@ export function RouteProfileEditor({ profile = null, profiles = [], onSave, onRe
   // Routes saved before PBI-8.2 come without wind: it counts as 0. A route saved with shade and sun
   // at once keeps the larger one (ADR-030).
   const [weights, setWeights] = useState(() => {
-    const saved = { shade: 50, sun: 0, wind: 0, vegetation: 0, ...profile?.weights };
+    const saved = { shade: 50, sun: 0, wind: 0, vegetation: 0, ...initial?.weights };
     return { ...saved, ...weightsFromBalance(shadeSunBalance(saved)) };
   });
   const balance = shadeSunBalance(weights);
-  const [maxDetour, setMaxDetour] = useState(profile?.maxDetourPercentage ?? 25);
+  const [maxDetour, setMaxDetour] = useState(initial?.maxDetourPercentage ?? 25);
   const onlyTime =
     weights.shade === 0 && weights.sun === 0 && weights.wind === 0 && weights.vegetation === 0;
   const [errors, setErrors] = useState({});

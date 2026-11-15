@@ -1725,6 +1725,155 @@ input:focus-visible {
   gap: 0.5rem;
 }
 
+/* Route assistant (PBI-9.2): the request, what it changed (before → after) and save as a route. */
+.route-assistant {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.45rem;
+  border-top: 1px solid #dfe9e4;
+  padding-top: 0.65rem;
+}
+
+.route-assistant h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: #35445a;
+  font-size: 0.82rem;
+}
+
+.route-assistant h2 .profile-icon { color: #5b4fc4; }
+
+.route-assistant-form {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.route-assistant-form label {
+  color: #35445a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.route-assistant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+.route-assistant-row input {
+  min-width: 0;
+  min-height: 2.75rem;
+  border: 1px solid #cfd9df;
+  border-radius: 0.65rem;
+  padding: 0 0.7rem;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.route-assistant-row input:focus-visible {
+  outline: 3px solid rgba(91, 79, 196, 0.35);
+  border-color: #5b4fc4;
+}
+
+.route-assistant-submit {
+  min-width: 5.5rem;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.65rem;
+  padding: 0 0.9rem;
+  color: #fff;
+  background: #5b4fc4;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.route-assistant-submit:disabled {
+  background: #a9a3d9;
+  cursor: not-allowed;
+}
+
+.route-assistant-help {
+  color: #627268;
+  font-size: 0.72rem;
+}
+
+.route-assistant-result {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.route-assistant-result:empty { display: none; }
+
+.route-assistant-result .form-message { margin: 0; }
+
+.route-assistant-explanation {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.assistant-changes {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assistant-change {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.2rem 0.5rem;
+  color: #35445a;
+  font-size: 0.76rem;
+}
+
+.assistant-change-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.assistant-change-value {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.assistant-change-scales {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.assistant-change-scales meter {
+  width: 100%;
+  height: 0.55rem;
+}
+
+.assistant-change-arrow { color: #8794a6; }
+
+.assistant-change-wind .profile-icon { color: #3a7ca5; }
+.assistant-change-wind meter { accent-color: #3a7ca5; }
+.assistant-change-vegetation .profile-icon { color: #5a9a2e; }
+.assistant-change-vegetation meter { accent-color: #5a9a2e; }
+.assistant-change-shadeSun .profile-icon { color: #2c8a5f; }
+.assistant-change-time .profile-icon { color: #536174; }
+
+.route-assistant-save {
+  justify-self: start;
+  min-height: 2.75rem;
+}
+
 /* Why the recommended route (PBI-9.1): criterion, reason, weights and weather used. */
 .recommendation-card {
   display: grid;
@@ -2454,6 +2603,16 @@ input:focus-visible {
   .recommendation-card.is-collapsed .recommendation-details { display: none; }
 
   .route-actions:has(.route-steps.is-open) .recommendation-card { display: none; }
+
+  /* The assistant in the bottom sheet: same width as the route, hidden while walking the steps. */
+  .route-actions .route-assistant {
+    order: 1;
+    gap: 0.3rem;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .route-actions:has(.route-steps.is-open) .route-assistant { display: none; }
 
   /* Comparación plegada: una línea con la ruta elegida. Para cambiar de ruta, "Ver más". */
   /* El desglose del confort (PBI-11) solo con "Ver más" y sin el recorrido abierto. */

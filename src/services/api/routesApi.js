@@ -181,6 +181,20 @@ function isValidRecommendedComparison(comparison) {
   return isValidComparison(comparison);
 }
 
+// A weighted comparison as the frontend uses it, or null if it is not valid. With every weight at
+// 0 the backend only sends the fastest route (`fastest_only`). Used by the route assistant
+// (PBI-9.2), whose recalculated route is a weighted one.
+export function normalizeWeightedComparison(raw) {
+  const comparison = raw && {
+    ...raw,
+    shaded: raw.selected ?? null,
+    shadeImprovementPercentagePoints: raw.shadeChangePercentagePoints ?? null,
+    windChangePoints: raw.windChangePoints ?? null,
+    greenChangePercentagePoints: raw.greenChangePercentagePoints ?? null,
+  };
+  return isValidRecommendedComparison(comparison) ? comparison : null;
+}
+
 // Recommended route (PBI-9.1): only the points. It is always for now, with the current weather, so
 // no date or time is sent. Same shape as the weighted comparison, plus `recommendation`.
 export async function getRecommendedRoute({ origin, destination }, { signal } = {}) {

@@ -26,6 +26,20 @@ export function useRoutePlanner() {
     setState(EMPTY_STATE);
   }
 
+  // A comparison calculated elsewhere (the route assistant, PBI-9.2) replaces the shown routes.
+  function showComparison(comparison) {
+    requestIdRef.current += 1;
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setState({
+      status: 'success',
+      fastest: comparison.fastest,
+      shaded: comparison.shaded,
+      comparison,
+      errorMessage: '',
+    });
+  }
+
   async function calculateRoute(origin, destination, options = {}) {
     controllerRef.current?.abort();
     const controller = new AbortController();
@@ -96,5 +110,5 @@ export function useRoutePlanner() {
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  return { ...state, calculateRoute, clearRoutes };
+  return { ...state, calculateRoute, clearRoutes, showComparison };
 }

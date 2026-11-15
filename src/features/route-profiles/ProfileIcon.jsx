@@ -32,6 +32,8 @@ const PATHS = {
       <path d="M12 9v8" />
     </>
   ),
+  // Speech bubble: the route assistant (PBI-9.2).
+  assistant: <path d="M4 5h16v11H9l-5 4V5ZM8 9.5h8M8 12.5h5" />,
   plus: <path d="M12 5v14M5 12h14" />,
   time: (
     <>

@@ -1,0 +1,93 @@
+import { apiRequest } from './client.js';
+import { normalizeWeightedComparison } from './routesApi.js';
+
+// The statuses of the route assistant (PBI-9.2, ADR-033). Only "applied" brings a new route; the
+// others bring a notice and the current route stays.
+export const ASSISTANT_STATUSES = [
+  'applied',
+  'no_change',
+  'not_understood',
+  'model_error',
+  'timeout',
+  'provider_busy',
+  'not_configured',
+];
+const WEIGHT_KEYS = ['shade', 'sun', 'wind', 'vegetation'];
+const CHANGE_FACTORS = [...WEIGHT_KEYS, 'maxDetourPercentage'];
+
+const ASSISTANT_ERROR_MESSAGES = {
+  401: 'Tu sesión ha caducado. Inicia sesión de nuevo para usar el asistente.',
+  400: 'No se ha podido enviar la petición. Revisa el texto y vuelve a intentarlo.',
+  429: 'Has hecho muchas peticiones al asistente. Espera un poco y vuelve a intentarlo.',
+  502: 'OpenRouteService no ha podido recalcular la ruta. Tu ruta no ha cambiado.',
+  504: 'El cálculo de la ruta ha tardado demasiado. Tu ruta no ha cambiado.',
+};
+
+const isPercentage = (value, max = 100) => Number.isInteger(value) && value >= 0 && value <= max;
+
+function isValidSetting(setting) {
+  return (
+    WEIGHT_KEYS.every((key) => isPercentage(setting?.weights?.[key])) &&
+    isPercentage(setting.maxDetourPercentage, 40)
+  );
+}
+
+function isValidAssistant(assistant) {
+  if (!ASSISTANT_STATUSES.includes(assistant?.status) || !isValidSetting(assistant.before)) {
+    return false;
+  }
+  if (assistant.status !== 'applied') return typeof assistant.message === 'string';
+  return (
+    typeof assistant.explanation === 'string' &&
+    isValidSetting(assistant.after) &&
+    Array.isArray(assistant.changes) &&
+    assistant.changes.every(
+      (change) =>
+        CHANGE_FACTORS.includes(change?.factor) &&
+        Number.isInteger(change.before) &&
+        Number.isInteger(change.after)
+    )
+  );
+}
+
+/**
+ * Asks the route assistant to adjust the weights of the current route with the user's words. Only
+ * the request and the weights travel; the backend talks to the language model. `comparison` is a
+ * weighted comparison when the assistant applied new weights, and null otherwise.
+ */
+export async function askRouteAssistant(
+  { origin, destination, date, time, timeZone, message, weights, maxDetourPercentage },
+  { signal } = {}
+) {
+  let data;
+  try {
+    data = await apiRequest('/routes/assistant', {
+      method: 'POST',
+      signal,
+      body: JSON.stringify({
+        origin: { lat: origin.lat, lng: origin.lng },
+        destination: { lat: destination.lat, lng: destination.lng },
+        date,
+        time,
+        timeZone,
+        message,
+        weights,
+        maxDetourPercentage,
+      }),
+      errorMessages: ASSISTANT_ERROR_MESSAGES,
+      fallbackErrorMessage: 'El asistente no está disponible ahora mismo. Tu ruta no ha cambiado.',
+    });
+  } catch (error) {
+    // The limits say which one was reached and until when (per minute or per day).
+    if (error.status === 429 && error.serverMessage) error.message = error.serverMessage;
+    throw error;
+  }
+
+  const assistant = data?.assistant;
+  const comparison =
+    assistant?.status === 'applied' ? normalizeWeightedComparison(data.comparison) : null;
+  if (!isValidAssistant(assistant) || (assistant.status === 'applied' && !comparison)) {
+    throw new Error('El asistente ha devuelto una respuesta no válida. Tu ruta no ha cambiado.');
+  }
+  return { assistant, comparison };
+}
