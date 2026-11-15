@@ -165,6 +165,38 @@ solo en el backend.
 - Con una ruta elegida, el resumen dice cuánto cambian la sombra y la exposición al viento.
 - Con viento flojo (menos de 10 km/h) la exposición es 0 y la ruta elegida es la rápida.
 
+## Comprobaciones de la PBI-9.2 (asistente de rutas)
+
+El asistente traduce lo que escribe el usuario a los pesos de la ruta y el backend la recalcula
+(`POST /api/routes/assistant`, ADR-033). El frontend no habla con el modelo ni conoce su clave: solo
+envía los puntos, el texto, los pesos actuales y, si la ruta pide fecha y hora, las elegidas. No hay
+variables de entorno nuevas en el frontend. Código: `src/features/route-assistant/` y
+`src/services/api/routeAssistantApi.js`.
+
+- Tras calcular una ruta aparece "Asistente" bajo el resumen, con el campo "Pide un ajuste de la
+  ruta", el aviso "no escribas datos personales" y el contador de caracteres (máximo 300). Antes de
+  calcular no aparece.
+- "prefiero la sombra aunque tarde más" con "Rápida" → "Ajustando..." mientras tanto; después, la
+  explicación y solo los pesos que han cambiado, antes → después, con los iconos y escalas del editor
+  (la barra única sombra-sol, "Neutro → Sombra 50 %"). En el mapa y en la leyenda la ruta pasa a
+  llamarse "Ajustada".
+- Una segunda petición ("y evita el viento") parte de los pesos que aplicó el asistente y solo
+  cambia lo que menciona: la sombra de antes se queda.
+- Una petición que no entiende ("cuéntame un chiste"), un error, un tiempo agotado o el límite
+  ("Has hecho muchas peticiones seguidas al asistente. Espera un minuto.") muestran el aviso y la
+  ruta y los pesos que había siguen en el mapa y en el panel, también tras un ajuste anterior.
+- Sin clave en el backend: "El asistente no está disponible en este servidor. Puedes ajustar la
+  ruta a mano."
+- "Guardar como ruta" abre el editor con los pesos del asistente y el nombre "Asistente" (o
+  "Asistente (2)" si ya existe). Con un nombre repetido sale el aviso de siempre; "Reemplazar" solo
+  cambia los pesos de esa ruta y no borra ninguna. Tras guardar: "Guardada en tus rutas como «…»".
+- Elegir otro tipo de ruta, otros puntos u otra hora deja atrás la respuesta del asistente.
+- Comprobado con Playwright a 390, 320 y 1366 px (2026-11-15): sin scroll horizontal, campo y botones
+  de 44 px de alto, todo con el teclado (Enter envía) y los avisos anunciados (`aria-live`).
+- Con todo real (geocodificación, ruta y Groq, 390 px, 2026-11-15): Plaza del Pilar → Plaza San
+  Francisco, "quiero ir por parques" → ruta "Ajustada" de 31 min con 50 % verde y "Verde 0 % → 50 %";
+  "Guardar como ruta" la guarda como «Asistente»; "cuéntame un chiste" avisa y la ruta sigue.
+
 ## Comprobaciones de la PBI-9.1 (ruta recomendada)
 
 La ruta recomendada la decide el backend con el tiempo actual: `POST /api/routes/recommended` solo
