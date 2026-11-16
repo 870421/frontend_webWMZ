@@ -1,0 +1,93 @@
+name: E2E
+
+# End-to-end test of the happy path (#161, ADR-034): this frontend against the backend of
+# UNIZAR-30248-2026-WEATHERMAPZ/backend (main) and PostGIS, with every external service fake.
+# No secret is needed: no real key is used.
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Happy path (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      db:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: weathermapz
+          POSTGRES_PASSWORD: weathermapz
+          POSTGRES_DB: weathermapz
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U weathermapz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      E2E_DATABASE_URL: postgres://weathermapz:weathermapz@localhost:5432/weathermapz_e2e
+
+    steps:
+      - name: Check out frontend
+        uses: actions/checkout@v7
+        with:
+          path: frontend_web
+
+      - name: Check out backend
+        uses: actions/checkout@v7
+        with:
+          repository: UNIZAR-30248-2026-WEATHERMAPZ/backend
+          ref: main
+          path: backend
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend_web/package-lock.json
+            backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend_web
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: frontend_web
+        run: npx playwright install --with-deps chromium
+
+      - name: Check e2e code
+        working-directory: frontend_web
+        run: npm run e2e:check
+
+      - name: Run end-to-end test
+        working-directory: frontend_web
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            frontend_web/playwright-report
+            frontend_web/test-results
+          retention-days: 7
