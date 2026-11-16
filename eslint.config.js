@@ -109,5 +109,26 @@ export default [
       'import-x/no-extraneous-dependencies': ['error', { devDependencies: true }],
     },
   },
+  {
+    // End-to-end test (#161): Playwright and Node scripts, linted by `npm run e2e:check`.
+    ...airbnb.configs['flat/recommended'],
+    files: ['e2e/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: { Buffer: 'readonly', URL: 'readonly', console: 'readonly', process: 'readonly' },
+      sourceType: 'module',
+    },
+    plugins: {
+      ...airbnb.configs['flat/recommended'].plugins,
+      'import-x': importX,
+    },
+    rules: {
+      ...airbnb.configs['flat/recommended'].rules,
+      'import-x/extensions': ['error', 'ignorePackages', { js: 'always' }],
+      'import-x/no-extraneous-dependencies': ['error', { devDependencies: true }],
+      'import-x/prefer-default-export': 'off',
+      'no-restricted-syntax': 'off',
+    },
+  },
   eslintConfigPrettier,
 ];

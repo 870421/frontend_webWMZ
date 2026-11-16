@@ -2,6 +2,8 @@ module.exports = {
   testEnvironment: 'jsdom',
   cacheDirectory: '<rootDir>/.jest-cache',
   setupFilesAfterEnv: ['<rootDir>/src/tests/setupTests.js'],
+  // The end-to-end test runs with Playwright (npm run e2e), not with Jest (#161).
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/e2e/'],
   transform: {
     '^.+\\.[jt]sx?$': 'babel-jest',
   },

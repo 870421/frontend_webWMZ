@@ -6,6 +6,9 @@ coverage/
 .env.*
 !.env.example
 npm-debug.log*
+# Results of the end-to-end test (npm run e2e)
+test-results/
+playwright-report/
 .DS_Store
 Thumbs.db
 
