@@ -84,6 +84,15 @@ test('sign up, log in, choose the points and compare the fastest and recommended
   await expect(summary).toContainText(FASTEST_ROUTE_TEXT.distance);
   await expect(summary).toContainText(FASTEST_ROUTE_TEXT.duration);
 
+  // The places of the route go to the recent places (#180): focusing the destination offers «Mi
+  // ubicación» and the recent places, but not the place chosen as origin.
+  await page.getByRole('combobox', { name: 'Destino' }).click();
+  const recentPlaces = page.getByRole('group', { name: 'Recientes' });
+  await expect(recentPlaces.getByRole('option')).toHaveText([PLACES.destination.label]);
+  await expect(page.getByRole('option').first()).toHaveText('Mi ubicación');
+  await page.keyboard.press('Escape');
+  await expect(recentPlaces).toBeHidden();
+
   // Recommended route: its reason (strong cierzo of the fake weather) and the comparison.
   await page.getByRole('button', { name: 'Recomendada', exact: true }).click();
   await page.getByRole('button', { name: 'Calcular ruta' }).click();
