@@ -46,6 +46,8 @@ export async function apiRequest(
     const error = new Error(errorMessages[response.status] || fallbackErrorMessage);
     error.status = response.status;
     if (body?.error?.fields) error.fields = body.error.fields;
+    // The backend's own text, for the messages that depend on the case (route assistant limits).
+    if (typeof body?.error?.message === 'string') error.serverMessage = body.error.message;
     // A repeated route name says which route already has it (#165).
     if (Number.isInteger(body?.error?.existingId)) error.existingId = body.error.existingId;
     throw error;

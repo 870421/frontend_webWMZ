@@ -4,6 +4,8 @@ import { AppShell } from '../components/layout/AppShell.jsx';
 import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
 import { MapView } from '../features/map/MapView.jsx';
 import { isInsideZaragoza, OUTSIDE_ZARAGOZA_MESSAGE } from '../features/map/zaragozaArea.js';
+import { RouteAssistant } from '../features/route-assistant/RouteAssistant.jsx';
+import { useRouteAssistant } from '../features/route-assistant/useRouteAssistant.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
 import { RouteProfilePicker } from '../features/route-profiles/RouteProfilePicker.jsx';
 import {
@@ -37,6 +39,7 @@ export function App({ userMenu = null }) {
   const routePlanner = useRoutePlanner();
   const routeProfiles = useRouteProfiles();
   const routeHistory = useRouteHistory();
+  const routeAssistant = useRouteAssistant();
   const [profileId, setProfileId] = useState(null);
   // Which of the two calculated routes is shown: the fastest one or the one chosen with the weights.
   const [shownRoute, setShownRoute] = useState('shaded');
@@ -70,9 +73,28 @@ export function App({ userMenu = null }) {
   // Route of PBI-5.4, with the name of the profile.
   // The recommended route is compared with the fastest one like any route with weights.
   const isRecommended = profile?.id === RECOMMENDED_PROFILE_ID;
-  const routeType =
+  // The route on screen. An answer of the route assistant (PBI-9.2) only counts while the route it
+  // belongs to is shown: choosing another route, other points or another time leaves it behind.
+  const shownComparisonOrRoute = routePlanner.comparison ?? routePlanner.fastest;
+  const assistantIsCurrent =
+    Boolean(shownComparisonOrRoute) && routeAssistant.route === shownComparisonOrRoute;
+  // The last weights the assistant applied, while their route is the one on screen (a later notice
+  // or error keeps them).
+  const adjustment =
+    routePlanner.comparison && routeAssistant.applied?.comparison === routePlanner.comparison
+      ? routeAssistant.applied.assistant
+      : null;
+  // The type of the chosen route decides how "Calcular ruta" works and whether a date is asked for;
+  // the type on screen follows the assistant's weights when it changed them.
+  const profileRouteType =
     isRecommended || (profile && hasEnvironmentalWeight(profile.weights)) ? 'shaded' : 'fastest';
-  const alternativeLabel = profile?.name ?? 'Con sombra';
+  let routeType = profileRouteType;
+  if (adjustment)
+    routeType = hasEnvironmentalWeight(adjustment.after.weights) ? 'shaded' : 'fastest';
+  // The recommended route is always for now, with the current weather.
+  const asksSolarDateTime =
+    !isRecommended && profileRouteType === 'shaded' && hasShadeWeight(profile.weights);
+  const alternativeLabel = adjustment ? 'Ajustada' : (profile?.name ?? 'Con sombra');
   const selectedRouteType =
     routeType === 'shaded' && shownRoute === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
   const activeRoute = selectedRouteType === 'shaded' ? routePlanner.shaded : routePlanner.fastest;
@@ -104,13 +126,39 @@ export function App({ userMenu = null }) {
   async function calculateRoute(origin, destination, dateTime = solarDateTime) {
     setShownRoute('shaded');
     const result = await routePlanner.calculateRoute(origin, destination, {
-      routeType,
+      routeType: profileRouteType,
       recommended: isRecommended,
       weights: profile?.weights,
       maxDetourPercentage: profile?.maxDetourPercentage,
       ...dateTime,
     });
     if (result) routeHistory.recordSearch({ origin, destination });
+  }
+
+  // The weights of the route on screen: the assistant's, the recommended ones or the profile's.
+  function currentSetting() {
+    if (adjustment) return adjustment.after;
+    const source = isRecommended ? routePlanner.comparison?.recommendation : profile;
+    return {
+      weights: { shade: 0, sun: 0, wind: 0, vegetation: 0, ...source?.weights },
+      maxDetourPercentage: source?.maxDetourPercentage ?? 25,
+    };
+  }
+
+  // The assistant recalculates the route of the same points; if it fails, the route stays.
+  async function askAssistant(message) {
+    const result = await routeAssistant.ask(shownComparisonOrRoute, {
+      origin: routePoints.origin,
+      destination: routePoints.destination,
+      // The date and time chosen by the user, if they chose one; otherwise the backend uses now.
+      ...(asksSolarDateTime ? solarDateTime : {}),
+      message,
+      ...currentSetting(),
+    });
+    if (result?.comparison) {
+      setShownRoute('shaded');
+      routePlanner.showComparison(result.comparison);
+    }
   }
 
   // A recent or favourite trip is calculated again for now, with the route type chosen.
@@ -184,12 +232,25 @@ export function App({ userMenu = null }) {
               onStartNavigation={navigation.start}
               navigationError={navigation.errorMessage}
               routeType={routeType}
-              // The recommended route is always for now, with the current weather.
-              asksSolarDateTime={
-                !isRecommended && routeType === 'shaded' && hasShadeWeight(profile.weights)
-              }
+              asksSolarDateTime={asksSolarDateTime}
               alternativeLabel={alternativeLabel}
               routeHistory={<RouteHistory history={routeHistory} onSelectTrip={repeatTrip} />}
+              assistant={
+                <RouteAssistant
+                  status={assistantIsCurrent ? routeAssistant.status : 'idle'}
+                  result={assistantIsCurrent ? routeAssistant.result : null}
+                  applied={adjustment}
+                  errorMessage={routeAssistant.errorMessage}
+                  canSave={routeProfiles.isEditable}
+                  profiles={routeProfiles.profiles}
+                  onAsk={askAssistant}
+                  onSaveProfile={(draft) => routeProfiles.saveProfile(null, draft)}
+                  // From the assistant the route is always new: nothing is deleted (#165).
+                  onReplaceProfile={(existingId, draft) =>
+                    routeProfiles.replaceProfile(existingId, draft, null)
+                  }
+                />
+              }
               profilePicker={
                 <RouteProfilePicker
                   profiles={pickerProfiles}
@@ -225,9 +286,10 @@ export function App({ userMenu = null }) {
                       selectedRouteType={selectedRouteType}
                       alternativeLabel={alternativeLabel}
                       weights={
-                        isRecommended
+                        adjustment?.after.weights ??
+                        (isRecommended
                           ? routePlanner.comparison.recommendation?.weights
-                          : profile?.weights
+                          : profile?.weights)
                       }
                       isExpanded={collapse.isExpanded}
                     />

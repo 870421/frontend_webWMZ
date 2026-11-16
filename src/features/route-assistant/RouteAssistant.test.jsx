@@ -1,0 +1,195 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import { RouteAssistant } from './RouteAssistant.jsx';
+
+const NO_WEIGHTS = { shade: 0, sun: 0, wind: 0, vegetation: 0 };
+const APPLIED = {
+  assistant: {
+    status: 'applied',
+    explanation: 'Busco sombra y evito el viento, con hasta un 35 % más de tiempo.',
+    before: { weights: { ...NO_WEIGHTS, sun: 30 }, maxDetourPercentage: 25 },
+    after: { weights: { ...NO_WEIGHTS, shade: 50, wind: 40 }, maxDetourPercentage: 35 },
+    changes: [],
+  },
+  comparison: { status: 'selected' },
+};
+const PROFILES = [
+  { id: 1, name: 'Rápida', weights: NO_WEIGHTS, maxDetourPercentage: 25 },
+  { id: 2, name: 'Sombreada', weights: { ...NO_WEIGHTS, shade: 50 }, maxDetourPercentage: 25 },
+];
+
+function renderAssistant(props = {}) {
+  const handlers = {
+    onAsk: jest.fn().mockResolvedValue(undefined),
+    onSaveProfile: jest.fn(async (draft) => ({ id: 9, ...draft })),
+    onReplaceProfile: jest.fn(async (id, draft) => ({ id, ...draft })),
+  };
+  const view = render(<RouteAssistant profiles={PROFILES} canSave {...handlers} {...props} />);
+  return { ...view, ...handlers };
+}
+
+describe('RouteAssistant', () => {
+  it('has a labelled field that sends the request with the button or Enter', async () => {
+    const user = userEvent.setup();
+    const { onAsk } = renderAssistant();
+
+    const field = screen.getByLabelText('Pide un ajuste de la ruta');
+    const button = screen.getByRole('button', { name: 'Ajustar' });
+    expect(button).toBeDisabled();
+    expect(screen.getByText(/no escribas datos personales/)).toHaveTextContent('0/300');
+
+    await user.type(field, '  evita el viento  ');
+    expect(screen.getByText(/no escribas datos personales/)).toHaveTextContent('19/300');
+    await user.click(button);
+    expect(onAsk).toHaveBeenCalledWith('evita el viento');
+
+    await user.type(field, '{Enter}');
+    expect(onAsk).toHaveBeenCalledTimes(2);
+  });
+
+  it('limits the request to 300 characters', () => {
+    renderAssistant();
+    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveAttribute('maxLength', '300');
+  });
+
+  it('while it works the button says so and cannot be pressed again', async () => {
+    const user = userEvent.setup();
+    const { rerender, onAsk } = renderAssistant();
+    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), 'sombra');
+
+    rerender(<RouteAssistant status="loading" onAsk={onAsk} />);
+
+    expect(screen.getByRole('button', { name: 'Ajustando...' })).toBeDisabled();
+    expect(screen.getByText('El asistente está ajustando tu ruta...')).toBeInTheDocument();
+  });
+
+  it('shows the explanation and every weight that changed, before → after, with the editor scales', () => {
+    renderAssistant({ status: 'done', result: APPLIED, applied: APPLIED.assistant });
+
+    expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
+    const changes = within(screen.getByRole('list', { name: 'Pesos cambiados por el asistente' }));
+    const rows = changes.getAllByRole('listitem');
+    expect(
+      rows.map((row) => [
+        row.querySelector('.assistant-change-name').textContent,
+        row.querySelector('.assistant-change-value').textContent,
+      ])
+    ).toEqual([
+      ['Sombra o sol', 'Sol 30 % → Sombra 50 %'],
+      ['Evitar viento', '0 % → 40 %'],
+      ['Tiempo extra máximo', '+25 % → +35 %'],
+    ]);
+    // One shade-sun bar from -100 (shade) to 100 (sun), as in the editor (ADR-030).
+    const [shadeSunBefore, shadeSunAfter] = within(rows[0]).getAllByRole('meter', { hidden: true });
+    expect(shadeSunBefore).toHaveAttribute('aria-valuenow', '30');
+    expect(shadeSunAfter).toHaveAttribute('aria-valuenow', '-50');
+    expect(shadeSunAfter).toHaveAttribute('aria-valuemin', '-100');
+    expect(rows[1].querySelectorAll('meter')[1]).toHaveAttribute('value', '40');
+    // The green did not change: it is not listed.
+    expect(changes.queryByText('Verde')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['not_understood', 'No he entendido la petición.'],
+    ['timeout', 'El asistente ha tardado demasiado. Tu ruta no ha cambiado.'],
+    ['not_configured', 'El asistente no está disponible en este servidor.'],
+  ])('a %s notice is shown and nothing can be saved', (status, message) => {
+    renderAssistant({
+      status: 'done',
+      result: {
+        assistant: { status, message, before: APPLIED.assistant.before, after: null, changes: [] },
+        comparison: null,
+      },
+    });
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
+  });
+
+  it('shows an error without losing what the user wrote', async () => {
+    const user = userEvent.setup();
+    const { rerender, onAsk } = renderAssistant();
+    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), 'sombra');
+
+    rerender(
+      <RouteAssistant
+        status="error"
+        errorMessage="Has hecho muchas peticiones seguidas al asistente. Espera un minuto."
+        onAsk={onAsk}
+      />
+    );
+
+    expect(screen.getByText(/Espera un minuto/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveValue('sombra');
+  });
+
+  describe('save as a route', () => {
+    it('opens the editor with the assistant weights and a free name', async () => {
+      const user = userEvent.setup();
+      const { onSaveProfile } = renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+        profiles: [...PROFILES, { id: 5, name: 'Asistente', weights: NO_WEIGHTS }],
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
+      const dialog = within(screen.getByRole('dialog', { name: 'Guardar como ruta' }));
+      expect(dialog.getByLabelText('Nombre')).toHaveValue('Asistente (2)');
+      expect(dialog.getByLabelText('Sombra o sol')).toHaveValue('-50');
+      expect(dialog.getByLabelText('Evitar viento')).toHaveValue('40');
+      expect(dialog.getByLabelText('Tiempo extra máximo')).toHaveValue('35');
+
+      await user.click(dialog.getByRole('button', { name: 'Guardar' }));
+
+      expect(onSaveProfile).toHaveBeenCalledWith({
+        name: 'Asistente (2)',
+        weights: { shade: 50, sun: 0, wind: 40, vegetation: 0 },
+        maxDetourPercentage: 35,
+      });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('Guardada en tus rutas como «Asistente (2)».')).toBeInTheDocument();
+    });
+
+    it('warns about a repeated name and "Reemplazar" only changes that route, deleting none', async () => {
+      const user = userEvent.setup();
+      const { onSaveProfile, onReplaceProfile } = renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
+      const dialog = within(screen.getByRole('dialog'));
+      await user.clear(dialog.getByLabelText('Nombre'));
+      await user.type(dialog.getByLabelText('Nombre'), 'sombreada');
+      expect(dialog.getByText('Ya tienes una ruta llamada «Sombreada».')).toBeInTheDocument();
+
+      await user.click(dialog.getByRole('button', { name: 'Reemplazar' }));
+      // Nothing else is deleted: the question only speaks of the weights of "Sombreada".
+      expect(dialog.getByText('Se sustituirán los pesos de «Sombreada».')).toBeInTheDocument();
+      expect(dialog.queryByText(/se borrará/)).not.toBeInTheDocument();
+      await user.click(dialog.getByRole('button', { name: 'Reemplazar «Sombreada»' }));
+
+      expect(onReplaceProfile).toHaveBeenCalledTimes(1);
+      expect(onReplaceProfile).toHaveBeenCalledWith(2, {
+        name: 'Sombreada',
+        weights: { shade: 50, sun: 0, wind: 40, vegetation: 0 },
+        maxDetourPercentage: 35,
+      });
+      expect(onSaveProfile).not.toHaveBeenCalled();
+      expect(screen.getByText('Guardada en tus rutas como «Sombreada».')).toBeInTheDocument();
+    });
+
+    it('is not offered when the routes cannot be saved', () => {
+      renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+        canSave: false,
+      });
+      expect(screen.queryByRole('button', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
+    });
+  });
+});
