@@ -1,6 +1,7 @@
 // Where the end-to-end test finds the backend and its database, and the environment the backend runs
 // with (#161, ADR-034). Every external URL points to the fake services and every key is fake or
 // empty, so the backend .env of a developer (with real keys) never reaches the test.
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -50,6 +51,10 @@ function databaseUrl() {
 
 export const DATABASE_URL = databaseUrl();
 
+// Without JWT_SECRET the backend answers 503 to sign-up and login. A new random one per run: no
+// secret in the repository and the test never depends on the backend .env (in CI there is none).
+const JWT_SECRET = randomBytes(32).toString('hex');
+
 // Explicit empty values matter: dotenv does not override a variable that already exists, so the
 // real keys of the backend .env stay out.
 export function backendEnvironment(extra = {}) {
@@ -59,6 +64,7 @@ export function backendEnvironment(extra = {}) {
     PORT: String(BACKEND_PORT),
     LOG_LEVEL: 'warn',
     DATABASE_URL,
+    JWT_SECRET,
     CORS_ORIGIN: `http://127.0.0.1:${FRONTEND_PORT}`,
     FRONTEND_URL: `http://127.0.0.1:${FRONTEND_PORT}`,
     ORS_API_KEY: FAKE_ORS_KEY,
