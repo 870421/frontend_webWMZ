@@ -345,6 +345,10 @@ usa con el peso de vegetación (ADR-031: ver DECISIONS.md en la carpeta docs del
 
 ## Comprobaciones de la PBI-12 (recientes y favoritos)
 
+> **Desde weathermapz-gestion #180** los recientes son lugares, no trayectos, y se ofrecen en los
+> campos de origen y destino; el botón pasa a llamarse "Favoritos". Ver "Comprobaciones de los
+> lugares recientes (#180)". Lo que sigue sobre los favoritos sigue valiendo.
+
 El historial y los favoritos se guardan en la cuenta (backend, ADR-032): se ven igual en el móvil y
 en el ordenador.
 
@@ -363,6 +367,35 @@ en el ordenador.
   Sitios con "Rápida" aparece en Recientes, se guarda como "Paseo al Pilar", el historial se borra
   conservando el favorito y al tocarlo se calcula otra vez (15 min, 1,2 km). Sin scroll horizontal y
   con botones de 44 px en el móvil.
+
+## Comprobaciones de los lugares recientes (weathermapz-gestion #180)
+
+Cambia la PBI-12: en lugar de las últimas búsquedas de trayectos, se guardan los últimos 6 lugares
+usados como origen o destino, en la cuenta (`/api/recent-places`, ADR-035). Necesita el backend con
+el mismo cambio: los dos PR se despliegan juntos. Código: `src/features/route-history/`,
+`src/services/api/routeHistoryApi.js` y la lista de `RouteSearchPanel`.
+
+- Cuando una ruta se calcula bien, su origen y su destino pasan a los lugares recientes (el destino,
+  el más reciente). «Mi ubicación» no se guarda. Una ruta que falla no guarda nada y, si falla
+  guardarlos, no se avisa.
+- Al enfocar el origen o el destino: «Mi ubicación» y, debajo, el grupo "Recientes" con el icono del
+  reloj, la misma lista en los dos campos, del más reciente al más antiguo, sin repetir y como mucho 6. El lugar elegido en el otro campo no aparece (así no se puede poner el mismo origen y destino).
+- Al escribir (3 caracteres o más): primero hasta 3 recientes cuyo nombre contiene el texto, sin
+  distinguir mayúsculas ni tildes ("san jose" encuentra "Plaza San José"); después las sugerencias
+  del autocompletado como antes, sin las que coinciden con un reciente. Los recientes aparecen
+  mientras se buscan las sugerencias y Enter elige la primera opción de la lista.
+- Teclado: las flechas recorren «Mi ubicación» y los recientes; Enter elige; sin texto, Enter solo no
+  elige nada.
+- El botón "Favoritos" (antes "Recientes y favoritos") abre un pop-up con:
+  - los trayectos favoritos: tocar uno lo calcula de nuevo con la hora de ahora; la papelera lo
+    quita;
+  - "Guardar este trayecto", con nombre opcional, cuando hay origen y destino. No se ofrece si uno
+    es «Mi ubicación» y avisa si ya está en favoritos;
+  - "Borrar lugares recientes", con confirmación; los favoritos se mantienen.
+- Comprobado con Playwright a 320, 390 y 1366 px (2026-11-16, entorno del e2e): recientes en los dos
+  campos sin el del otro, coincidencias al escribir sin duplicados, guardar el trayecto como
+  favorito, borrar los recientes (el favorito sigue tras recargar), opciones de 44 px de alto en el
+  móvil y sin scroll horizontal.
 
 ## Comprobaciones de la PBI-11 (desglose del confort)
 
