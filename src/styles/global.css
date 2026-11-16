@@ -1725,25 +1725,97 @@ input:focus-visible {
   gap: 0.5rem;
 }
 
-/* Route assistant (PBI-9.2): the request, what it changed (before → after) and save as a route. */
+/* Route assistant (PBI-9.2): the request, what it changed (before → after) and save as a route.
+   It opens in the pop-up of the floating button (#179). */
 .route-assistant {
   display: grid;
-  grid-column: 1 / -1;
   gap: 0.45rem;
-  border-top: 1px solid #dfe9e4;
-  padding-top: 0.65rem;
 }
 
-.route-assistant h2 {
+.profile-dialog h2:has(.profile-icon) {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  color: #35445a;
-  font-size: 0.82rem;
+  gap: 0.4rem;
 }
 
-.route-assistant h2 .profile-icon { color: #5b4fc4; }
+.profile-dialog h2 .profile-icon { color: #5b4fc4; }
+
+.route-assistant-save-title {
+  margin: 0;
+  color: #35445a;
+  font-size: 0.92rem;
+}
+
+/* Floating button of the assistant (#179), only with a calculated route. Below the search panel and
+   its bottom sheet (z-index 600), the weather and the user menu; above the map and its legend. On
+   phones, a round button on the right just above the bottom sheet and the attribution; on large
+   screens, with its name, below the zoom. */
+.assistant-fab {
+  position: fixed;
+  z-index: 580;
+  right: 0.75rem;
+  bottom: calc(var(--route-sheet-height, 6.5rem) + max(0.65rem, env(safe-area-inset-bottom)) + 1.6rem);
+  display: inline-flex;
+  min-width: 3rem;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 0 0.85rem;
+  color: #ffffff;
+  background: #5b4fc4;
+  box-shadow: 0 0.5rem 1.4rem rgba(43, 35, 110, 0.32);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.assistant-fab .profile-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  color: currentColor;
+}
+
+.assistant-fab:hover { background: #4b40ad; }
+
+.assistant-fab:focus-visible {
+  outline: 3px solid #ffffff;
+  box-shadow: 0 0 0 6px #5b4fc4;
+}
+
+/* A dot when the route on screen is the one the assistant adjusted. */
+.assistant-fab.is-adjusted::after {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #2faa73;
+  content: '';
+}
+
+@media (max-width: 56.24rem) {
+  .assistant-fab {
+    width: 3rem;
+    padding: 0;
+  }
+
+  .assistant-fab-text { display: none; }
+}
+
+@media (min-width: 56.25rem) {
+  /* Below the zoom, in the column of the map controls: the legend in the bottom right corner grows
+     with each route and would cover a button above it. */
+  .assistant-fab {
+    top: calc(1.25rem + 2.75rem + 0.6rem + 5rem + 0.75rem);
+    right: 1.25rem;
+    bottom: auto;
+  }
+}
 
 .route-assistant-form {
   display: grid;
@@ -2603,16 +2675,6 @@ input:focus-visible {
   .recommendation-card.is-collapsed .recommendation-details { display: none; }
 
   .route-actions:has(.route-steps.is-open) .recommendation-card { display: none; }
-
-  /* The assistant in the bottom sheet: same width as the route, hidden while walking the steps. */
-  .route-actions .route-assistant {
-    order: 1;
-    gap: 0.3rem;
-    border-top: 0;
-    padding-top: 0;
-  }
-
-  .route-actions:has(.route-steps.is-open) .route-assistant { display: none; }
 
   /* Comparación plegada: una línea con la ruta elegida. Para cambiar de ruta, "Ver más". */
   /* El desglose del confort (PBI-11) solo con "Ver más" y sin el recorrido abierto. */

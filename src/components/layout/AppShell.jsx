@@ -1,6 +1,7 @@
 // El tiempo va fuera del mapa, junto al menú de usuario: dentro del mapa su detalle quedaba por
 // debajo del panel de búsqueda en el móvil.
-export function AppShell({ map, sidebar, userMenu = null, weather = null }) {
+// `floatingAction` es un botón flotante sobre el mapa (el del asistente, #179), fuera del panel.
+export function AppShell({ map, sidebar, userMenu = null, weather = null, floatingAction = null }) {
   return (
     <main className="app-shell">
       <section className="map-region" aria-label="Mapa interactivo de Zaragoza">
@@ -18,6 +19,7 @@ export function AppShell({ map, sidebar, userMenu = null, weather = null }) {
         </header>
         {sidebar}
       </aside>
+      {floatingAction}
       {weather}
       {userMenu && <div className="app-user-menu">{userMenu}</div>}
     </main>
