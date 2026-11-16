@@ -110,6 +110,17 @@ test('sign up, log in, choose the points and compare the fastest and recommended
   await expect(fastestOption).toContainText(/\d+ % de exposición al viento/);
   await expect(comparison.getByRole('button', { name: /Recomendada/ })).toBeVisible();
 
+  // The assistant opens from its floating button over the map (#179): focus in the request field,
+  // Escape closes it and the focus goes back to the button. Nothing is asked to the model.
+  const assistantButton = page.getByRole('button', { name: 'Abrir el asistente de rutas' });
+  await expect(assistantButton).toBeVisible();
+  await assistantButton.click();
+  const assistant = page.getByRole('dialog', { name: 'Asistente' });
+  await expect(assistant.getByLabel('Pide un ajuste de la ruta')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(assistant).toBeHidden();
+  await expect(assistantButton).toBeFocused();
+
   // Nothing left the machine: the browser only reached the frontend and the backend only reached
   // the fake services, which saw the expected calls and nothing else.
   expect(blocked).toEqual([]);

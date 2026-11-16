@@ -375,8 +375,6 @@ export function RouteSearchPanel({
   onSolarDateChange = noop,
   onSolarTimeChange = noop,
   renderComparison = null,
-  // The route assistant (PBI-9.2), below the calculated route.
-  assistant = null,
   selectedStepIndex = null,
   onSelectStep = noop,
   onStartNavigation = noop,
@@ -556,7 +554,6 @@ export function RouteSearchPanel({
               title={showsAlternative ? alternativeLabel : 'Ruta rápida'}
             />
           )}
-          {displayedRoute && !isCalculating && assistant}
           {renderComparison?.({
             isExpanded: sheetDetail === 'comparison',
             onToggleExpanded: () => toggleSheetDetail('comparison'),

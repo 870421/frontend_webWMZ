@@ -4,6 +4,7 @@ import { AppShell } from '../components/layout/AppShell.jsx';
 import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
 import { MapView } from '../features/map/MapView.jsx';
 import { isInsideZaragoza, OUTSIDE_ZARAGOZA_MESSAGE } from '../features/map/zaragozaArea.js';
+import { AssistantFab } from '../features/route-assistant/AssistantFab.jsx';
 import { RouteAssistant } from '../features/route-assistant/RouteAssistant.jsx';
 import { useRouteAssistant } from '../features/route-assistant/useRouteAssistant.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
@@ -103,6 +104,10 @@ export function App({ userMenu = null }) {
   const selectedStepGeometry =
     selectedStepIndex === null ? null : getStepGeometry(activeRoute, selectedStepIndex);
   const navigation = useRouteNavigation(activeRoute);
+  // The floating button of the assistant (#179): only with a calculated route on screen and not while
+  // walking it.
+  const showsAssistant =
+    Boolean(activeRoute) && routePlanner.status !== 'loading' && !navigation.isActive;
 
   function selectProfile(id) {
     routePlanner.clearRoutes();
@@ -180,6 +185,29 @@ export function App({ userMenu = null }) {
     <AppShell
       userMenu={userMenu}
       weather={<WeatherPanel />}
+      floatingAction={
+        showsAssistant ? (
+          <AssistantFab isAdjusted={Boolean(adjustment)}>
+            {(draft) => (
+              <RouteAssistant
+                status={assistantIsCurrent ? routeAssistant.status : 'idle'}
+                result={assistantIsCurrent ? routeAssistant.result : null}
+                applied={adjustment}
+                errorMessage={routeAssistant.errorMessage}
+                canSave={routeProfiles.isEditable}
+                profiles={routeProfiles.profiles}
+                onAsk={askAssistant}
+                onSaveProfile={(profileDraft) => routeProfiles.saveProfile(null, profileDraft)}
+                // From the assistant the route is always new: nothing is deleted (#165).
+                onReplaceProfile={(existingId, profileDraft) =>
+                  routeProfiles.replaceProfile(existingId, profileDraft, null)
+                }
+                {...draft}
+              />
+            )}
+          </AssistantFab>
+        ) : null
+      }
       map={
         <MapView
           activePoint={routePoints.activePoint}
@@ -244,22 +272,6 @@ export function App({ userMenu = null }) {
                       : null
                   }
                   onSelectTrip={repeatTrip}
-                />
-              }
-              assistant={
-                <RouteAssistant
-                  status={assistantIsCurrent ? routeAssistant.status : 'idle'}
-                  result={assistantIsCurrent ? routeAssistant.result : null}
-                  applied={adjustment}
-                  errorMessage={routeAssistant.errorMessage}
-                  canSave={routeProfiles.isEditable}
-                  profiles={routeProfiles.profiles}
-                  onAsk={askAssistant}
-                  onSaveProfile={(draft) => routeProfiles.saveProfile(null, draft)}
-                  // From the assistant the route is always new: nothing is deleted (#165).
-                  onReplaceProfile={(existingId, draft) =>
-                    routeProfiles.replaceProfile(existingId, draft, null)
-                  }
                 />
               }
               profilePicker={

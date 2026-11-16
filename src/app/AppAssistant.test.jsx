@@ -113,10 +113,14 @@ async function calculateFastestRoute(user) {
   await user.click(screen.getByText('Select map point'));
   await screen.findByRole('button', { name: 'Sombreada' });
   await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
-  await screen.findByLabelText('Pide un ajuste de la ruta');
+  await screen.findByRole('button', { name: /^Abrir el asistente de rutas/ });
 }
 
+// The assistant opens from its floating button (#179); the pop-up stays open between requests.
 async function ask(user, text) {
+  if (!screen.queryByRole('dialog', { name: 'Asistente' })) {
+    await user.click(screen.getByRole('button', { name: /^Abrir el asistente de rutas/ }));
+  }
   const field = screen.getByLabelText('Pide un ajuste de la ruta');
   await user.clear(field);
   await user.type(field, text);
@@ -135,10 +139,78 @@ describe('App with the route assistant', () => {
     recordRecentPlaces.mockReset().mockResolvedValue([]);
   });
 
-  it('is offered only once there is a route', async () => {
+  it('is offered only once there is a route, with a floating button and not in the panel', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await screen.findByRole('button', { name: 'Sombreada' });
+    expect(screen.queryByRole('button', { name: /asistente/ })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Pide un ajuste de la ruta')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+    const fab = await screen.findByRole('button', { name: 'Abrir el asistente de rutas' });
+    // Not inside the route panel.
+    expect(screen.getByRole('complementary', { name: 'Controles de ruta' })).not.toContainElement(
+      fab
+    );
+    expect(screen.queryByLabelText('Pide un ajuste de la ruta')).not.toBeInTheDocument();
+
+    await user.click(fab);
+    const dialog = screen.getByRole('dialog', { name: 'Asistente' });
+    expect(within(dialog).getByLabelText('Pide un ajuste de la ruta')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(fab).toHaveFocus();
+  });
+
+  it('is not offered while the route is being calculated nor while walking it', async () => {
+    const user = userEvent.setup();
+    let resolveRoute;
+    getFastestRoute.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRoute = resolve;
+      })
+    );
+    render(<App />);
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await screen.findByRole('button', { name: 'Sombreada' });
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+    expect(screen.queryByRole('button', { name: /asistente/ })).not.toBeInTheDocument();
+
+    resolveRoute(FASTEST);
+    await screen.findByRole('button', { name: 'Abrir el asistente de rutas' });
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { watchPosition: jest.fn(() => 1), clearWatch: jest.fn() },
+    });
+    await user.click(screen.getByRole('button', { name: 'Iniciar ruta' }));
+    expect(navigator.geolocation.watchPosition).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /asistente/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps what the user was writing and the answer after closing and opening it again', async () => {
+    const user = userEvent.setup();
+    askRouteAssistant.mockResolvedValue(APPLIED);
+    await calculateFastestRoute(user);
+    await ask(user, 'prefiero la sombra');
+    await screen.findByText(APPLIED.assistant.explanation);
+    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), ' y sin viento');
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // The adjusted route stays on screen and the button says so.
+    expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
+    const fab = screen.getByRole('button', { name: 'Abrir el asistente de rutas (ruta ajustada)' });
+    expect(fab).toHaveFocus();
+
+    await user.click(fab);
+    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveValue(
+      'prefiero la sombra y sin viento'
+    );
+    expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toBeInTheDocument();
   });
 
   it('applies the new weights, shows the new route and what changed', async () => {
@@ -247,10 +319,13 @@ describe('App with the route assistant', () => {
     await calculateFastestRoute(user);
     await ask(user, 'sombra');
     await screen.findByText(APPLIED.assistant.explanation);
+    await user.keyboard('{Escape}');
 
     await user.click(screen.getByRole('button', { name: 'Sombreada' }));
 
     expect(screen.queryByText(APPLIED.assistant.explanation)).not.toBeInTheDocument();
     expect(shownGeometry()).toBe('none');
+    // Without a route there is no assistant.
+    expect(screen.queryByRole('button', { name: /asistente/ })).not.toBeInTheDocument();
   });
 });

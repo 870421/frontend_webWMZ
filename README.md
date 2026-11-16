@@ -232,6 +232,8 @@ variables de entorno nuevas en el frontend. Código: `src/features/route-assista
 - Tras calcular una ruta aparece "Asistente" bajo el resumen, con el campo "Pide un ajuste de la
   ruta", el aviso "no escribas datos personales" y el contador de caracteres (máximo 300). Antes de
   calcular no aparece.
+  - Desde weathermapz-gestion #179 el asistente ya no está en el panel: se abre con el botón
+    flotante "Asistente" sobre el mapa (ver "Comprobaciones del asistente flotante").
 - "prefiero la sombra aunque tarde más" con "Rápida" → "Ajustando..." mientras tanto; después, la
   explicación y solo los pesos que han cambiado, antes → después, con los iconos y escalas del editor
   (la barra única sombra-sol, "Neutro → Sombra 50 %"). En el mapa y en la leyenda la ruta pasa a
@@ -252,6 +254,31 @@ variables de entorno nuevas en el frontend. Código: `src/features/route-assista
 - Con todo real (geocodificación, ruta y Groq, 390 px, 2026-11-15): Plaza del Pilar → Plaza San
   Francisco, "quiero ir por parques" → ruta "Ajustada" de 31 min con 50 % verde y "Verde 0 % → 50 %";
   "Guardar como ruta" la guarda como «Asistente»; "cuéntame un chiste" avisa y la ruta sigue.
+
+## Comprobaciones del asistente flotante (weathermapz-gestion #179)
+
+El asistente de la PBI-9.2 se abre desde un botón flotante sobre el mapa en lugar de una sección del
+panel. Hace lo mismo que antes. Código: `src/features/route-assistant/AssistantFab.jsx`.
+
+- El botón (morado, con el icono del asistente) solo aparece con una ruta calculada: no antes, no
+  mientras se calcula y no durante "Iniciar ruta". Su nombre accesible es "Abrir el asistente de
+  rutas" y, si la ruta en pantalla es la que ajustó el asistente, "(ruta ajustada)", con un punto
+  verde.
+- Móvil (320 y 390 px): botón redondo de 48 px a la derecha, justo encima de la hoja inferior y de
+  la atribución; sube con la hoja al abrir "Ver recorrido". Queda por debajo del panel "Ruta"
+  desplegado, del tiempo y del menú de usuario.
+- Escritorio (1366 px): botón "Asistente" bajo el zoom, en la columna de los controles del mapa; no
+  tapa la leyenda, el tiempo ni el menú de usuario.
+- Se abre como hoja inferior en el móvil y como ventana centrada en el escritorio. El foco va al
+  campo "Pide un ajuste de la ruta"; Escape, "Cerrar" o tocar fuera lo cierran y el foco vuelve al
+  botón.
+- Cerrar y volver a abrir conserva el texto que se estaba escribiendo, la explicación, los pesos
+  antes → después y "Guardar como ruta"; la ruta ajustada sigue en el mapa.
+- "Guardar como ruta" muestra el editor en el mismo pop-up (no abre otro encima) con el foco en el
+  nombre; "Cancelar" o guardar vuelven al asistente con el foco en "Guardar como ruta".
+- Comprobado con Playwright a 320, 390 y 1366 px (2026-11-16): botón de al menos 44 px sin tapar el
+  zoom, la leyenda, la atribución, el tiempo, el menú, el panel ni la hoja inferior; sin scroll
+  horizontal; aviso de "no disponible" con el backend sin clave y la ruta sigue.
 
 ## Comprobaciones de la PBI-9.1 (ruta recomendada)
 
