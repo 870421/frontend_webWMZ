@@ -1,5 +1,4 @@
-// The name of the route assistant (#181). The backend uses the same name in the prompt of the model.
-export const ASSISTANT_NAME = 'Cierzo';
+export { ASSISTANT_NAME } from './assistantName.js';
 
 /**
  * The logo of Cierzo (#181): the gusts of the wind icon of the app carrying a leaf (wind and green).

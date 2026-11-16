@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { askRouteAssistant } from '../../services/api/routeAssistantApi.js';
+import { ASSISTANT_NAME } from './assistantName.js';
 
 const IDLE = { status: 'idle', route: null, result: null, errorMessage: '', applied: null };
 
@@ -51,7 +52,7 @@ export function useRouteAssistant() {
         status: 'error',
         route,
         result: null,
-        errorMessage: error.message || 'El asistente no está disponible ahora mismo.',
+        errorMessage: error.message || `${ASSISTANT_NAME} no está disponible ahora mismo.`,
       }));
       return null;
     } finally {

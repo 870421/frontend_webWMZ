@@ -261,12 +261,9 @@ describe('App with the route assistant', () => {
   it('an error keeps the route on screen', async () => {
     const user = userEvent.setup();
     askRouteAssistant.mockRejectedValue(
-      Object.assign(
-        new Error('Has hecho muchas peticiones seguidas al asistente. Espera un minuto.'),
-        {
-          status: 429,
-        }
-      )
+      Object.assign(new Error('Has hecho muchas peticiones seguidas a Cierzo. Espera un minuto.'), {
+        status: 429,
+      })
     );
     await calculateFastestRoute(user);
     const before = shownGeometry();
@@ -283,7 +280,7 @@ describe('App with the route assistant', () => {
     askRouteAssistant
       .mockResolvedValueOnce(APPLIED)
       .mockRejectedValueOnce(
-        new Error('El asistente no está disponible ahora mismo. Tu ruta no ha cambiado.')
+        new Error('Cierzo no está disponible ahora mismo. Tu ruta no ha cambiado.')
       );
     await calculateFastestRoute(user);
     await ask(user, 'sombra');

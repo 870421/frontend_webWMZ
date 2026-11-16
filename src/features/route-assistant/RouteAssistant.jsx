@@ -5,11 +5,12 @@ import { RouteProfileEditor } from '../route-profiles/RouteProfileEditor.jsx';
 import { findNameConflict, suggestFreeName } from '../route-profiles/profileNames.js';
 import { SHADE_SUN_MAX } from '../route-profiles/shadeSun.js';
 import { assistantChanges } from './assistantChanges.js';
-import { ASSISTANT_NAME } from './CierzoLogo.jsx';
+import { ASSISTANT_NAME } from './assistantName.js';
 
 // The same limit as the backend (ASSISTANT_MAX_MESSAGE_LENGTH, ADR-033).
 export const MAX_MESSAGE_LENGTH = 300;
-const SAVED_NAME = 'Asistente';
+// The default name of a route saved from the assistant (#181).
+const SAVED_NAME = `Ruta de ${ASSISTANT_NAME}`;
 
 const ROW_ICONS = { shadeSun: null, wind: 'wind', vegetation: 'vegetation', time: 'time' };
 

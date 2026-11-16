@@ -95,8 +95,8 @@ describe('RouteAssistant', () => {
 
   it.each([
     ['not_understood', 'No he entendido la petición.'],
-    ['timeout', 'El asistente ha tardado demasiado. Tu ruta no ha cambiado.'],
-    ['not_configured', 'El asistente no está disponible en este servidor.'],
+    ['timeout', 'Cierzo ha tardado demasiado. Tu ruta no ha cambiado.'],
+    ['not_configured', 'Cierzo no está disponible en este servidor.'],
   ])('a %s notice is shown and nothing can be saved', (status, message) => {
     renderAssistant({
       status: 'done',
@@ -118,7 +118,7 @@ describe('RouteAssistant', () => {
     rerender(
       <RouteAssistant
         status="error"
-        errorMessage="Has hecho muchas peticiones seguidas al asistente. Espera un minuto."
+        errorMessage="Has hecho muchas peticiones seguidas a Cierzo. Espera un minuto."
         onAsk={onAsk}
       />
     );
@@ -163,7 +163,7 @@ describe('RouteAssistant', () => {
         status: 'done',
         result: APPLIED,
         applied: APPLIED.assistant,
-        profiles: [...PROFILES, { id: 5, name: 'Asistente', weights: NO_WEIGHTS }],
+        profiles: [...PROFILES, { id: 5, name: 'Ruta de Cierzo', weights: NO_WEIGHTS }],
       });
 
       await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
@@ -171,7 +171,7 @@ describe('RouteAssistant', () => {
       const editor = screen.getByRole('region', { name: 'Guardar como ruta' });
       const dialog = within(editor);
       expect(screen.queryByLabelText('Pide a Cierzo un ajuste de la ruta')).not.toBeInTheDocument();
-      expect(dialog.getByLabelText('Nombre')).toHaveValue('Asistente (2)');
+      expect(dialog.getByLabelText('Nombre')).toHaveValue('Ruta de Cierzo (2)');
       expect(editor).toContainElement(document.activeElement);
       expect(dialog.getByLabelText('Sombra o sol')).toHaveValue('-50');
       expect(dialog.getByLabelText('Evitar viento')).toHaveValue('40');
@@ -180,12 +180,14 @@ describe('RouteAssistant', () => {
       await user.click(dialog.getByRole('button', { name: 'Guardar' }));
 
       expect(onSaveProfile).toHaveBeenCalledWith({
-        name: 'Asistente (2)',
+        name: 'Ruta de Cierzo (2)',
         weights: { shade: 50, sun: 0, wind: 40, vegetation: 0 },
         maxDetourPercentage: 35,
       });
       expect(screen.queryByRole('region', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
-      expect(screen.getByText('Guardada en tus rutas como «Asistente (2)».')).toBeInTheDocument();
+      expect(
+        screen.getByText('Guardada en tus rutas como «Ruta de Cierzo (2)».')
+      ).toBeInTheDocument();
       // The focus goes back to the button it came from.
       expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toHaveFocus();
     });
