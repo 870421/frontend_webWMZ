@@ -34,7 +34,7 @@ describe('RouteAssistant', () => {
     const user = userEvent.setup();
     const { onAsk } = renderAssistant();
 
-    const field = screen.getByLabelText('Pide un ajuste de la ruta');
+    const field = screen.getByLabelText('Pide a Cierzo un ajuste de la ruta');
     const button = screen.getByRole('button', { name: 'Ajustar' });
     expect(button).toBeDisabled();
     expect(screen.getByText(/no escribas datos personales/)).toHaveTextContent('0/300');
@@ -50,25 +50,28 @@ describe('RouteAssistant', () => {
 
   it('limits the request to 300 characters', () => {
     renderAssistant();
-    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveAttribute('maxLength', '300');
+    expect(screen.getByLabelText('Pide a Cierzo un ajuste de la ruta')).toHaveAttribute(
+      'maxLength',
+      '300'
+    );
   });
 
   it('while it works the button says so and cannot be pressed again', async () => {
     const user = userEvent.setup();
     const { rerender, onAsk } = renderAssistant();
-    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), 'sombra');
+    await user.type(screen.getByLabelText('Pide a Cierzo un ajuste de la ruta'), 'sombra');
 
     rerender(<RouteAssistant status="loading" onAsk={onAsk} />);
 
     expect(screen.getByRole('button', { name: 'Ajustando...' })).toBeDisabled();
-    expect(screen.getByText('El asistente está ajustando tu ruta...')).toBeInTheDocument();
+    expect(screen.getByText('Cierzo está ajustando tu ruta...')).toBeInTheDocument();
   });
 
   it('shows the explanation and every weight that changed, before → after, with the editor scales', () => {
     renderAssistant({ status: 'done', result: APPLIED, applied: APPLIED.assistant });
 
     expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
-    const changes = within(screen.getByRole('list', { name: 'Pesos cambiados por el asistente' }));
+    const changes = within(screen.getByRole('list', { name: 'Pesos cambiados por Cierzo' }));
     const rows = changes.getAllByRole('listitem');
     expect(
       rows.map((row) => [
@@ -110,7 +113,7 @@ describe('RouteAssistant', () => {
   it('shows an error without losing what the user wrote', async () => {
     const user = userEvent.setup();
     const { rerender, onAsk } = renderAssistant();
-    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), 'sombra');
+    await user.type(screen.getByLabelText('Pide a Cierzo un ajuste de la ruta'), 'sombra');
 
     rerender(
       <RouteAssistant
@@ -121,7 +124,7 @@ describe('RouteAssistant', () => {
     );
 
     expect(screen.getByText(/Espera un minuto/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveValue('sombra');
+    expect(screen.getByLabelText('Pide a Cierzo un ajuste de la ruta')).toHaveValue('sombra');
   });
 
   it('can take the text being written from outside', async () => {
@@ -129,8 +132,8 @@ describe('RouteAssistant', () => {
     const onMessageChange = jest.fn();
     const { onAsk } = renderAssistant({ message: 'sombra', onMessageChange });
 
-    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveValue('sombra');
-    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), 'x');
+    expect(screen.getByLabelText('Pide a Cierzo un ajuste de la ruta')).toHaveValue('sombra');
+    await user.type(screen.getByLabelText('Pide a Cierzo un ajuste de la ruta'), 'x');
     expect(onMessageChange).toHaveBeenLastCalledWith('sombrax');
     await user.click(screen.getByRole('button', { name: 'Ajustar' }));
     expect(onAsk).toHaveBeenCalledWith('sombra');
@@ -167,7 +170,7 @@ describe('RouteAssistant', () => {
       // The editor takes the place of the assistant, inside the same pop-up, with the focus.
       const editor = screen.getByRole('region', { name: 'Guardar como ruta' });
       const dialog = within(editor);
-      expect(screen.queryByLabelText('Pide un ajuste de la ruta')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Pide a Cierzo un ajuste de la ruta')).not.toBeInTheDocument();
       expect(dialog.getByLabelText('Nombre')).toHaveValue('Asistente (2)');
       expect(editor).toContainElement(document.activeElement);
       expect(dialog.getByLabelText('Sombra o sol')).toHaveValue('-50');
