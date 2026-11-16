@@ -30,6 +30,44 @@ aplicadas) para poder entrar.
 npm test
 ```
 
+## Test de extremo a extremo (#161)
+
+Un test con Playwright recorre el flujo principal en un Chromium real: crear una cuenta, cerrar
+sesión y volver a entrar, elegir origen y destino con el autocompletado, calcular la ruta "Rápida" y
+después la "Recomendada", con su motivo y la comparación. Decisión: ADR-034 del `docs/DECISIONS.md`
+del workspace.
+
+```bash
+npm run e2e:install   # una vez: descarga Chromium para Playwright
+npm run e2e           # prepara la base de datos y ejecuta el test
+npm run e2e:check     # ESLint y Prettier de la carpeta e2e/
+```
+
+Qué se levanta (todo en `e2e/`):
+
+- **Backend real**, desde `../backend` (o la ruta de `BACKEND_DIR`), en el puerto 3100. Necesita
+  `npm ci` en el backend y PostGIS arrancado (`docker compose up -d db` en el backend).
+- **Base de datos propia**, `weathermapz_e2e`, que `prepare-database.js` borra y crea en cada
+  ejecución: migraciones, un mini-dataset de 5 tramos, un edificio, 3 árboles y un parque
+  (`scenario.js`) y los mismos precálculos que producción (`associate`, `compute:vegetation` y
+  `compute:openness`). Usa el usuario y la contraseña del `.env` del backend, o `E2E_DATABASE_URL`.
+  Las bases de datos de desarrollo y de test no se tocan.
+- **Frontend real** con Vite en el puerto 5174.
+- **Servicios externos falsos** (`fake-services.js`, puerto 4010): OpenRouteService (rutas y
+  autocompletado) y Open-Meteo, con un tiempo templado y cierzo fuerte para que el motivo de la ruta
+  recomendada no dependa de la hora. El backend corre sin clave del asistente, así que no llama al
+  modelo de lenguaje. En el navegador, las teselas del mapa se sirven vacías y cualquier otra
+  petición fuera del frontend hace fallar el test.
+
+Ninguna clave real llega al test: el backend arranca con `ORS_API_KEY` falsa y el resto de claves
+vacías, aunque el `.env` del backend tenga las reales. El backend debe admitir
+`OPEN_METEO_BASE_URL`; si no, el test para antes de arrancarlo.
+
+En GitHub Actions lo ejecuta el workflow **E2E** (`.github/workflows/e2e.yml`) en cada pull
+request hacia `main`, contra el `main` del backend de la organización y un contenedor
+`postgis/postgis:17-3.5`. Si falla, el informe de Playwright con la traza queda como artefacto
+durante 7 días.
+
 ## Lint
 
 ```bash
