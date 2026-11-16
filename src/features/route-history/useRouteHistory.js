@@ -2,33 +2,36 @@ import { useCallback, useEffect, useState } from 'react';
 
 import {
   addRouteFavorite,
-  clearRouteHistory,
+  clearRecentPlaces,
+  listRecentPlaces,
   listRouteFavorites,
-  listRouteHistory,
-  recordRouteSearch,
+  recordRecentPlaces,
   removeRouteFavorite,
 } from '../../services/api/routeHistoryApi.js';
+import { DEVICE_SOURCE } from '../route-search/useDeviceLocation.js';
 
-// The backend keeps the last 10 searches (PBI-12); the list is cut the same way meanwhile.
-const MAX_SEARCHES = 10;
+// The backend rounds the points to 5 decimals (about a metre): the same place compares equal here.
+export const placeKey = ({ lat, lng }) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
+export const tripKey = ({ origin, destination }) => `${placeKey(origin)}>${placeKey(destination)}`;
 
-// The backend rounds the points to 5 decimals (about a metre): the same trip compares equal here.
-const pointKey = ({ lat, lng }) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
-export const tripKey = ({ origin, destination }) => `${pointKey(origin)}>${pointKey(destination)}`;
-
+/**
+ * The favourite trips (PBI-12) and the places used recently as origin or destination (#180, they
+ * replace the history of trips) of the user. The device location is never a recent place: its
+ * coordinates are only valid at that moment.
+ */
 export function useRouteHistory() {
-  const [searches, setSearches] = useState([]);
+  const [places, setPlaces] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [status, setStatus] = useState('loading');
 
   useEffect(() => {
     const controller = new AbortController();
     Promise.all([
-      listRouteHistory({ signal: controller.signal }),
+      listRecentPlaces({ signal: controller.signal }),
       listRouteFavorites({ signal: controller.signal }),
     ])
-      .then(([loadedSearches, loadedFavorites]) => {
-        setSearches(loadedSearches);
+      .then(([loadedPlaces, loadedFavorites]) => {
+        setPlaces(loadedPlaces);
         setFavorites(loadedFavorites);
         setStatus('ready');
       })
@@ -38,21 +41,21 @@ export function useRouteHistory() {
     return () => controller.abort();
   }, []);
 
-  // A failed record is not shown: the history must never get in the way of the route.
-  const recordSearch = useCallback(async (trip) => {
+  // The points of a calculated route, in the order they were used. A failed record is not shown:
+  // the history must never get in the way of the route.
+  const recordPlaces = useCallback(async (points) => {
+    const used = points.filter((point) => point && point.source !== DEVICE_SOURCE);
+    if (!used.length) return;
     try {
-      const search = await recordRouteSearch(trip);
-      setSearches((current) =>
-        [search, ...current.filter((item) => item.id !== search.id)].slice(0, MAX_SEARCHES)
-      );
+      setPlaces(await recordRecentPlaces(used));
     } catch {
       // Keeps the list as it was.
     }
   }, []);
 
-  async function clearHistory() {
-    await clearRouteHistory();
-    setSearches([]);
+  async function clearPlaces() {
+    await clearRecentPlaces();
+    setPlaces([]);
   }
 
   async function addFavorite(trip, name) {
@@ -69,11 +72,11 @@ export function useRouteHistory() {
   const favoriteKeys = new Set(favorites.map(tripKey));
 
   return {
-    searches,
+    places,
     favorites,
     status,
-    recordSearch,
-    clearHistory,
+    recordPlaces,
+    clearPlaces,
     addFavorite,
     removeFavorite,
     isFavorite: (trip) => favoriteKeys.has(tripKey(trip)),

@@ -9,9 +9,9 @@ import {
   updateRouteProfile,
 } from '../services/api/routeProfilesApi.js';
 import {
+  listRecentPlaces,
   listRouteFavorites,
-  listRouteHistory,
-  recordRouteSearch,
+  recordRecentPlaces,
 } from '../services/api/routeHistoryApi.js';
 import {
   getFastestRoute,
@@ -31,10 +31,10 @@ jest.mock('../services/api/routesApi.js', () => ({
 }));
 
 jest.mock('../services/api/routeHistoryApi.js', () => ({
-  listRouteHistory: jest.fn(),
+  listRecentPlaces: jest.fn(),
   listRouteFavorites: jest.fn(),
-  recordRouteSearch: jest.fn(),
-  clearRouteHistory: jest.fn(),
+  recordRecentPlaces: jest.fn(),
+  clearRecentPlaces: jest.fn(),
   addRouteFavorite: jest.fn(),
   removeRouteFavorite: jest.fn(),
 }));
@@ -110,14 +110,9 @@ describe('App', () => {
     createRouteProfile.mockReset();
     updateRouteProfile.mockReset();
     deleteRouteProfile.mockReset();
-    listRouteHistory.mockReset().mockResolvedValue([]);
+    listRecentPlaces.mockReset().mockResolvedValue([]);
     listRouteFavorites.mockReset().mockResolvedValue([]);
-    recordRouteSearch.mockReset().mockResolvedValue({
-      id: 1,
-      origin: { lat: 41.65, lng: -0.89, label: null },
-      destination: { lat: 41.65, lng: -0.89, label: null },
-      searchedAt: '2026-11-14T20:00:00.000Z',
-    });
+    recordRecentPlaces.mockReset().mockResolvedValue([]);
   });
 
   it('renders the base application shell', () => {
@@ -393,11 +388,11 @@ describe('App', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido calcular la ruta');
     expect(screen.getByTestId('route-geometry')).toHaveTextContent('none');
-    // A route that could not be calculated does not go to the history (PBI-12).
-    expect(recordRouteSearch).not.toHaveBeenCalled();
+    // The places of a route that could not be calculated do not go to the recent places (#180).
+    expect(recordRecentPlaces).not.toHaveBeenCalled();
   });
 
-  describe('history and favourites (PBI-12)', () => {
+  describe('recent places (#180) and favourites (PBI-12)', () => {
     const route = {
       geometry: {
         type: 'LineString',
@@ -410,7 +405,7 @@ describe('App', () => {
       duration: 660,
     };
 
-    it('saves a calculated route in the history', async () => {
+    it('saves the places of a calculated route as recent places, origin first', async () => {
       const user = userEvent.setup();
       getFastestRoute.mockResolvedValue(route);
       render(<App />);
@@ -420,10 +415,39 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
 
       expect(await screen.findByText('11 min')).toBeInTheDocument();
-      expect(recordRouteSearch).toHaveBeenCalledWith({
-        origin: { lat: 41.65, lng: -0.89, source: 'map' },
-        destination: { lat: 41.65, lng: -0.89, source: 'map' },
-      });
+      expect(recordRecentPlaces).toHaveBeenCalledWith([
+        { lat: 41.65, lng: -0.89, source: 'map' },
+        { lat: 41.65, lng: -0.89, source: 'map' },
+      ]);
+    });
+
+    it('offers the same recent places in both fields, without the place of the other one', async () => {
+      const user = userEvent.setup();
+      const pilar = { id: 2, lat: 41.6572, lng: -0.88039, label: 'Plaza del Pilar, Zaragoza' };
+      const sitios = { id: 1, lat: 41.6488, lng: -0.8793, label: 'Plaza de los Sitios, Zaragoza' };
+      listRecentPlaces.mockResolvedValue(
+        [pilar, sitios].map((place) => ({ ...place, usedAt: '2026-11-16T10:00:00.000Z' }))
+      );
+      render(<App />);
+
+      await user.click(screen.getByLabelText('Origen'));
+      const originList = within(await screen.findByRole('group', { name: 'Recientes' }));
+      expect(originList.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Plaza del Pilar, Zaragoza',
+        'Plaza de los Sitios, Zaragoza',
+      ]);
+      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Mi ubicación');
+      await user.click(screen.getByRole('option', { name: 'Plaza del Pilar, Zaragoza' }));
+      expect(screen.getByLabelText('Origen')).toHaveValue('Plaza del Pilar, Zaragoza');
+
+      await user.click(screen.getByLabelText('Destino'));
+      const destinationList = within(screen.getByRole('group', { name: 'Recientes' }));
+      expect(destinationList.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Plaza de los Sitios, Zaragoza',
+      ]);
+      await user.click(screen.getByRole('option', { name: 'Plaza de los Sitios, Zaragoza' }));
+      expect(screen.getByLabelText('Destino')).toHaveValue('Plaza de los Sitios, Zaragoza');
+      expect(screen.getByRole('button', { name: 'Calcular ruta' })).toBeEnabled();
     });
 
     it('calculates a favourite trip again with its place names', async () => {
@@ -439,7 +463,7 @@ describe('App', () => {
       getFastestRoute.mockResolvedValue(route);
       render(<App />);
 
-      await user.click(screen.getByRole('button', { name: 'Recientes y favoritos' }));
+      await user.click(screen.getByRole('button', { name: 'Favoritos' }));
       await user.click(await screen.findByRole('button', { name: /^Casa/ }));
 
       expect(screen.getByLabelText('Origen')).toHaveValue('Calle Mayor, Zaragoza');

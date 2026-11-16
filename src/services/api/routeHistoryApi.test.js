@@ -1,9 +1,9 @@
 import {
   addRouteFavorite,
-  clearRouteHistory,
+  clearRecentPlaces,
+  listRecentPlaces,
   listRouteFavorites,
-  listRouteHistory,
-  recordRouteSearch,
+  recordRecentPlaces,
   removeRouteFavorite,
 } from './routeHistoryApi.js';
 
@@ -16,7 +16,13 @@ const saved = {
   origin: { lat: 41.6572, lng: -0.88039, label: 'Plaza del Pilar' },
   destination: { lat: 41.65069, lng: -0.88005, label: null },
 };
-const search = { ...saved, searchedAt: '2026-11-14T20:00:00.000Z' };
+const place = {
+  id: 3,
+  lat: 41.6572,
+  lng: -0.88039,
+  label: 'Plaza del Pilar',
+  usedAt: '2026-11-16T20:00:00.000Z',
+};
 const favorite = { ...saved, id: 2, name: 'Casa', createdAt: '2026-11-14T20:00:00.000Z' };
 const reply = (status, body) => ({ ok: status < 400, status, json: async () => body });
 
@@ -26,23 +32,28 @@ describe('routeHistoryApi', () => {
     global.fetch = originalFetch;
   });
 
-  it('lists, records and clears the history, sending only the points and their names', async () => {
+  it('lists, records and clears the recent places, sending only the points and their names', async () => {
     global.fetch = jest
       .fn()
-      .mockResolvedValueOnce(reply(200, { searches: [search] }))
-      .mockResolvedValueOnce(reply(201, { search }))
+      .mockResolvedValueOnce(reply(200, { places: [place] }))
+      .mockResolvedValueOnce(reply(200, { places: [place] }))
       .mockResolvedValueOnce({ ok: true, status: 204, json: async () => null });
 
-    await expect(listRouteHistory()).resolves.toEqual([search]);
-    await expect(recordRouteSearch(trip)).resolves.toEqual(search);
-    await expect(clearRouteHistory()).resolves.toBeUndefined();
+    await expect(listRecentPlaces()).resolves.toEqual([place]);
+    await expect(recordRecentPlaces([trip.origin, trip.destination])).resolves.toEqual([place]);
+    await expect(clearRecentPlaces()).resolves.toBeUndefined();
 
-    const [, recorded, cleared] = global.fetch.mock.calls;
-    expect(recorded[0]).toMatch(/\/route-history$/);
+    const [listed, recorded, cleared] = global.fetch.mock.calls;
+    expect(listed[0]).toMatch(/\/recent-places$/);
+    expect(recorded[0]).toMatch(/\/recent-places$/);
+    expect(recorded[1]).toMatchObject({ method: 'POST' });
     expect(JSON.parse(recorded[1].body)).toEqual({
-      origin: { lat: 41.6572, lng: -0.88039, label: 'Plaza del Pilar' },
-      destination: { lat: 41.65069, lng: -0.88005, label: null },
+      places: [
+        { lat: 41.6572, lng: -0.88039, label: 'Plaza del Pilar' },
+        { lat: 41.65069, lng: -0.88005, label: null },
+      ],
     });
+    expect(cleared[0]).toMatch(/\/recent-places$/);
     expect(cleared[1]).toMatchObject({ method: 'DELETE' });
   });
 
@@ -69,10 +80,14 @@ describe('routeHistoryApi', () => {
   it('rejects trips that are not valid', async () => {
     global.fetch = jest
       .fn()
-      .mockResolvedValueOnce(reply(200, { searches: [{ ...search, origin: { lat: 'x' } }] }))
+      .mockResolvedValueOnce(reply(200, { places: [{ ...place, lat: 'x' }] }))
+      .mockResolvedValueOnce(reply(200, { places: [{ ...place, usedAt: null }] }))
+      .mockResolvedValueOnce(reply(200, {}))
       .mockResolvedValueOnce(reply(200, { favorites: [{ ...favorite, name: '' }] }));
 
-    await expect(listRouteHistory()).rejects.toThrow('no válido');
+    await expect(listRecentPlaces()).rejects.toThrow('lugar no válido');
+    await expect(listRecentPlaces()).rejects.toThrow('lugar no válido');
+    await expect(recordRecentPlaces([trip.origin])).rejects.toThrow('lugar no válido');
     await expect(listRouteFavorites()).rejects.toThrow('no válido');
   });
 });

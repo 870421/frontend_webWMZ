@@ -5,9 +5,9 @@ import { App } from './App.jsx';
 import { askRouteAssistant } from '../services/api/routeAssistantApi.js';
 import { listRouteProfiles } from '../services/api/routeProfilesApi.js';
 import {
+  listRecentPlaces,
   listRouteFavorites,
-  listRouteHistory,
-  recordRouteSearch,
+  recordRecentPlaces,
 } from '../services/api/routeHistoryApi.js';
 import { getFastestRoute } from '../services/api/routesApi.js';
 
@@ -23,10 +23,10 @@ jest.mock('../services/api/routesApi.js', () => ({
 }));
 jest.mock('../services/api/routeAssistantApi.js', () => ({ askRouteAssistant: jest.fn() }));
 jest.mock('../services/api/routeHistoryApi.js', () => ({
-  listRouteHistory: jest.fn(),
+  listRecentPlaces: jest.fn(),
   listRouteFavorites: jest.fn(),
-  recordRouteSearch: jest.fn(),
-  clearRouteHistory: jest.fn(),
+  recordRecentPlaces: jest.fn(),
+  clearRecentPlaces: jest.fn(),
   addRouteFavorite: jest.fn(),
   removeRouteFavorite: jest.fn(),
 }));
@@ -134,14 +134,9 @@ describe('App with the route assistant', () => {
     getFastestRoute.mockReset().mockResolvedValue(FASTEST);
     askRouteAssistant.mockReset();
     listRouteProfiles.mockReset().mockResolvedValue(PROFILES);
-    listRouteHistory.mockReset().mockResolvedValue([]);
+    listRecentPlaces.mockReset().mockResolvedValue([]);
     listRouteFavorites.mockReset().mockResolvedValue([]);
-    recordRouteSearch.mockReset().mockResolvedValue({
-      id: 1,
-      origin: { lat: 41.65, lng: -0.89, label: null },
-      destination: { lat: 41.65, lng: -0.89, label: null },
-      searchedAt: '2026-11-14T20:00:00.000Z',
-    });
+    recordRecentPlaces.mockReset().mockResolvedValue([]);
   });
 
   it('is offered only once there is a route, with a floating button and not in the panel', async () => {

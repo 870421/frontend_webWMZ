@@ -1,8 +1,10 @@
 import { apiRequest } from './client.js';
 
-// PBI-12: history of route searches and favourite trips of the signed-in user.
+// PBI-12: favourite trips and, since #180, the places used recently as origin or destination (they
+// replace the history of trips) of the signed-in user.
 
 const INVALID_RESPONSE_MESSAGE = 'El servidor ha devuelto un trayecto no válido.';
+const INVALID_PLACES_MESSAGE = 'El servidor ha devuelto un lugar no válido.';
 
 const isPoint = (point) =>
   Number.isFinite(point?.lat) &&
@@ -19,7 +21,6 @@ function checked(items, extraCheck) {
   return items;
 }
 
-const isSearch = (search) => typeof search.searchedAt === 'string';
 const isFavorite = (favorite) => typeof favorite.name === 'string' && favorite.name.length > 0;
 
 // Only what the backend keeps of a point: its coordinates and the name the user saw.
@@ -28,29 +29,42 @@ const tripBody = ({ origin, destination }) => ({
   destination: { lat: destination.lat, lng: destination.lng, label: destination.label ?? null },
 });
 
-export async function listRouteHistory({ signal } = {}) {
-  const data = await apiRequest('/route-history', {
+const isPlace = (place) =>
+  Number.isInteger(place?.id) && isPoint(place) && typeof place.usedAt === 'string';
+
+function checkedPlaces(places) {
+  if (!Array.isArray(places) || !places.every(isPlace)) throw new Error(INVALID_PLACES_MESSAGE);
+  return places;
+}
+
+// The recent places (#180), newest first.
+export async function listRecentPlaces({ signal } = {}) {
+  const data = await apiRequest('/recent-places', {
     signal,
-    fallbackErrorMessage: 'No se ha podido cargar tu historial.',
+    fallbackErrorMessage: 'No se han podido cargar tus lugares recientes.',
   });
-  return checked(data?.searches, isSearch);
+  return checkedPlaces(data?.places);
 }
 
-export async function recordRouteSearch(trip) {
-  const data = await apiRequest('/route-history', {
+// One or two places in the order they were used (origin, destination); only their coordinates and
+// the name the user saw. The answer is the list as it is now.
+export async function recordRecentPlaces(places) {
+  const data = await apiRequest('/recent-places', {
     method: 'POST',
-    body: JSON.stringify(tripBody(trip)),
+    body: JSON.stringify({
+      places: places.map(({ lat, lng, label }) => ({ lat, lng, label: label ?? null })),
+    }),
     errorMessages: {},
-    fallbackErrorMessage: 'No se ha podido guardar la búsqueda en el historial.',
+    fallbackErrorMessage: 'No se han podido guardar los lugares recientes.',
   });
-  return checked([data?.search], isSearch)[0];
+  return checkedPlaces(data?.places);
 }
 
-export async function clearRouteHistory() {
-  await apiRequest('/route-history', {
+export async function clearRecentPlaces() {
+  await apiRequest('/recent-places', {
     method: 'DELETE',
     errorMessages: {},
-    fallbackErrorMessage: 'No se ha podido borrar el historial. Inténtalo de nuevo.',
+    fallbackErrorMessage: 'No se han podido borrar los lugares recientes. Inténtalo de nuevo.',
   });
 }
 

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 
 import { ProfileDialog } from '../route-profiles/ProfileDialog.jsx';
+import { DEVICE_SOURCE } from '../route-search/useDeviceLocation.js';
 
-// PBI-12: button under the points that opens the favourite trips and the recent searches. Choosing
-// one sets its origin and destination and calculates the route again, with the current weather.
+// PBI-12: button under the points that opens the favourite trips. Choosing one sets its origin and
+// destination and calculates the route again, with the current weather. Since #180 the recent places
+// are offered in the origin and destination fields; here they can be cleared, and the current trip
+// is saved as a favourite.
 
 const FAVORITE_NAME_MAX_LENGTH = 60;
 
@@ -24,19 +27,12 @@ function Icon({ kind }) {
   );
 }
 
+export { Icon as HistoryIcon };
+
 // The first part of the place name ("Plaza del Pilar, Zaragoza, Spain" → "Plaza del Pilar").
 const placeName = (point) =>
   point.label?.split(',')[0].trim() || `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`;
 export const tripText = (trip) => `${placeName(trip.origin)} → ${placeName(trip.destination)}`;
-
-const timeFormat = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' });
-const dayFormat = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
-function whenText(isoDate, now = new Date()) {
-  const date = new Date(isoDate);
-  return date.toDateString() === now.toDateString()
-    ? `Hoy, ${timeFormat.format(date)}`
-    : dayFormat.format(date);
-}
 
 function FavoriteForm({ trip, onSave, onCancel }) {
   const [name, setName] = useState('');
@@ -84,11 +80,58 @@ function FavoriteForm({ trip, onSave, onCancel }) {
   );
 }
 
-function RouteHistoryDialog({ history, onSelectTrip, onClose }) {
-  const [namingId, setNamingId] = useState(null);
+// Saving the trip on screen: only with both points, and not with «Mi ubicación» (its coordinates
+// are only valid now).
+function SaveCurrentTrip({ trip, history }) {
+  const [isNaming, setIsNaming] = useState(false);
+  const [savedName, setSavedName] = useState('');
+
+  if (savedName) {
+    return (
+      <p className="profile-dialog-text" role="status">
+        Guardado en favoritos como «{savedName}».
+      </p>
+    );
+  }
+  if (!trip) {
+    return (
+      <p className="profile-dialog-text">
+        Elige un origen y un destino para guardar el trayecto en favoritos.
+      </p>
+    );
+  }
+  if (trip.origin.source === DEVICE_SOURCE || trip.destination.source === DEVICE_SOURCE) {
+    return (
+      <p className="profile-dialog-text">
+        Para guardar el trayecto en favoritos, elige un origen y un destino sin «Mi ubicación».
+      </p>
+    );
+  }
+  if (history.isFavorite(trip)) {
+    return <p className="profile-dialog-text">{tripText(trip)} ya está en tus favoritos.</p>;
+  }
+  return isNaming ? (
+    <FavoriteForm
+      trip={trip}
+      onCancel={() => setIsNaming(false)}
+      onSave={async (current, name) => {
+        const favorite = await history.addFavorite(current, name);
+        setSavedName(favorite.name);
+      }}
+    />
+  ) : (
+    <button type="button" className="history-save-trip" onClick={() => setIsNaming(true)}>
+      <Icon kind="star" />
+      Guardar este trayecto
+      <small>{tripText(trip)}</small>
+    </button>
+  );
+}
+
+function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
   const [confirmsClear, setConfirmsClear] = useState(false);
   const [error, setError] = useState('');
-  const { searches, favorites, status } = history;
+  const { places, favorites, status } = history;
 
   function choose(trip) {
     onSelectTrip(trip);
@@ -105,7 +148,7 @@ function RouteHistoryDialog({ history, onSelectTrip, onClose }) {
   }
 
   return (
-    <ProfileDialog title="Recientes y favoritos" onClose={onClose}>
+    <ProfileDialog title="Favoritos" onClose={onClose}>
       {status === 'loading' && (
         <p className="profile-dialog-text" role="status">
           Cargando…
@@ -113,7 +156,7 @@ function RouteHistoryDialog({ history, onSelectTrip, onClose }) {
       )}
       {status === 'error' && (
         <p className="history-error" role="alert">
-          No se han podido cargar tus recientes y favoritos. Inténtalo más tarde.
+          No se han podido cargar tus favoritos y lugares recientes. Inténtalo más tarde.
         </p>
       )}
       {error && (
@@ -125,7 +168,7 @@ function RouteHistoryDialog({ history, onSelectTrip, onClose }) {
       <section className="history-section" aria-labelledby="history-favorites-title">
         <h3 id="history-favorites-title">
           <Icon kind="star-filled" />
-          Favoritos
+          Tus trayectos
         </h3>
         {favorites.length ? (
           <ul className="history-list">
@@ -147,94 +190,56 @@ function RouteHistoryDialog({ history, onSelectTrip, onClose }) {
             ))}
           </ul>
         ) : (
-          <p className="profile-dialog-text">
-            Aún no tienes favoritos. Pulsa la estrella de un trayecto reciente para guardarlo.
-          </p>
+          <p className="profile-dialog-text">Aún no tienes favoritos.</p>
         )}
+        <SaveCurrentTrip trip={currentTrip} history={history} />
       </section>
 
       <section className="history-section" aria-labelledby="history-recent-title">
         <h3 id="history-recent-title">
           <Icon kind="clock" />
-          Recientes
+          Lugares recientes
         </h3>
-        {searches.length ? (
-          <ul className="history-list">
-            {searches.map((search) => {
-              const isFavorite = history.isFavorite(search);
-              return (
-                <li key={search.id}>
-                  <button type="button" className="history-trip" onClick={() => choose(search)}>
-                    <strong>{tripText(search)}</strong>
-                    <small>{whenText(search.searchedAt)}</small>
-                  </button>
-                  <button
-                    type="button"
-                    className={`history-action ${isFavorite ? 'is-favorite' : ''}`}
-                    aria-label={
-                      isFavorite
-                        ? `${tripText(search)} ya está en favoritos`
-                        : `Guardar ${tripText(search)} en favoritos`
-                    }
-                    aria-expanded={isFavorite ? undefined : namingId === search.id}
-                    disabled={isFavorite}
-                    onClick={() => setNamingId(namingId === search.id ? null : search.id)}
-                  >
-                    <Icon kind={isFavorite ? 'star-filled' : 'star'} />
-                  </button>
-                  {namingId === search.id && (
-                    <FavoriteForm
-                      trip={search}
-                      onCancel={() => setNamingId(null)}
-                      onSave={async (trip, name) => {
-                        await history.addFavorite(trip, name);
-                        setNamingId(null);
-                      }}
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="profile-dialog-text">Aquí aparecerán tus últimas búsquedas de rutas.</p>
-        )}
-      </section>
-
-      {searches.length > 0 &&
-        (confirmsClear ? (
-          <div className="history-confirm" role="group" aria-label="Confirmar borrado">
-            <p className="profile-dialog-text">
-              ¿Borrar tus {searches.length} búsquedas recientes? Los favoritos se mantienen.
-            </p>
-            <div className="profile-dialog-actions">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => setConfirmsClear(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="profile-dialog-danger"
-                onClick={() =>
-                  run(async () => {
-                    await history.clearHistory();
-                    setConfirmsClear(false);
-                  })
-                }
-              >
-                Sí, borrar
-              </button>
+        <p className="profile-dialog-text">
+          {places.length
+            ? `Tienes ${places.length === 1 ? '1 lugar reciente' : `${places.length} lugares recientes`}: aparecen al elegir el origen o el destino.`
+            : 'Los lugares que uses como origen o destino aparecerán al elegirlos de nuevo.'}
+        </p>
+        {places.length > 0 &&
+          (confirmsClear ? (
+            <div className="history-confirm" role="group" aria-label="Confirmar borrado">
+              <p className="profile-dialog-text">
+                ¿Borrar tus lugares recientes? Los favoritos se mantienen.
+              </p>
+              <div className="profile-dialog-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setConfirmsClear(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="profile-dialog-danger"
+                  onClick={() =>
+                    run(async () => {
+                      await history.clearPlaces();
+                      setConfirmsClear(false);
+                    })
+                  }
+                >
+                  Sí, borrar
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <button type="button" className="history-clear" onClick={() => setConfirmsClear(true)}>
-            <Icon kind="trash" />
-            Borrar historial
-          </button>
-        ))}
+          ) : (
+            <button type="button" className="history-clear" onClick={() => setConfirmsClear(true)}>
+              <Icon kind="trash" />
+              Borrar lugares recientes
+            </button>
+          ))}
+      </section>
 
       <div className="profile-dialog-actions">
         <button type="button" className="secondary-button" onClick={onClose}>
@@ -245,7 +250,7 @@ function RouteHistoryDialog({ history, onSelectTrip, onClose }) {
   );
 }
 
-export function RouteHistory({ history, onSelectTrip }) {
+export function RouteHistory({ history, currentTrip = null, onSelectTrip }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <>
@@ -255,12 +260,13 @@ export function RouteHistory({ history, onSelectTrip }) {
         aria-haspopup="dialog"
         onClick={() => setIsOpen(true)}
       >
-        <Icon kind="clock" />
-        Recientes y favoritos
+        <Icon kind="star" />
+        Favoritos
       </button>
       {isOpen && (
-        <RouteHistoryDialog
+        <FavoritesDialog
           history={history}
+          currentTrip={currentTrip}
           onSelectTrip={onSelectTrip}
           onClose={() => setIsOpen(false)}
         />

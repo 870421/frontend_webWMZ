@@ -1,121 +1,169 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { RouteHistory, tripText } from './RouteHistory.jsx';
 
-const point = (lat, label) => ({ lat, lng: -0.88, label });
-const recent = {
-  id: 1,
+const point = (lat, label, source = 'search') => ({ lat, lng: -0.88, label, source });
+const trip = {
   origin: point(41.6572, 'Plaza del Pilar, Zaragoza, Spain'),
-  destination: point(41.65, null),
-  searchedAt: new Date().toISOString(),
+  destination: point(41.6488, 'Plaza de los Sitios, Zaragoza'),
 };
-const favorite = {
-  id: 7,
-  name: 'Casa',
-  origin: point(41.66, 'Calle Mayor, Zaragoza'),
-  destination: point(41.64, 'Plaza España, Zaragoza'),
-  createdAt: '2026-11-10T10:00:00.000Z',
-};
+const favorite = { id: 7, name: 'Casa', ...trip, createdAt: '2026-11-10T10:00:00.000Z' };
 
-function history(overrides = {}) {
+function makeHistory(overrides = {}) {
   return {
-    status: 'ready',
-    searches: [recent],
+    places: [{ id: 1, lat: 41.65, lng: -0.88, label: 'Plaza', usedAt: '2026-11-16' }],
     favorites: [favorite],
-    isFavorite: () => false,
-    addFavorite: jest.fn().mockResolvedValue(),
+    status: 'ready',
+    addFavorite: jest.fn(async (_trip, name) => ({ id: 8, name: name || tripText(_trip) })),
     removeFavorite: jest.fn().mockResolvedValue(),
-    clearHistory: jest.fn().mockResolvedValue(),
+    clearPlaces: jest.fn().mockResolvedValue(),
+    isFavorite: jest.fn(() => false),
     ...overrides,
   };
 }
 
-async function open(props) {
-  const user = userEvent.setup();
+async function open(user, props) {
   render(<RouteHistory onSelectTrip={jest.fn()} {...props} />);
-  await user.click(screen.getByRole('button', { name: 'Recientes y favoritos' }));
-  return { user, dialog: screen.getByRole('dialog', { name: 'Recientes y favoritos' }) };
+  await user.click(screen.getByRole('button', { name: 'Favoritos' }));
+  return within(screen.getByRole('dialog', { name: 'Favoritos' }));
 }
 
 describe('RouteHistory', () => {
-  it('names a trip with the first part of each place, or its coordinates', () => {
-    expect(tripText(recent)).toBe('Plaza del Pilar → 41.6500, -0.8800');
-  });
-
-  it('shows the favourites and the recent searches, and repeats the chosen trip', async () => {
+  it('chooses a favourite trip and closes', async () => {
+    const user = userEvent.setup();
     const onSelectTrip = jest.fn();
-    const { user, dialog } = await open({ history: history(), onSelectTrip });
+    const dialog = await open(user, { history: makeHistory(), onSelectTrip });
 
-    expect(within(dialog).getByRole('button', { name: /^Casa/ })).toHaveTextContent(
-      'Calle Mayor → Plaza España'
-    );
-    expect(within(dialog).getByRole('button', { name: /^Plaza del Pilar →/ })).toHaveTextContent(
-      /Hoy, \d{2}:\d{2}/
-    );
+    await user.click(dialog.getByRole('button', { name: /^Casa/ }));
 
-    await user.click(within(dialog).getByRole('button', { name: /^Casa/ }));
     expect(onSelectTrip).toHaveBeenCalledWith(favorite);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('saves a recent trip as a favourite with an optional name', async () => {
-    const data = history();
-    const { user, dialog } = await open({ history: data });
-
-    await user.click(within(dialog).getByRole('button', { name: /Guardar .* en favoritos/ }));
-    await user.type(within(dialog).getByLabelText(/Nombre del favorito/), ' Facultad ');
-    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }));
-
-    expect(data.addFavorite).toHaveBeenCalledWith(recent, 'Facultad');
-    expect(within(dialog).queryByLabelText(/Nombre del favorito/)).not.toBeInTheDocument();
-  });
-
-  it('shows why a favourite could not be saved', async () => {
-    const data = history({
-      addFavorite: jest.fn().mockRejectedValue(new Error('Ya está en tus favoritos.')),
+  it('removes a favourite and shows the error if it fails', async () => {
+    const user = userEvent.setup();
+    const history = makeHistory({
+      removeFavorite: jest.fn().mockRejectedValueOnce(new Error('No se ha podido quitar')),
     });
-    const { user, dialog } = await open({ history: data });
+    const dialog = await open(user, { history });
 
-    await user.click(within(dialog).getByRole('button', { name: /Guardar .* en favoritos/ }));
-    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }));
+    await user.click(dialog.getByRole('button', { name: 'Quitar «Casa» de favoritos' }));
 
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Ya está en tus favoritos.');
+    expect(history.removeFavorite).toHaveBeenCalledWith(7);
+    expect(dialog.getByRole('alert')).toHaveTextContent('No se ha podido quitar');
   });
 
-  it('marks a recent trip that is already a favourite and removes a favourite', async () => {
-    const data = history({ isFavorite: () => true });
-    const { user, dialog } = await open({ history: data });
+  it('saves the trip on screen with an optional name', async () => {
+    const user = userEvent.setup();
+    const history = makeHistory({ favorites: [] });
+    const dialog = await open(user, { history, currentTrip: trip });
+    expect(dialog.getByText('Aún no tienes favoritos.')).toBeInTheDocument();
 
-    expect(within(dialog).getByRole('button', { name: /ya está en favoritos/ })).toBeDisabled();
-    await user.click(within(dialog).getByRole('button', { name: 'Quitar «Casa» de favoritos' }));
-    expect(data.removeFavorite).toHaveBeenCalledWith(7);
+    await user.click(dialog.getByRole('button', { name: /Guardar este trayecto/ }));
+    const name = dialog.getByLabelText('Nombre del favorito (opcional)');
+    expect(name).toHaveAttribute('placeholder', 'Plaza del Pilar → Plaza de los Sitios');
+    await user.type(name, ' Paseo ');
+    await user.click(dialog.getByRole('button', { name: 'Guardar' }));
+
+    expect(history.addFavorite).toHaveBeenCalledWith(trip, 'Paseo');
+    expect(dialog.getByRole('status')).toHaveTextContent('Guardado en favoritos como «Paseo».');
   });
 
-  it('clears the history only after confirming it, keeping the favourites', async () => {
-    const data = history();
-    const { user, dialog } = await open({ history: data });
-
-    await user.click(within(dialog).getByRole('button', { name: 'Borrar historial' }));
-    expect(within(dialog).getByText(/Los favoritos se mantienen/)).toBeVisible();
-    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
-    expect(data.clearHistory).not.toHaveBeenCalled();
-
-    await user.click(within(dialog).getByRole('button', { name: 'Borrar historial' }));
-    await user.click(within(dialog).getByRole('button', { name: 'Sí, borrar' }));
-    expect(data.clearHistory).toHaveBeenCalled();
-  });
-
-  it('explains empty lists and a failed load', async () => {
-    const { dialog } = await open({
-      history: history({ status: 'error', searches: [], favorites: [] }),
+  it('keeps the form and shows why when saving fails, and can cancel', async () => {
+    const user = userEvent.setup();
+    const history = makeHistory({
+      addFavorite: jest.fn().mockRejectedValue(new Error('Ese trayecto ya está en tus favoritos')),
     });
+    const dialog = await open(user, { history, currentTrip: trip });
 
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('No se han podido cargar');
-    expect(within(dialog).getByText(/Aún no tienes favoritos/)).toBeVisible();
-    expect(within(dialog).getByText(/últimas búsquedas/)).toBeVisible();
+    await user.click(dialog.getByRole('button', { name: /Guardar este trayecto/ }));
+    await user.click(dialog.getByRole('button', { name: 'Guardar' }));
+    expect(dialog.getByRole('alert')).toHaveTextContent('ya está en tus favoritos');
+
+    await user.click(dialog.getByRole('button', { name: 'Cancelar' }));
+    expect(dialog.getByRole('button', { name: /Guardar este trayecto/ })).toBeInTheDocument();
+  });
+
+  it('explains when the trip on screen cannot be saved', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <RouteHistory history={makeHistory()} currentTrip={null} onSelectTrip={jest.fn()} />
+    );
+    await user.click(screen.getByRole('button', { name: 'Favoritos' }));
+    expect(screen.getByText(/Elige un origen y un destino para guardar/)).toBeInTheDocument();
+    unmount();
+
+    const withDevice = { ...trip, origin: point(41.66, 'Mi ubicación', 'device') };
+    let dialog = await open(user, { history: makeHistory(), currentTrip: withDevice });
+    expect(dialog.getByText(/sin «Mi ubicación»/)).toBeInTheDocument();
+    expect(dialog.queryByRole('button', { name: /Guardar este trayecto/ })).not.toBeInTheDocument();
+    cleanup();
+
+    dialog = await open(user, {
+      history: makeHistory({ isFavorite: () => true }),
+      currentTrip: trip,
+    });
     expect(
-      within(dialog).queryByRole('button', { name: 'Borrar historial' })
+      dialog.getByText('Plaza del Pilar → Plaza de los Sitios ya está en tus favoritos.')
+    ).toBeInTheDocument();
+  });
+
+  it('clears the recent places after confirming; the favourites stay', async () => {
+    const user = userEvent.setup();
+    const history = makeHistory();
+    const dialog = await open(user, { history });
+    expect(dialog.getByText(/Tienes 1 lugar reciente/)).toBeInTheDocument();
+
+    await user.click(dialog.getByRole('button', { name: 'Borrar lugares recientes' }));
+    await user.click(dialog.getByRole('button', { name: 'Cancelar' }));
+    expect(history.clearPlaces).not.toHaveBeenCalled();
+
+    await user.click(dialog.getByRole('button', { name: 'Borrar lugares recientes' }));
+    expect(dialog.getByRole('group', { name: 'Confirmar borrado' })).toHaveTextContent(
+      'Los favoritos se mantienen'
+    );
+    await user.click(dialog.getByRole('button', { name: 'Sí, borrar' }));
+    expect(history.clearPlaces).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts several recent places and says when there are none', async () => {
+    const user = userEvent.setup();
+    const places = [1, 2, 3].map((id) => ({ id, lat: 41.6, lng: -0.88, label: 'X', usedAt: '' }));
+    const { unmount } = render(
+      <RouteHistory history={makeHistory({ places })} onSelectTrip={jest.fn()} />
+    );
+    await user.click(screen.getByRole('button', { name: 'Favoritos' }));
+    expect(screen.getByText(/Tienes 3 lugares recientes/)).toBeInTheDocument();
+    unmount();
+
+    const dialog = await open(user, { history: makeHistory({ places: [] }) });
+    expect(dialog.getByText(/aparecerán al elegirlos de nuevo/)).toBeInTheDocument();
+    expect(
+      dialog.queryByRole('button', { name: 'Borrar lugares recientes' })
     ).not.toBeInTheDocument();
+  });
+
+  it('says when it is loading or the lists could not be loaded', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <RouteHistory
+        history={makeHistory({ status: 'loading', favorites: [], places: [] })}
+        onSelectTrip={jest.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: 'Favoritos' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando');
+    unmount();
+
+    const dialog = await open(user, { history: makeHistory({ status: 'error' }) });
+    expect(dialog.getByRole('alert')).toHaveTextContent('No se han podido cargar');
+  });
+
+  it('names a trip after the first part of each place, or its coordinates', () => {
+    expect(tripText(trip)).toBe('Plaza del Pilar → Plaza de los Sitios');
+    expect(
+      tripText({ origin: { lat: 41.65, lng: -0.88, label: null }, destination: trip.origin })
+    ).toBe('41.6500, -0.8800 → Plaza del Pilar');
   });
 });

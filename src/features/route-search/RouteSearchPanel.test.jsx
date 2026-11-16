@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { RouteSearchPanel } from './RouteSearchPanel.jsx';
@@ -136,6 +136,131 @@ describe('RouteSearchPanel', () => {
     expect(onSetActivePoint).toHaveBeenCalledWith('origin');
     expect(onClearPoint).toHaveBeenCalledWith('origin');
     expect(onResetPoints).toHaveBeenCalledTimes(1);
+  });
+
+  describe('recent places (#180)', () => {
+    const recent = (id, lat, label) => ({ id, lat, lng: -0.88, label, usedAt: '2026-11-16' });
+    const RECENT = [
+      recent(3, 41.6572, 'Plaza del Pilar, Zaragoza'),
+      recent(2, 41.6488, 'Plaza San José, Zaragoza'),
+      recent(1, 41.65, null),
+    ];
+
+    it('come below «Mi ubicación» in a group, the same in both fields', async () => {
+      const user = userEvent.setup();
+      render(<StatefulPanel recentPlaces={RECENT} />);
+
+      await user.click(screen.getByLabelText('Origen'));
+      const options = screen.getAllByRole('option').map((option) => option.textContent);
+      expect(options).toEqual([
+        'Mi ubicación',
+        'Plaza del Pilar, Zaragoza',
+        'Plaza San José, Zaragoza',
+        // Without a name, its coordinates.
+        '41.65000, -0.88000',
+      ]);
+      expect(
+        within(screen.getByRole('group', { name: 'Recientes' })).getAllByRole('option')
+      ).toHaveLength(3);
+
+      await user.keyboard('{Escape}');
+      await user.click(screen.getByLabelText('Destino'));
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(options);
+    });
+
+    it('do not offer the place chosen in the other field', async () => {
+      const user = userEvent.setup();
+      const onSetPoint = jest.fn();
+      render(<StatefulPanel recentPlaces={RECENT} onSetPoint={onSetPoint} />);
+
+      await user.click(screen.getByLabelText('Origen'));
+      await user.click(screen.getByRole('option', { name: 'Plaza del Pilar, Zaragoza' }));
+      expect(onSetPoint).toHaveBeenCalledWith('origin', {
+        lat: 41.6572,
+        lng: -0.88,
+        label: 'Plaza del Pilar, Zaragoza',
+        source: 'recent',
+      });
+      expect(screen.getByLabelText('Origen')).toHaveValue('Plaza del Pilar, Zaragoza');
+
+      await user.click(screen.getByLabelText('Destino'));
+      expect(
+        screen.queryByRole('option', { name: 'Plaza del Pilar, Zaragoza' })
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Plaza San José, Zaragoza' })).toBeInTheDocument();
+    });
+
+    it('go first while typing when their name matches, without repeating a suggestion', async () => {
+      const user = userEvent.setup();
+      usePlaceAutocomplete.mockReturnValue({
+        errorMessage: '',
+        isLoading: false,
+        results: [
+          // The same place as a recent one: shown once, as recent.
+          { id: 'a', label: 'Plaza San José, Zaragoza, España', lat: 41.6488, lng: -0.88 },
+          { id: 'b', label: 'Calle San José de Calasanz', lat: 41.64, lng: -0.89 },
+        ],
+      });
+      render(<StatefulPanel recentPlaces={RECENT} />);
+
+      // Without case nor accents.
+      await user.type(screen.getByLabelText('Origen'), 'san jose');
+
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Plaza San José, Zaragoza',
+        'Calle San José de Calasanz',
+      ]);
+      expect(screen.getByRole('group', { name: 'Recientes' })).toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: 'Mi ubicación' })).not.toBeInTheDocument();
+    });
+
+    it('show at most three while typing', async () => {
+      const user = userEvent.setup();
+      const many = [1, 2, 3, 4].map((id) => recent(id, 41.6 + id / 100, `Plaza ${id}`));
+      render(<StatefulPanel recentPlaces={many} />);
+
+      await user.type(screen.getByLabelText('Origen'), 'plaza');
+
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Plaza 1',
+        'Plaza 2',
+        'Plaza 3',
+      ]);
+      expect(screen.queryByText(/No se han encontrado lugares/)).not.toBeInTheDocument();
+    });
+
+    it('Enter chooses the first matching recent place while the suggestions load', async () => {
+      const user = userEvent.setup();
+      const onSetPoint = jest.fn();
+      usePlaceAutocomplete.mockReturnValue({ errorMessage: '', isLoading: true, results: [] });
+      render(<StatefulPanel recentPlaces={RECENT} onSetPoint={onSetPoint} />);
+
+      await user.type(screen.getByLabelText('Destino'), 'pilar{Enter}');
+
+      expect(onSetPoint).toHaveBeenCalledWith(
+        'destination',
+        expect.objectContaining({ label: 'Plaza del Pilar, Zaragoza', source: 'recent' })
+      );
+    });
+
+    it('work with the arrows, after «Mi ubicación»', async () => {
+      const user = userEvent.setup();
+      const onSetPoint = jest.fn();
+      render(<StatefulPanel recentPlaces={RECENT} onSetPoint={onSetPoint} />);
+      const input = screen.getByLabelText('Origen');
+
+      await user.click(input);
+      await user.keyboard('{ArrowDown}{ArrowDown}');
+      const option = screen.getByRole('option', { name: 'Plaza del Pilar, Zaragoza' });
+      expect(option).toHaveAttribute('aria-selected', 'true');
+      expect(input).toHaveAttribute('aria-activedescendant', option.id);
+      await user.keyboard('{Enter}');
+
+      expect(onSetPoint).toHaveBeenCalledWith(
+        'origin',
+        expect.objectContaining({ label: 'Plaza del Pilar, Zaragoza' })
+      );
+    });
   });
 
   describe('«Mi ubicación»', () => {
