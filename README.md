@@ -156,6 +156,24 @@ solo en el backend.
   municipal (del buscador o del GPS) no se marca y sale el aviso "WeatherMapZ solo funciona dentro
   de Zaragoza". Los límites están en `src/features/map/zaragozaArea.js`.
 
+## Comprobaciones de «Mi ubicación» (weathermapz-gestion #178)
+
+El GPS ya no tiene un botón en cada campo: la ubicación se elige con «Mi ubicación», la primera
+opción de la lista de cada campo.
+
+- Al enfocar el origen o el destino, también vacíos, se abre la lista con «Mi ubicación» y el icono
+  de GPS. Elegirla pide la ubicación como antes; el campo muestra «Mi ubicación» y sale "Se ha
+  puesto tu ubicación como origen" (o destino).
+- Si un campo ya usa «Mi ubicación», el otro no la ofrece (y al revés). En un campo con un punto
+  elegido, enfocarlo vuelve a ofrecer la opción sin buscar su nombre.
+- Con el permiso denegado sale "Se ha denegado el acceso a la ubicación... y vuelve a elegir «Mi
+  ubicación»" y no se marca nada; los demás errores (sin HTTPS, sin GPS, tiempo agotado, fuera de
+  Zaragoza) son los de antes.
+- Mientras se obtiene la ubicación la opción aparece desactivada.
+- Con 3 caracteres o más la lista pasa a las sugerencias del autocompletado, como antes.
+- Teclado: flecha abajo resalta «Mi ubicación» y Enter la elige; Enter sin nada resaltado y sin
+  texto no pide la ubicación; Escape cierra la lista.
+
 ## Comprobaciones de la Ruta Sombreada en pantallas pequeñas
 
 - La comparación sale compacta; "Ver más" muestra la distancia y la explicación.
