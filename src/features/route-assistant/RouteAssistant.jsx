@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { ProfileDialog } from '../route-profiles/ProfileDialog.jsx';
 import { ProfileIcon } from '../route-profiles/ProfileIcon.jsx';
 import { RouteProfileEditor } from '../route-profiles/RouteProfileEditor.jsx';
 import { findNameConflict, suggestFreeName } from '../route-profiles/profileNames.js';
@@ -76,6 +75,11 @@ function freeName(profiles) {
  * turns it into weights and recalculates the route. It shows what changed (before → after, with the
  * icons and scales of the route editor) and can save those weights as a route of the user. When the
  * assistant fails or does not understand, it says so and the route on screen stays.
+ *
+ * It is drawn inside the pop-up of the floating button (#179), which gives it its title. The text
+ * being written can come from outside (`message`, `onMessageChange`) so that it survives closing the
+ * pop-up. "Guardar como ruta" shows the route editor in its place, inside the same pop-up: a second
+ * pop-up on top would close together with it on Escape.
  */
 export function RouteAssistant({
   status = 'idle',
@@ -87,9 +91,25 @@ export function RouteAssistant({
   onAsk,
   onSaveProfile,
   onReplaceProfile,
+  message: externalMessage,
+  onMessageChange,
 }) {
-  const [message, setMessage] = useState('');
+  const [ownMessage, setOwnMessage] = useState('');
+  const message = externalMessage ?? ownMessage;
+  const setMessage = onMessageChange ?? setOwnMessage;
   const [isSaving, setIsSaving] = useState(false);
+  const editorRef = useRef(null);
+  const saveButtonRef = useRef(null);
+  const messageRef = useRef(null);
+  const wasSaving = useRef(false);
+
+  // The editor takes the place of the assistant: the focus goes to it and, when it closes, back to
+  // "Guardar como ruta" (or to the request field, when that button is gone).
+  useEffect(() => {
+    if (isSaving) editorRef.current?.querySelector('input, button')?.focus();
+    else if (wasSaving.current) (saveButtonRef.current ?? messageRef.current)?.focus();
+    wasSaving.current = isSaving;
+  }, [isSaving]);
   const [savedName, setSavedName] = useState('');
   const isLoading = status === 'loading';
   // The last answer, when it is a notice; the weights applied stay below it.
@@ -118,16 +138,38 @@ export function RouteAssistant({
     setSavedName(saved.name);
   }
 
+  if (applied && isSaving) {
+    return (
+      <section
+        ref={editorRef}
+        className="route-assistant"
+        aria-labelledby="route-assistant-save-title"
+      >
+        <h3 id="route-assistant-save-title" className="route-assistant-save-title">
+          Guardar como ruta
+        </h3>
+        <RouteProfileEditor
+          initialValues={{
+            name: freeName(profiles),
+            weights: applied.after.weights,
+            maxDetourPercentage: applied.after.maxDetourPercentage,
+          }}
+          profiles={profiles}
+          onSave={save}
+          onReplace={replace}
+          onCancel={() => setIsSaving(false)}
+        />
+      </section>
+    );
+  }
+
   return (
-    <section className="panel-section route-assistant" aria-labelledby="route-assistant-title">
-      <h2 id="route-assistant-title">
-        <ProfileIcon kind="assistant" />
-        Asistente
-      </h2>
+    <div className="route-assistant">
       <form className="route-assistant-form" onSubmit={submit} noValidate>
         <label htmlFor="route-assistant-message">Pide un ajuste de la ruta</label>
         <div className="route-assistant-row">
           <input
+            ref={messageRef}
             id="route-assistant-message"
             type="text"
             value={message}
@@ -171,6 +213,7 @@ export function RouteAssistant({
       </div>
       {applied && canSave && (
         <button
+          ref={saveButtonRef}
           type="button"
           className="secondary-button route-assistant-save"
           onClick={() => setIsSaving(true)}
@@ -178,21 +221,6 @@ export function RouteAssistant({
           Guardar como ruta
         </button>
       )}
-      {applied && isSaving && (
-        <ProfileDialog title="Guardar como ruta" onClose={() => setIsSaving(false)}>
-          <RouteProfileEditor
-            initialValues={{
-              name: freeName(profiles),
-              weights: applied.after.weights,
-              maxDetourPercentage: applied.after.maxDetourPercentage,
-            }}
-            profiles={profiles}
-            onSave={save}
-            onReplace={replace}
-            onCancel={() => setIsSaving(false)}
-          />
-        </ProfileDialog>
-      )}
-    </section>
+    </div>
   );
 }

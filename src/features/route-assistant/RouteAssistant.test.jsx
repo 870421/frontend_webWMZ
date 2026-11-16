@@ -124,7 +124,36 @@ describe('RouteAssistant', () => {
     expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveValue('sombra');
   });
 
+  it('can take the text being written from outside', async () => {
+    const user = userEvent.setup();
+    const onMessageChange = jest.fn();
+    const { onAsk } = renderAssistant({ message: 'sombra', onMessageChange });
+
+    expect(screen.getByLabelText('Pide un ajuste de la ruta')).toHaveValue('sombra');
+    await user.type(screen.getByLabelText('Pide un ajuste de la ruta'), 'x');
+    expect(onMessageChange).toHaveBeenLastCalledWith('sombrax');
+    await user.click(screen.getByRole('button', { name: 'Ajustar' }));
+    expect(onAsk).toHaveBeenCalledWith('sombra');
+  });
+
   describe('save as a route', () => {
+    it('"Cancelar" goes back to the assistant with the focus on "Guardar como ruta"', async () => {
+      const user = userEvent.setup();
+      const { onSaveProfile } = renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
+      await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+      expect(screen.queryByRole('region', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
+      expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toHaveFocus();
+      expect(onSaveProfile).not.toHaveBeenCalled();
+    });
+
     it('opens the editor with the assistant weights and a free name', async () => {
       const user = userEvent.setup();
       const { onSaveProfile } = renderAssistant({
@@ -135,8 +164,12 @@ describe('RouteAssistant', () => {
       });
 
       await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
-      const dialog = within(screen.getByRole('dialog', { name: 'Guardar como ruta' }));
+      // The editor takes the place of the assistant, inside the same pop-up, with the focus.
+      const editor = screen.getByRole('region', { name: 'Guardar como ruta' });
+      const dialog = within(editor);
+      expect(screen.queryByLabelText('Pide un ajuste de la ruta')).not.toBeInTheDocument();
       expect(dialog.getByLabelText('Nombre')).toHaveValue('Asistente (2)');
+      expect(editor).toContainElement(document.activeElement);
       expect(dialog.getByLabelText('Sombra o sol')).toHaveValue('-50');
       expect(dialog.getByLabelText('Evitar viento')).toHaveValue('40');
       expect(dialog.getByLabelText('Tiempo extra máximo')).toHaveValue('35');
@@ -148,8 +181,10 @@ describe('RouteAssistant', () => {
         weights: { shade: 50, sun: 0, wind: 40, vegetation: 0 },
         maxDetourPercentage: 35,
       });
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
       expect(screen.getByText('Guardada en tus rutas como «Asistente (2)».')).toBeInTheDocument();
+      // The focus goes back to the button it came from.
+      expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toHaveFocus();
     });
 
     it('warns about a repeated name and "Reemplazar" only changes that route, deleting none', async () => {
@@ -161,7 +196,7 @@ describe('RouteAssistant', () => {
       });
 
       await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
-      const dialog = within(screen.getByRole('dialog'));
+      const dialog = within(screen.getByRole('region', { name: 'Guardar como ruta' }));
       await user.clear(dialog.getByLabelText('Nombre'));
       await user.type(dialog.getByLabelText('Nombre'), 'sombreada');
       expect(dialog.getByText('Ya tienes una ruta llamada «Sombreada».')).toBeInTheDocument();
