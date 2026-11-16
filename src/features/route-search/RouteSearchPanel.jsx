@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 
 import { RouteSteps } from '../routing/RouteSteps.jsx';
 import { RouteSummary } from '../routing/RouteSummary.jsx';
+import { DEVICE_SOURCE, MY_LOCATION_LABEL } from './useDeviceLocation.js';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
 import { useSheetHeight } from './useSheetHeight.js';
 
 // Safari on iPhone takes the focus away from the field before delivering the tap on a suggestion:
 // closing the list at once would leave the tap without a target, and it would reach the map below.
 const LIST_CLOSE_DELAY_MS = 200;
+// From this length the text is searched with the autocomplete; shorter, the list shows the options
+// that need no text ("Mi ubicación").
+const MIN_SEARCH_LENGTH = 3;
+const MY_LOCATION_OPTION = { id: 'my-location', kind: 'location', label: MY_LOCATION_LABEL };
 
 const noop = () => {};
 const pointLabel = (name) => (name === 'origin' ? 'origen' : 'destino');
@@ -37,6 +42,7 @@ function PointInput({
   title,
   value,
   point,
+  otherPoint,
   activePoint,
   isLocating,
   onActivate,
@@ -48,32 +54,59 @@ function PointInput({
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+  // The list the field had when it lost the focus ('search', 'initial' or 'none'); null while focused.
+  const [listOnBlur, setListOnBlur] = useState(null);
   const inputRef = useRef(null);
   const closeTimer = useRef(null);
   // Enter pressed while the suggestions were still loading: the first one is chosen when they come.
   const enterPending = useRef(false);
-  const open = focused && !dismissed && activePoint === name && !point && value.trim().length >= 3;
+  // With a point chosen the field shows its name: focusing it offers the options again instead of
+  // searching that name.
+  const isSearching = !point && value.trim().length >= MIN_SEARCH_LENGTH;
+  const listKind = isSearching ? 'search' : 'initial';
+  // "Mi ubicación" is offered in only one of the two fields at a time.
+  const initialOptions = otherPoint?.source === DEVICE_SOURCE ? [] : [MY_LOCATION_OPTION];
+  // During the delay after losing the focus only the list that was open stays (for the tap). Another
+  // one must not open in a field the user has left, e.g. the empty list after "Limpiar".
+  const open =
+    focused &&
+    !dismissed &&
+    activePoint === name &&
+    (isSearching || initialOptions.length > 0) &&
+    (listOnBlur === null || listOnBlur === listKind);
   const listId = `${name}-suggestions`;
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
-  function choose(result) {
+  function choose(option) {
+    if (option.kind === 'location' && isLocating) return;
     enterPending.current = false;
     setDismissed(true);
     setHighlight(-1);
     // Before setting the point: on leaving the field a phone keyboard commits the text it was still
     // composing, which would count as editing and clear the point. It also closes the keyboard.
     inputRef.current?.blur();
-    onSetPoint(name, { lat: result.lat, lng: result.lng, label: result.label, source: 'search' });
+    // The choice is made: the list closes now, not after the delay kept for taps (it would show the
+    // options of a field that already has its point).
+    window.clearTimeout(closeTimer.current);
+    setFocused(false);
+    if (option.kind === 'location') {
+      // The same request as before with the GPS button: its messages say how it went, and nothing is
+      // set if the permission is denied or it fails.
+      onRequestCurrentLocation(name);
+      return;
+    }
+    onSetPoint(name, { lat: option.lat, lng: option.lng, label: option.label, source: 'search' });
   }
 
-  const search = usePlaceAutocomplete(value, open, name, (results) => {
+  const search = usePlaceAutocomplete(value, open && isSearching, name, (results) => {
     if (!enterPending.current) return;
     enterPending.current = false;
     // With none, the list keeps its "not found" message.
     if (results.length) choose(results[0]);
   });
-  const selectedIndex = highlight < search.results.length ? highlight : -1;
+  const options = isSearching ? search.results : initialOptions;
+  const selectedIndex = highlight < options.length ? highlight : -1;
 
   function handleKey(event) {
     if (event.key === 'Escape') {
@@ -85,21 +118,22 @@ function PointInput({
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       setDismissed(false);
-      if (search.results.length) {
+      if (options.length) {
         setHighlight((index) =>
           event.key === 'ArrowDown'
-            ? (index + 1) % search.results.length
-            : (index <= 0 ? search.results.length : index) - 1
+            ? (index + 1) % options.length
+            : (index <= 0 ? options.length : index) - 1
         );
       }
     }
     if (event.key === 'Enter' && open) {
       event.preventDefault();
-      // The highlighted suggestion or, without one, the first. If they are still loading, it waits
-      // for them; with none, the list keeps its "not found" message.
-      if (selectedIndex >= 0) choose(search.results[selectedIndex]);
-      else if (search.results.length) choose(search.results[0]);
-      else if (search.isLoading) enterPending.current = true;
+      // The highlighted option or, while searching and without one, the first suggestion. If they are
+      // still loading, it waits for them; with none, the list keeps its "not found" message. Without
+      // text, Enter alone never asks for the location.
+      if (selectedIndex >= 0) choose(options[selectedIndex]);
+      else if (isSearching && search.results.length) choose(search.results[0]);
+      else if (isSearching && search.isLoading) enterPending.current = true;
     }
   }
 
@@ -147,9 +181,11 @@ function PointInput({
               window.clearTimeout(closeTimer.current);
               setFocused(true);
               setDismissed(false);
+              setListOnBlur(null);
               onActivate(name);
             }}
             onBlur={() => {
+              setListOnBlur(open ? listKind : 'none');
               // Leaving the field cancels an Enter still waiting for its suggestions.
               enterPending.current = false;
               window.clearTimeout(closeTimer.current);
@@ -178,18 +214,6 @@ function PointInput({
               ×
             </button>
           )}
-          <button
-            type="button"
-            className="input-icon-button gps-button"
-            aria-label={`Usar GPS para ${pointLabel(name)}`}
-            disabled={isLocating}
-            onClick={() => {
-              setDismissed(true);
-              onRequestCurrentLocation(name);
-            }}
-          >
-            <GpsIcon />
-          </button>
         </div>
         {open && (
           <div className="autocomplete-panel">
@@ -198,36 +222,46 @@ function PointInput({
               className="autocomplete-results"
               role="listbox"
               aria-label={`Lugares para ${title.toLowerCase()}`}
-              aria-busy={search.isLoading}
+              aria-busy={isSearching && search.isLoading}
             >
-              {search.results.map((result, index) => (
+              {options.map((option, index) => (
                 <li
-                  key={result.id}
+                  key={option.id}
                   id={`${listId}-${index}`}
                   role="option"
+                  className={option.kind ? `suggestion-${option.kind}` : undefined}
                   aria-selected={selectedIndex === index}
+                  aria-disabled={option.kind === 'location' && isLocating ? true : undefined}
                   onPointerDown={(event) => event.preventDefault()}
-                  onClick={() => choose(result)}
+                  onClick={() => choose(option)}
                 >
-                  {result.label}
+                  {option.kind === 'location' && (
+                    <span className="suggestion-icon">
+                      <GpsIcon />
+                    </span>
+                  )}
+                  {option.label}
                 </li>
               ))}
             </ul>
-            {search.isLoading && (
+            {isSearching && search.isLoading && (
               <p className="autocomplete-message" role="status">
                 Buscando lugares...
               </p>
             )}
-            {search.errorMessage && (
+            {isSearching && search.errorMessage && (
               <p className="autocomplete-message autocomplete-error" role="alert">
                 {search.errorMessage}
               </p>
             )}
-            {!search.isLoading && !search.errorMessage && search.results.length === 0 && (
-              <p className="autocomplete-message" role="status">
-                No se han encontrado lugares. Prueba otra dirección o selecciónala en el mapa.
-              </p>
-            )}
+            {isSearching &&
+              !search.isLoading &&
+              !search.errorMessage &&
+              search.results.length === 0 && (
+                <p className="autocomplete-message" role="status">
+                  No se han encontrado lugares. Prueba otra dirección o selecciónala en el mapa.
+                </p>
+              )}
           </div>
         )}
         <p
@@ -354,6 +388,7 @@ export function RouteSearchPanel({
               title={pointTitle(name)}
               value={name === 'origin' ? originInput : destinationInput}
               point={name === 'origin' ? origin : destination}
+              otherPoint={name === 'origin' ? destination : origin}
               activePoint={activePoint}
               isLocating={isLocating}
               onActivate={onSetActivePoint}
@@ -425,7 +460,7 @@ export function RouteSearchPanel({
           )}
           {geolocation.status === 'success' && (
             <p className="form-message" role="status">
-              Ubicación actual asignada como {pointLabel(geolocation.pointType)}.
+              Se ha puesto tu ubicación como {pointLabel(geolocation.pointType)}.
             </p>
           )}
           {routeCalculation.errorMessage && (

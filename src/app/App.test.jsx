@@ -46,6 +46,12 @@ jest.mock('../services/api/routeProfilesApi.js', () => ({
   deleteRouteProfile: jest.fn(),
 }));
 
+// The location is chosen with «Mi ubicación», the first option of the list of each field.
+async function chooseMyLocation(user, field) {
+  await user.click(screen.getByLabelText(field));
+  await user.click(screen.getByRole('option', { name: 'Mi ubicación' }));
+}
+
 const PROFILES = [
   { id: 1, name: 'Rápida', presetKey: 'fastest', weights: { shade: 0, sun: 0 } },
   { id: 2, name: 'Sombreada', presetKey: 'shaded', weights: { shade: 50, sun: 0 } },
@@ -157,18 +163,18 @@ describe('App', () => {
     });
     render(<App />);
     const position = { coords: { latitude: 41.7, longitude: -1 } };
-    await user.click(screen.getByLabelText('Usar GPS para origen'));
+    await chooseMyLocation(user, 'Origen');
     await user.click(screen.getByRole('button', { name: 'Limpiar selección' }));
     act(() => success(position));
     expect(screen.getByTestId('origin-marker')).toHaveTextContent('none');
-    await user.click(screen.getByLabelText('Usar GPS para origen'));
+    await chooseMyLocation(user, 'Origen');
     await user.click(screen.getByText('Select map point'));
     act(() => success(position));
     expect(screen.getByTestId('origin-marker')).toHaveTextContent('41.65');
-    await user.click(screen.getByLabelText('Usar GPS para destino'));
+    await chooseMyLocation(user, 'Destino');
     act(() => success(position));
     expect(screen.getByTestId('destination-marker')).toHaveTextContent('41.7');
-    expect(screen.getByRole('status')).toHaveTextContent('Ubicación actual asignada como destino');
+    expect(screen.getByRole('status')).toHaveTextContent('Se ha puesto tu ubicación como destino');
     await user.clear(screen.getByLabelText('Destino'));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
@@ -185,7 +191,7 @@ describe('App', () => {
     });
     render(<App />);
 
-    await user.click(screen.getByLabelText('Usar GPS para origen'));
+    await chooseMyLocation(user, 'Origen');
 
     expect(screen.getByTestId('origin-marker')).toHaveTextContent('none');
     expect(screen.getByRole('alert')).toHaveTextContent('solo funciona dentro de Zaragoza');

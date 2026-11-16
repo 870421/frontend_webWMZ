@@ -5,6 +5,9 @@ const GEOLOCATION_POSITION_UNAVAILABLE = 2;
 const GEOLOCATION_TIMEOUT = 3;
 const PRECISE_GEOLOCATION_TIMEOUT_MS = 10000;
 const FALLBACK_GEOLOCATION_TIMEOUT_MS = 20000;
+// The point of the device location: the name the field shows and the source that tells it apart.
+export const MY_LOCATION_LABEL = 'Mi ubicación';
+export const DEVICE_SOURCE = 'device';
 
 export function getGeolocationErrorMessage(error) {
   if (!error) {
@@ -12,7 +15,7 @@ export function getGeolocationErrorMessage(error) {
   }
 
   if (error.code === GEOLOCATION_PERMISSION_DENIED) {
-    return 'Se ha denegado el acceso a la ubicación. Permítelo en la configuración del navegador y del dispositivo y vuelve a pulsar Usar GPS.';
+    return 'Se ha denegado el acceso a la ubicación. Permítelo en la configuración del navegador y del dispositivo y vuelve a elegir «Mi ubicación».';
   }
 
   if (error.code === GEOLOCATION_POSITION_UNAVAILABLE) {
@@ -42,8 +45,8 @@ export function createDevicePoint(position) {
   return {
     lat: latitude,
     lng: longitude,
-    label: 'Ubicación actual',
-    source: 'device',
+    label: MY_LOCATION_LABEL,
+    source: DEVICE_SOURCE,
   };
 }
 
