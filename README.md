@@ -302,6 +302,10 @@ nombre al modelo (ver README del backend).
   ajuste de la ruta", mientras trabaja sale "Cierzo está ajustando tu ruta..." y la lista es "Pesos
   cambiados por Cierzo". Los avisos que vienen del backend ("El asistente no está disponible…") no
   cambian.
+- **Actualización:** los avisos del backend y los mensajes de error del frontend también dicen
+  "Cierzo" ("Cierzo no está disponible ahora mismo. Tu ruta no ha cambiado.", "Has hecho muchas
+  peticiones seguidas a Cierzo…"), y la ruta guardada desde el asistente se llama por defecto "Ruta
+  de Cierzo" (o "Ruta de Cierzo (2)" si ya existe).
 - **"Cierzo, busca sombra"** solo sube la sombra: llamarle por su nombre no cuenta como pedir evitar
   el viento.
 - **Comprobado con Playwright a 320, 390 y 1366 px** (2026-11-16, entorno del e2e):
