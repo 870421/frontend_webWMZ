@@ -122,7 +122,7 @@ export function App({ userMenu = null }) {
     if (id === profile?.id) selectProfile(null);
   }
 
-  // A route that is calculated goes to the history (PBI-12); a failed one does not.
+  // The places of a route that is calculated go to the recent places (#180); a failed one does not.
   async function calculateRoute(origin, destination, dateTime = solarDateTime) {
     setShownRoute('shaded');
     const result = await routePlanner.calculateRoute(origin, destination, {
@@ -132,7 +132,7 @@ export function App({ userMenu = null }) {
       maxDetourPercentage: profile?.maxDetourPercentage,
       ...dateTime,
     });
-    if (result) routeHistory.recordSearch({ origin, destination });
+    if (result) routeHistory.recordPlaces([origin, destination]);
   }
 
   // The weights of the route on screen: the assistant's, the recommended ones or the profile's.
@@ -161,7 +161,7 @@ export function App({ userMenu = null }) {
     }
   }
 
-  // A recent or favourite trip is calculated again for now, with the route type chosen.
+  // A favourite trip is calculated again for now, with the route type chosen.
   function repeatTrip({ origin, destination }) {
     geolocation.clearGeolocationMessage();
     routePlanner.clearRoutes();
@@ -234,7 +234,18 @@ export function App({ userMenu = null }) {
               routeType={routeType}
               asksSolarDateTime={asksSolarDateTime}
               alternativeLabel={alternativeLabel}
-              routeHistory={<RouteHistory history={routeHistory} onSelectTrip={repeatTrip} />}
+              recentPlaces={routeHistory.places}
+              routeHistory={
+                <RouteHistory
+                  history={routeHistory}
+                  currentTrip={
+                    routePoints.origin && routePoints.destination
+                      ? { origin: routePoints.origin, destination: routePoints.destination }
+                      : null
+                  }
+                  onSelectTrip={repeatTrip}
+                />
+              }
               assistant={
                 <RouteAssistant
                   status={assistantIsCurrent ? routeAssistant.status : 'idle'}

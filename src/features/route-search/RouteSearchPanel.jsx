@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { HistoryIcon } from '../route-history/RouteHistory.jsx';
+import { placeKey } from '../route-history/useRouteHistory.js';
 import { RouteSteps } from '../routing/RouteSteps.jsx';
 import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { DEVICE_SOURCE, MY_LOCATION_LABEL } from './useDeviceLocation.js';
@@ -13,6 +15,30 @@ const LIST_CLOSE_DELAY_MS = 200;
 // that need no text ("Mi ubicación").
 const MIN_SEARCH_LENGTH = 3;
 const MY_LOCATION_OPTION = { id: 'my-location', kind: 'location', label: MY_LOCATION_LABEL };
+// While typing, the recent places whose name contains the text go before the suggestions.
+const MAX_MATCHING_RECENT_PLACES = 3;
+
+// Without case nor accents: "san jose" finds "Plaza San José".
+const normalize = (text) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+// The recent places (#180) as options of a field, without the place chosen in the other field: the
+// same place cannot be the origin and the destination.
+function recentOptions(places, otherPoint) {
+  const otherKey = otherPoint ? placeKey(otherPoint) : null;
+  return places
+    .filter((place) => placeKey(place) !== otherKey)
+    .map((place) => ({
+      id: `recent-${place.id}`,
+      kind: 'recent',
+      lat: place.lat,
+      lng: place.lng,
+      label: place.label || `${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`,
+    }));
+}
 
 const noop = () => {};
 const pointLabel = (name) => (name === 'origin' ? 'origen' : 'destino');
@@ -43,6 +69,7 @@ function PointInput({
   value,
   point,
   otherPoint,
+  recentPlaces,
   activePoint,
   isLocating,
   onActivate,
@@ -64,8 +91,12 @@ function PointInput({
   // searching that name.
   const isSearching = !point && value.trim().length >= MIN_SEARCH_LENGTH;
   const listKind = isSearching ? 'search' : 'initial';
-  // "Mi ubicación" is offered in only one of the two fields at a time.
-  const initialOptions = otherPoint?.source === DEVICE_SOURCE ? [] : [MY_LOCATION_OPTION];
+  const recents = recentOptions(recentPlaces, otherPoint);
+  // "Mi ubicación" is offered in only one of the two fields at a time; below it, the recent places.
+  const initialOptions = [
+    ...(otherPoint?.source === DEVICE_SOURCE ? [] : [MY_LOCATION_OPTION]),
+    ...recents,
+  ];
   // During the delay after losing the focus only the list that was open stays (for the tap). Another
   // one must not open in a field the user has left, e.g. the empty list after "Limpiar".
   const open =
@@ -96,7 +127,12 @@ function PointInput({
       onRequestCurrentLocation(name);
       return;
     }
-    onSetPoint(name, { lat: option.lat, lng: option.lng, label: option.label, source: 'search' });
+    onSetPoint(name, {
+      lat: option.lat,
+      lng: option.lng,
+      label: option.label,
+      source: option.kind === 'recent' ? 'recent' : 'search',
+    });
   }
 
   const search = usePlaceAutocomplete(value, open && isSearching, name, (results) => {
@@ -105,8 +141,47 @@ function PointInput({
     // With none, the list keeps its "not found" message.
     if (results.length) choose(results[0]);
   });
-  const options = isSearching ? search.results : initialOptions;
+  // While typing: the matching recent places first and then the suggestions, without repeating a
+  // place that is in both.
+  const text = normalize(value.trim());
+  const matchingRecents = isSearching
+    ? recents
+        .filter((option) => normalize(option.label).includes(text))
+        .slice(0, MAX_MATCHING_RECENT_PLACES)
+    : [];
+  const recentKeys = new Set(matchingRecents.map(placeKey));
+  const options = isSearching
+    ? [...matchingRecents, ...search.results.filter((result) => !recentKeys.has(placeKey(result)))]
+    : initialOptions;
+
   const selectedIndex = highlight < options.length ? highlight : -1;
+
+  function renderOption(option, index) {
+    return (
+      <li
+        key={option.id}
+        id={`${listId}-${index}`}
+        role="option"
+        className={option.kind ? `suggestion-${option.kind}` : undefined}
+        aria-selected={selectedIndex === index}
+        aria-disabled={option.kind === 'location' && isLocating ? true : undefined}
+        onPointerDown={(event) => event.preventDefault()}
+        onClick={() => choose(option)}
+      >
+        {option.kind === 'location' && (
+          <span className="suggestion-icon">
+            <GpsIcon />
+          </span>
+        )}
+        {option.kind === 'recent' && (
+          <span className="suggestion-icon">
+            <HistoryIcon kind="clock" />
+          </span>
+        )}
+        {option.label}
+      </li>
+    );
+  }
 
   function handleKey(event) {
     if (event.key === 'Escape') {
@@ -128,11 +203,12 @@ function PointInput({
     }
     if (event.key === 'Enter' && open) {
       event.preventDefault();
-      // The highlighted option or, while searching and without one, the first suggestion. If they are
-      // still loading, it waits for them; with none, the list keeps its "not found" message. Without
-      // text, Enter alone never asks for the location.
+      // The highlighted option or, while searching and without one, the first option (a matching
+      // recent place or the first suggestion). If they are still loading, it waits for them; with
+      // none, the list keeps its "not found" message. Without text, Enter alone never asks for the
+      // location nor chooses a recent place.
       if (selectedIndex >= 0) choose(options[selectedIndex]);
-      else if (isSearching && search.results.length) choose(search.results[0]);
+      else if (isSearching && options.length) choose(options[0]);
       else if (isSearching && search.isLoading) enterPending.current = true;
     }
   }
@@ -224,25 +300,22 @@ function PointInput({
               aria-label={`Lugares para ${title.toLowerCase()}`}
               aria-busy={isSearching && search.isLoading}
             >
-              {options.map((option, index) => (
-                <li
-                  key={option.id}
-                  id={`${listId}-${index}`}
-                  role="option"
-                  className={option.kind ? `suggestion-${option.kind}` : undefined}
-                  aria-selected={selectedIndex === index}
-                  aria-disabled={option.kind === 'location' && isLocating ? true : undefined}
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={() => choose(option)}
-                >
-                  {option.kind === 'location' && (
-                    <span className="suggestion-icon">
-                      <GpsIcon />
-                    </span>
-                  )}
-                  {option.label}
-                </li>
-              ))}
+              {options.map((option, index) => {
+                if (option.kind !== 'recent') return renderOption(option, index);
+                // The recent places go together in a group with a visible title.
+                if (options[index - 1]?.kind === 'recent') return null;
+                const group = options.slice(index).filter(({ kind }) => kind === 'recent');
+                return (
+                  <li key="recent-places" role="none">
+                    <ul className="autocomplete-group" role="group" aria-label="Recientes">
+                      <li role="none" className="autocomplete-group-title" aria-hidden="true">
+                        Recientes
+                      </li>
+                      {group.map((recent, offset) => renderOption(recent, index + offset))}
+                    </ul>
+                  </li>
+                );
+              })}
             </ul>
             {isSearching && search.isLoading && (
               <p className="autocomplete-message" role="status">
@@ -254,14 +327,11 @@ function PointInput({
                 {search.errorMessage}
               </p>
             )}
-            {isSearching &&
-              !search.isLoading &&
-              !search.errorMessage &&
-              search.results.length === 0 && (
-                <p className="autocomplete-message" role="status">
-                  No se han encontrado lugares. Prueba otra dirección o selecciónala en el mapa.
-                </p>
-              )}
+            {isSearching && !search.isLoading && !search.errorMessage && options.length === 0 && (
+              <p className="autocomplete-message" role="status">
+                No se han encontrado lugares. Prueba otra dirección o selecciónala en el mapa.
+              </p>
+            )}
           </div>
         )}
         <p
@@ -298,6 +368,8 @@ export function RouteSearchPanel({
   alternativeLabel = 'Con sombra',
   profilePicker = null,
   routeHistory = null,
+  // The places used recently as origin or destination (#180), offered in both fields.
+  recentPlaces = [],
   solarDate = '',
   solarTime = '',
   onSolarDateChange = noop,
@@ -389,6 +461,7 @@ export function RouteSearchPanel({
               value={name === 'origin' ? originInput : destinationInput}
               point={name === 'origin' ? origin : destination}
               otherPoint={name === 'origin' ? destination : origin}
+              recentPlaces={recentPlaces}
               activePoint={activePoint}
               isLocating={isLocating}
               onActivate={onSetActivePoint}
