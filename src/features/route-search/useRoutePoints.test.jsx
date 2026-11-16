@@ -190,8 +190,8 @@ describe('formatPointLabel', () => {
   it('formats labels and coordinates', () => {
     expect(formatPointLabel(null)).toBe('Sin seleccionar');
     expect(formatPointLabel({ lat: 41.648812, lng: -0.889085 })).toBe('41.64881, -0.88909');
-    expect(formatPointLabel({ lat: 41.65, lng: -0.89, label: 'Ubicación actual' })).toBe(
-      'Ubicación actual'
+    expect(formatPointLabel({ lat: 41.65, lng: -0.89, label: 'Mi ubicación' })).toBe(
+      'Mi ubicación'
     );
   });
 });

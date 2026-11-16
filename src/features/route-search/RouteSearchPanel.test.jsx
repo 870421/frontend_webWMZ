@@ -5,11 +5,12 @@ import { RouteSearchPanel } from './RouteSearchPanel.jsx';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
 import { useRoutePoints } from './useRoutePoints.js';
 
-function StatefulPanel({ onSetPoint }) {
+function StatefulPanel({ onSetPoint, ...props }) {
   const points = useRoutePoints();
   return (
     <RouteSearchPanel
       {...points}
+      {...props}
       onSetActivePoint={points.setActivePoint}
       onEditPoint={points.editPoint}
       onClearPoint={points.clearPoint}
@@ -50,8 +51,9 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByLabelText('Origen')).toBeEnabled();
     expect(screen.getByLabelText('Destino')).toBeEnabled();
     expect(screen.getAllByText('Sin seleccionar')).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Usar GPS para origen' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Usar GPS para destino' })).toBeEnabled();
+    // The location is offered in the list of each field, not with a button of its own.
+    expect(screen.queryByRole('button', { name: /GPS/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Limpiar selección' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Calcular ruta' })).toBeDisabled();
   });
@@ -112,7 +114,6 @@ describe('RouteSearchPanel', () => {
   it('calls selection and reset handlers', async () => {
     const user = userEvent.setup();
     const onClearPoint = jest.fn();
-    const onRequestCurrentLocation = jest.fn();
     const onResetPoints = jest.fn();
     const onSetActivePoint = jest.fn();
 
@@ -120,7 +121,6 @@ describe('RouteSearchPanel', () => {
       <RouteSearchPanel
         destination={{ lat: 41.66, lng: -0.88, source: 'map' }}
         onClearPoint={onClearPoint}
-        onRequestCurrentLocation={onRequestCurrentLocation}
         onResetPoints={onResetPoints}
         onSetActivePoint={onSetActivePoint}
         origin={{ lat: 41.65, lng: -0.89, source: 'map' }}
@@ -128,18 +128,168 @@ describe('RouteSearchPanel', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Destino' }));
-    await user.click(screen.getByRole('button', { name: 'Usar GPS para origen' }));
-    await user.click(screen.getByRole('button', { name: 'Usar GPS para destino' }));
     await user.type(screen.getByLabelText('Origen'), 'Plaza del Pilar');
     await user.click(screen.getByRole('button', { name: 'Borrar origen' }));
     await user.click(screen.getByRole('button', { name: 'Limpiar selección' }));
 
     expect(onSetActivePoint).toHaveBeenCalledWith('destination');
     expect(onSetActivePoint).toHaveBeenCalledWith('origin');
-    expect(onRequestCurrentLocation).toHaveBeenCalledWith('origin');
-    expect(onRequestCurrentLocation).toHaveBeenCalledWith('destination');
     expect(onClearPoint).toHaveBeenCalledWith('origin');
     expect(onResetPoints).toHaveBeenCalledTimes(1);
+  });
+
+  describe('«Mi ubicación»', () => {
+    const devicePoint = { lat: 41.65, lng: -0.89, label: 'Mi ubicación', source: 'device' };
+
+    it('is the first option of an empty field and asks for the location', async () => {
+      const user = userEvent.setup();
+      const onRequestCurrentLocation = jest.fn();
+      render(<StatefulPanel onRequestCurrentLocation={onRequestCurrentLocation} />);
+
+      await user.click(screen.getByLabelText('Origen'));
+      const list = screen.getByRole('listbox', { name: 'Lugares para origen' });
+      expect(screen.getByLabelText('Origen')).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Mi ubicación');
+      // No "not found" message without text.
+      expect(list.parentElement).not.toHaveTextContent('No se han encontrado lugares');
+
+      await user.click(screen.getByRole('option', { name: 'Mi ubicación' }));
+      expect(onRequestCurrentLocation).toHaveBeenCalledWith('origin');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Origen')).not.toHaveFocus();
+    });
+
+    it('is offered again in a field that already has a point', async () => {
+      const user = userEvent.setup();
+      const onRequestCurrentLocation = jest.fn();
+      render(
+        <RouteSearchPanel
+          activePoint="destination"
+          destination={{ lat: 41.66, lng: -0.88, label: 'Plaza del Pilar', source: 'search' }}
+          destinationInput="Plaza del Pilar"
+          onRequestCurrentLocation={onRequestCurrentLocation}
+        />
+      );
+
+      await user.click(screen.getByLabelText('Destino'));
+      await user.click(screen.getByRole('option', { name: 'Mi ubicación' }));
+
+      expect(onRequestCurrentLocation).toHaveBeenCalledWith('destination');
+      // The name of the point is not searched.
+      expect(usePlaceAutocomplete).toHaveBeenLastCalledWith(
+        'Plaza del Pilar',
+        false,
+        'destination',
+        expect.any(Function)
+      );
+    });
+
+    it('is not offered in a field when the other one already uses it', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <RouteSearchPanel
+          activePoint="destination"
+          origin={devicePoint}
+          originInput="Mi ubicación"
+        />
+      );
+
+      await user.click(screen.getByLabelText('Destino'));
+      expect(screen.queryByRole('option', { name: 'Mi ubicación' })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Destino')).toHaveAttribute('aria-expanded', 'false');
+
+      // And the other way round.
+      rerender(
+        <RouteSearchPanel
+          activePoint="origin"
+          destination={devicePoint}
+          destinationInput="Mi ubicación"
+        />
+      );
+      await user.click(screen.getByLabelText('Origen'));
+      expect(screen.queryByRole('option', { name: 'Mi ubicación' })).not.toBeInTheDocument();
+    });
+
+    it('is offered in its own field when that field uses it', async () => {
+      const user = userEvent.setup();
+      render(<RouteSearchPanel origin={devicePoint} originInput="Mi ubicación" />);
+
+      await user.click(screen.getByLabelText('Origen'));
+
+      expect(screen.getByRole('option', { name: 'Mi ubicación' })).toBeInTheDocument();
+    });
+
+    it('works with the keyboard and Enter alone never asks for the location', async () => {
+      const user = userEvent.setup();
+      const onRequestCurrentLocation = jest.fn();
+      render(<StatefulPanel onRequestCurrentLocation={onRequestCurrentLocation} />);
+      const input = screen.getByLabelText('Origen');
+
+      await user.click(input);
+      await user.keyboard('{Enter}');
+      expect(onRequestCurrentLocation).not.toHaveBeenCalled();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      await user.keyboard('{ArrowDown}');
+      const option = screen.getByRole('option', { name: 'Mi ubicación' });
+      expect(option).toHaveAttribute('aria-selected', 'true');
+      expect(input).toHaveAttribute('aria-activedescendant', option.id);
+
+      await user.keyboard('{Enter}');
+      expect(onRequestCurrentLocation).toHaveBeenCalledWith('origin');
+    });
+
+    it('cannot be chosen again while the location is being requested', async () => {
+      const user = userEvent.setup();
+      const onRequestCurrentLocation = jest.fn();
+      render(
+        <StatefulPanel
+          geolocation={{ status: 'loading', errorMessage: '' }}
+          onRequestCurrentLocation={onRequestCurrentLocation}
+        />
+      );
+
+      await user.click(screen.getByLabelText('Origen'));
+      const option = screen.getByRole('option', { name: 'Mi ubicación' });
+      expect(option).toHaveAttribute('aria-disabled', 'true');
+      await user.click(option);
+
+      expect(onRequestCurrentLocation).not.toHaveBeenCalled();
+    });
+
+    it('does not open in a field the user has just left', async () => {
+      const user = userEvent.setup();
+      render(<StatefulPanel />);
+      const origin = screen.getByLabelText('Origen');
+      await user.type(origin, 'Pilar');
+
+      // "Limpiar" empties the field that had the focus: within the delay kept for taps, its empty
+      // list must not appear.
+      await user.click(screen.getByRole('button', { name: 'Limpiar selección' }));
+
+      expect(origin).toHaveValue('');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    it('gives way to the suggestions when the user types', async () => {
+      const user = userEvent.setup();
+      usePlaceAutocomplete.mockReturnValue({
+        errorMessage: '',
+        isLoading: false,
+        results: [{ id: 'place-1', label: 'Plaza del Pilar', lat: 41.656, lng: -0.878 }],
+      });
+      render(<StatefulPanel />);
+
+      await user.type(screen.getByLabelText('Origen'), 'Pi');
+      expect(screen.getByRole('option', { name: 'Mi ubicación' })).toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: 'Plaza del Pilar' })).not.toBeInTheDocument();
+
+      await user.type(screen.getByLabelText('Origen'), 'l');
+      expect(screen.queryByRole('option', { name: 'Mi ubicación' })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getByRole('option', { name: 'Plaza del Pilar' })).toBeInTheDocument();
+    });
   });
 
   it('calculates only with both points and shows request states', async () => {
@@ -313,8 +463,6 @@ describe('RouteSearchPanel', () => {
       <RouteSearchPanel geolocation={{ status: 'loading', errorMessage: '' }} />
     );
 
-    expect(screen.getByRole('button', { name: 'Usar GPS para origen' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Usar GPS para destino' })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('Obteniendo la ubicación actual...');
 
     rerender(
@@ -331,7 +479,7 @@ describe('RouteSearchPanel', () => {
       />
     );
 
-    expect(screen.getByRole('status')).toHaveTextContent('Ubicación actual asignada como destino.');
+    expect(screen.getByRole('status')).toHaveTextContent('Se ha puesto tu ubicación como destino.');
   });
 
   it('clears draft text and invalidates selected coordinates when editing', async () => {

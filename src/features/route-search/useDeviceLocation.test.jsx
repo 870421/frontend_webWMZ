@@ -14,7 +14,7 @@ describe('createDevicePoint', () => {
     ).toEqual({
       lat: 41.65,
       lng: -0.89,
-      label: 'Ubicación actual',
+      label: 'Mi ubicación',
       source: 'device',
     });
   });
@@ -102,7 +102,7 @@ describe('useDeviceLocation', () => {
     expect(onLocated).toHaveBeenCalledWith('destination', {
       lat: 41.65,
       lng: -0.89,
-      label: 'Ubicación actual',
+      label: 'Mi ubicación',
       source: 'device',
     });
     expect(result.current.geolocation.status).toBe('success');
@@ -191,7 +191,7 @@ describe('useDeviceLocation', () => {
     expect(onLocated).toHaveBeenCalledWith('origin', {
       lat: 41.67,
       lng: -0.88,
-      label: 'Ubicación actual',
+      label: 'Mi ubicación',
       source: 'device',
     });
     expect(result.current.geolocation.status).toBe('success');

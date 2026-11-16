@@ -1015,7 +1015,7 @@ input:focus-visible {
 }
 
 .search-icon svg,
-.gps-button svg {
+.suggestion-icon svg {
   width: 100%;
   height: 100%;
   fill: none;
@@ -1060,11 +1060,6 @@ input:focus-visible {
 .clear-point-button {
   font-size: 1.3rem;
   line-height: 1;
-}
-
-.gps-button svg {
-  width: 1.2rem;
-  height: 1.2rem;
 }
 
 .input-icon-button:disabled {
@@ -1130,6 +1125,34 @@ input:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: -2px;
   background: var(--green-soft);
+}
+
+/* Options with an icon: "Mi ubicación" (and the places of the history). */
+.autocomplete-results [role="option"]:has(.suggestion-icon) {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.suggestion-icon {
+  display: grid;
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: none;
+  place-items: center;
+  color: #8b9ab0;
+}
+
+.autocomplete-results .suggestion-location {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
+.autocomplete-results .suggestion-location .suggestion-icon { color: var(--green); }
+
+.autocomplete-results [aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.6;
 }
 
 .autocomplete-message {

@@ -65,6 +65,10 @@ test('sign up, log in, choose the points and compare the fastest and recommended
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await expect(userMenu).toBeVisible();
 
+  // Focusing a field offers «Mi ubicación» first, also without text (#178).
+  await page.getByRole('combobox', { name: 'Origen' }).click();
+  await expect(page.getByRole('option').first()).toHaveText('Mi ubicación');
+
   // Origin and destination with the autocomplete.
   await choosePlace(page, 'Origen', 'Prueba Norte', PLACES.origin);
   await choosePlace(page, 'Destino', 'Prueba Sur', PLACES.destination);
