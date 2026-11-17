@@ -107,4 +107,18 @@ describe('MapView', () => {
       ])
     );
   });
+
+  it('puts the button of the assistant just above the legend, in the same corner (#181)', () => {
+    const { container, rerender } = render(<MapView />);
+    const corner = container.querySelector('.map-corner');
+    expect(corner.children).toHaveLength(1);
+    expect(corner.firstElementChild).toHaveClass('map-legend');
+
+    rerender(<MapView assistantButton={<button type="button">Cierzo</button>} />);
+
+    expect([...corner.children].map((child) => child.textContent)).toEqual([
+      'Cierzo',
+      expect.stringContaining('Origen'),
+    ]);
+  });
 });

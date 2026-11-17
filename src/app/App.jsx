@@ -185,29 +185,6 @@ export function App({ userMenu = null }) {
     <AppShell
       userMenu={userMenu}
       weather={<WeatherPanel />}
-      floatingAction={
-        showsAssistant ? (
-          <AssistantFab isAdjusted={Boolean(adjustment)}>
-            {(draft) => (
-              <RouteAssistant
-                status={assistantIsCurrent ? routeAssistant.status : 'idle'}
-                result={assistantIsCurrent ? routeAssistant.result : null}
-                applied={adjustment}
-                errorMessage={routeAssistant.errorMessage}
-                canSave={routeProfiles.isEditable}
-                profiles={routeProfiles.profiles}
-                onAsk={askAssistant}
-                onSaveProfile={(profileDraft) => routeProfiles.saveProfile(null, profileDraft)}
-                // From the assistant the route is always new: nothing is deleted (#165).
-                onReplaceProfile={(existingId, profileDraft) =>
-                  routeProfiles.replaceProfile(existingId, profileDraft, null)
-                }
-                {...draft}
-              />
-            )}
-          </AssistantFab>
-        ) : null
-      }
       map={
         <MapView
           activePoint={routePoints.activePoint}
@@ -226,6 +203,29 @@ export function App({ userMenu = null }) {
           navigationPosition={navigation.position}
           followNavigation={navigation.followsPosition}
           onNavigationDrag={navigation.pauseFollowing}
+          assistantButton={
+            showsAssistant ? (
+              <AssistantFab isAdjusted={Boolean(adjustment)}>
+                {(draft) => (
+                  <RouteAssistant
+                    status={assistantIsCurrent ? routeAssistant.status : 'idle'}
+                    result={assistantIsCurrent ? routeAssistant.result : null}
+                    applied={adjustment}
+                    errorMessage={routeAssistant.errorMessage}
+                    canSave={routeProfiles.isEditable}
+                    profiles={routeProfiles.profiles}
+                    onAsk={askAssistant}
+                    onSaveProfile={(profileDraft) => routeProfiles.saveProfile(null, profileDraft)}
+                    // From the assistant the route is always new: nothing is deleted (#165).
+                    onReplaceProfile={(existingId, profileDraft) =>
+                      routeProfiles.replaceProfile(existingId, profileDraft, null)
+                    }
+                    {...draft}
+                  />
+                )}
+              </AssistantFab>
+            ) : null
+          }
         />
       }
       sidebar={

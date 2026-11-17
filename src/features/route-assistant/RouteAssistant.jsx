@@ -5,10 +5,12 @@ import { RouteProfileEditor } from '../route-profiles/RouteProfileEditor.jsx';
 import { findNameConflict, suggestFreeName } from '../route-profiles/profileNames.js';
 import { SHADE_SUN_MAX } from '../route-profiles/shadeSun.js';
 import { assistantChanges } from './assistantChanges.js';
+import { ASSISTANT_NAME } from './assistantName.js';
 
 // The same limit as the backend (ASSISTANT_MAX_MESSAGE_LENGTH, ADR-033).
 export const MAX_MESSAGE_LENGTH = 300;
-const SAVED_NAME = 'Asistente';
+// The default name of a route saved from the assistant (#181).
+const SAVED_NAME = `Ruta de ${ASSISTANT_NAME}`;
 
 const ROW_ICONS = { shadeSun: null, wind: 'wind', vegetation: 'vegetation', time: 'time' };
 
@@ -166,7 +168,9 @@ export function RouteAssistant({
   return (
     <div className="route-assistant">
       <form className="route-assistant-form" onSubmit={submit} noValidate>
-        <label htmlFor="route-assistant-message">Pide un ajuste de la ruta</label>
+        <label htmlFor="route-assistant-message">
+          Pide a {ASSISTANT_NAME} un ajuste de la ruta
+        </label>
         <div className="route-assistant-row">
           <input
             ref={messageRef}
@@ -191,7 +195,7 @@ export function RouteAssistant({
       </form>
       {/* Always present, so that screen readers announce what happens. */}
       <div className="route-assistant-result" aria-live="polite">
-        {isLoading && <p className="form-message">El asistente está ajustando tu ruta...</p>}
+        {isLoading && <p className="form-message">{ASSISTANT_NAME} está ajustando tu ruta...</p>}
         {status === 'error' && <p className="form-message form-message-error">{errorMessage}</p>}
         {notice && (
           <p className="form-message">
@@ -202,7 +206,7 @@ export function RouteAssistant({
         {applied && (
           <>
             <p className="route-assistant-explanation">{applied.explanation}</p>
-            <ul className="assistant-changes" aria-label="Pesos cambiados por el asistente">
+            <ul className="assistant-changes" aria-label={`Pesos cambiados por ${ASSISTANT_NAME}`}>
               {rows.map((row) => (
                 <ChangeRow key={row.key} row={row} />
               ))}

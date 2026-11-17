@@ -116,7 +116,7 @@ describe('askRouteAssistant', () => {
     global.fetch = respond(
       {
         error: {
-          message: 'Has llegado al máximo de peticiones al asistente de hoy. Vuelve mañana.',
+          message: 'Has llegado al máximo de peticiones a Cierzo de hoy. Vuelve mañana.',
         },
       },
       429
@@ -124,7 +124,7 @@ describe('askRouteAssistant', () => {
 
     await expect(askRouteAssistant(REQUEST)).rejects.toMatchObject({
       status: 429,
-      message: 'Has llegado al máximo de peticiones al asistente de hoy. Vuelve mañana.',
+      message: 'Has llegado al máximo de peticiones a Cierzo de hoy. Vuelve mañana.',
     });
   });
 
@@ -148,6 +148,21 @@ describe('askRouteAssistant', () => {
     ['applied without a valid route', { ...APPLIED, comparison: { status: 'selected' } }],
   ])('rejects %s', async (_case, body) => {
     global.fetch = respond(body);
-    await expect(askRouteAssistant(REQUEST)).rejects.toThrow('respuesta no válida');
+    await expect(askRouteAssistant(REQUEST)).rejects.toThrow(
+      'Cierzo ha devuelto una respuesta no válida'
+    );
+  });
+
+  it('its own messages speak of the assistant by its name, Cierzo (#181)', async () => {
+    global.fetch = respond({}, 401);
+    await expect(askRouteAssistant(REQUEST)).rejects.toThrow('para usar a Cierzo');
+    global.fetch = respond({}, 429);
+    await expect(askRouteAssistant(REQUEST)).rejects.toThrow(
+      'Has hecho muchas peticiones a Cierzo'
+    );
+    global.fetch = respond({}, 500);
+    await expect(askRouteAssistant(REQUEST)).rejects.toThrow(
+      'Cierzo no está disponible ahora mismo. Tu ruta no ha cambiado.'
+    );
   });
 });

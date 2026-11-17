@@ -112,11 +112,11 @@ test('sign up, log in, choose the points and compare the fastest and recommended
 
   // The assistant opens from its floating button over the map (#179): focus in the request field,
   // Escape closes it and the focus goes back to the button. Nothing is asked to the model.
-  const assistantButton = page.getByRole('button', { name: 'Abrir el asistente de rutas' });
+  const assistantButton = page.getByRole('button', { name: 'Abrir Cierzo, el asistente de rutas' });
   await expect(assistantButton).toBeVisible();
   await assistantButton.click();
-  const assistant = page.getByRole('dialog', { name: 'Asistente' });
-  await expect(assistant.getByLabel('Pide un ajuste de la ruta')).toBeFocused();
+  const assistant = page.getByRole('dialog', { name: 'Cierzo · Asistente de rutas' });
+  await expect(assistant.getByLabel('Pide a Cierzo un ajuste de la ruta')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(assistant).toBeHidden();
   await expect(assistantButton).toBeFocused();

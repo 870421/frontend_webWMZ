@@ -1,3 +1,4 @@
+import { ASSISTANT_NAME } from '../../features/route-assistant/assistantName.js';
 import { apiRequest } from './client.js';
 import { normalizeWeightedComparison } from './routesApi.js';
 
@@ -16,9 +17,9 @@ const WEIGHT_KEYS = ['shade', 'sun', 'wind', 'vegetation'];
 const CHANGE_FACTORS = [...WEIGHT_KEYS, 'maxDetourPercentage'];
 
 const ASSISTANT_ERROR_MESSAGES = {
-  401: 'Tu sesión ha caducado. Inicia sesión de nuevo para usar el asistente.',
+  401: `Tu sesión ha caducado. Inicia sesión de nuevo para usar a ${ASSISTANT_NAME}.`,
   400: 'No se ha podido enviar la petición. Revisa el texto y vuelve a intentarlo.',
-  429: 'Has hecho muchas peticiones al asistente. Espera un poco y vuelve a intentarlo.',
+  429: `Has hecho muchas peticiones a ${ASSISTANT_NAME}. Espera un poco y vuelve a intentarlo.`,
   502: 'OpenRouteService no ha podido recalcular la ruta. Tu ruta no ha cambiado.',
   504: 'El cálculo de la ruta ha tardado demasiado. Tu ruta no ha cambiado.',
 };
@@ -75,7 +76,7 @@ export async function askRouteAssistant(
         maxDetourPercentage,
       }),
       errorMessages: ASSISTANT_ERROR_MESSAGES,
-      fallbackErrorMessage: 'El asistente no está disponible ahora mismo. Tu ruta no ha cambiado.',
+      fallbackErrorMessage: `${ASSISTANT_NAME} no está disponible ahora mismo. Tu ruta no ha cambiado.`,
     });
   } catch (error) {
     // The limits say which one was reached and until when (per minute or per day).
@@ -87,7 +88,9 @@ export async function askRouteAssistant(
   const comparison =
     assistant?.status === 'applied' ? normalizeWeightedComparison(data.comparison) : null;
   if (!isValidAssistant(assistant) || (assistant.status === 'applied' && !comparison)) {
-    throw new Error('El asistente ha devuelto una respuesta no válida. Tu ruta no ha cambiado.');
+    throw new Error(
+      `${ASSISTANT_NAME} ha devuelto una respuesta no válida. Tu ruta no ha cambiado.`
+    );
   }
   return { assistant, comparison };
 }

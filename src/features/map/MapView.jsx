@@ -24,6 +24,9 @@ export function MapView({
   navigationPosition = null,
   followNavigation = false,
   onNavigationDrag = noop,
+  // The floating button of the assistant (#181): just above the legend, in the same corner, so it
+  // moves up when the legend grows and never covers it.
+  assistantButton = null,
 }) {
   return (
     <div className="map-wrapper">
@@ -62,31 +65,34 @@ export function MapView({
       <div className="map-selection-hint" aria-live="polite">
         Toca el mapa para fijar el {activePoint === 'origin' ? 'origen' : 'destino'}.
       </div>
-      <div className="map-legend" aria-label="Leyenda de marcadores del mapa">
-        <span>
-          <i className="legend-dot legend-dot-origin" aria-hidden="true" />
-          Origen
-        </span>
-        <span>
-          <i className="legend-dot legend-dot-destination" aria-hidden="true" />
-          Destino
-        </span>
-        {fastestRoute && (
+      <div className="map-corner">
+        {assistantButton}
+        <div className="map-legend" aria-label="Leyenda de marcadores del mapa">
           <span>
-            <i
-              // Same line as on the map: dashed only next to the shaded route.
-              className={`legend-route ${shadedRoute ? 'legend-route-fastest' : 'legend-route-shaded'}`}
-              aria-hidden="true"
-            />
-            Ruta rápida
+            <i className="legend-dot legend-dot-origin" aria-hidden="true" />
+            Origen
           </span>
-        )}
-        {shadedRoute && (
           <span>
-            <i className="legend-route legend-route-shaded" aria-hidden="true" />
-            {alternativeLabel}
+            <i className="legend-dot legend-dot-destination" aria-hidden="true" />
+            Destino
           </span>
-        )}
+          {fastestRoute && (
+            <span>
+              <i
+                // Same line as on the map: dashed only next to the shaded route.
+                className={`legend-route ${shadedRoute ? 'legend-route-fastest' : 'legend-route-shaded'}`}
+                aria-hidden="true"
+              />
+              Ruta rápida
+            </span>
+          )}
+          {shadedRoute && (
+            <span>
+              <i className="legend-route legend-route-shaded" aria-hidden="true" />
+              {alternativeLabel}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -257,6 +257,9 @@ variables de entorno nuevas en el frontend. Código: `src/features/route-assista
 
 ## Comprobaciones del asistente flotante (weathermapz-gestion #179)
 
+> **Desde weathermapz-gestion #181** el asistente se llama **Cierzo**: el botón es redondo, solo con
+> su logo, y va encima de la leyenda (no bajo el zoom). Ver "Comprobaciones de Cierzo (#181)".
+
 El asistente de la PBI-9.2 se abre desde un botón flotante sobre el mapa en lugar de una sección del
 panel. Hace lo mismo que antes. Código: `src/features/route-assistant/AssistantFab.jsx`.
 
@@ -279,6 +282,40 @@ panel. Hace lo mismo que antes. Código: `src/features/route-assistant/Assistant
 - Comprobado con Playwright a 320, 390 y 1366 px (2026-11-16): botón de al menos 44 px sin tapar el
   zoom, la leyenda, la atribución, el tiempo, el menú, el panel ni la hoja inferior; sin scroll
   horizontal; aviso de "no disponible" con el backend sin clave y la ruta sigue.
+
+## Comprobaciones de Cierzo (weathermapz-gestion #181)
+
+El asistente de rutas se llama **Cierzo**, con un logo propio: las ráfagas del icono del viento
+llevando una hoja. Código: `src/features/route-assistant/CierzoLogo.jsx` (nombre y logo),
+`AssistantFab.jsx` y la esquina del mapa en `src/features/map/MapView.jsx`. El backend le dice su
+nombre al modelo (ver README del backend).
+
+- **El botón** es redondo de verdad, de 48 × 48 px y con `border-radius: 50%`, morado, con solo el
+  logo. Su nombre accesible es "Abrir Cierzo, el asistente de rutas" y, con la ruta ajustada,
+  "(ruta ajustada)" con un punto verde. En el escritorio, al pasar el ratón o con el foco del
+  teclado, sale el tooltip "Cierzo".
+- **Posición:** va en la misma esquina que la leyenda (`.map-corner`), justo encima y alineado a la
+  derecha con ella. Cuando la leyenda crece (con la ruta rápida y la alternativa) el botón sube solo
+  y nunca la tapa. En el móvil, donde la leyenda no se ve, queda a la derecha justo encima de la hoja
+  inferior y de la atribución. No tapa el zoom, el menú de usuario, el tiempo, el panel ni la hoja.
+- **El pop-up** se titula "Cierzo · Asistente de rutas", con el logo. El campo es "Pide a Cierzo un
+  ajuste de la ruta", mientras trabaja sale "Cierzo está ajustando tu ruta..." y la lista es "Pesos
+  cambiados por Cierzo". Los avisos que vienen del backend ("El asistente no está disponible…") no
+  cambian.
+- **Actualización:** los avisos del backend y los mensajes de error del frontend también dicen
+  "Cierzo" ("Cierzo no está disponible ahora mismo. Tu ruta no ha cambiado.", "Has hecho muchas
+  peticiones seguidas a Cierzo…"), y la ruta guardada desde el asistente se llama por defecto "Ruta
+  de Cierzo" (o "Ruta de Cierzo (2)" si ya existe).
+- **"Cierzo, busca sombra"** solo sube la sombra: llamarle por su nombre no cuenta como pedir evitar
+  el viento.
+- **Comprobado con Playwright a 320, 390 y 1366 px** (2026-11-16, entorno del e2e):
+  - con la leyenda corta (ruta rápida) y la larga (rápida y "Sombreada");
+  - botón de 48 × 48 px redondo, sin solaparse con la leyenda, el zoom, el menú, el tiempo, la
+    atribución, el panel ni la hoja;
+  - en el escritorio, de 4 a 16 px encima de la leyenda y alineado con ella; sube 23 px al crecer la
+    leyenda;
+  - en el móvil, justo encima de la hoja;
+  - tooltip solo en el escritorio; foco al abrir y al cerrar.
 
 ## Comprobaciones de la PBI-9.1 (ruta recomendada)
 
