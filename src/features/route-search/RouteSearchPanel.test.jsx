@@ -812,4 +812,24 @@ describe('RouteSearchPanel', () => {
       expect(onSetPoint).not.toHaveBeenCalled();
     });
   });
+
+  it('folds and unfolds the questions with the handle of the bottom sheet (small screens)', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <RouteSearchPanel preferences={<p>Preguntas</p>} asksSolarDateTime solarDate="2026-11-23" />
+    );
+    const sheet = container.querySelector('.route-actions');
+    const handle = screen.getByRole('button', { name: 'Ocultar preferencias' });
+
+    expect(sheet).toContainElement(screen.getByText('Preguntas'));
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    await user.click(handle);
+    expect(sheet).toHaveClass('is-folded');
+    expect(screen.getByRole('button', { name: 'Mostrar preferencias' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    await user.click(screen.getByRole('button', { name: 'Mostrar preferencias' }));
+    expect(sheet).not.toHaveClass('is-folded');
+  });
 });

@@ -202,6 +202,10 @@ cambia nada.
 - Entre el panel y la hoja se ve el mapa (390 × 844: el panel acaba a 242 px y la hoja empieza a
   395 px; 320 × 640: 240 y 348 px). Sin scroll horizontal.
 - La hoja se desplaza por dentro y los botones se quedan fijos al pie.
+- Un asa arriba de la hoja pliega y despliega las preguntas y la fecha («Ocultar preferencias» /
+  «Mostrar preferencias» para lectores de pantalla). Al calcular se pliegan solas.
+- «Favoritos» es solo una estrella en la cabecera, entre el nombre y «Ocultar» (el nombre sigue para
+  lectores de pantalla). A 320 px se oculta el logo para que quepa todo.
 - Al calcular, el panel se pliega y la hoja solo enseña el resultado; «Ruta» vuelve a mostrar las
   preguntas.
 
