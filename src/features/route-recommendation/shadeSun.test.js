@@ -1,4 +1,4 @@
-import { balanceSide, balanceText, shadeSunBalance, weightsFromBalance } from './shadeSun.js';
+import { balanceText, shadeSunBalance } from './shadeSun.js';
 
 describe('shade-sun scale (ADR-030)', () => {
   it.each([
@@ -12,22 +12,5 @@ describe('shade-sun scale (ADR-030)', () => {
   ])('%j is %s, "%s"', (weights, balance, text) => {
     expect(shadeSunBalance(weights)).toBe(balance);
     expect(balanceText(balance)).toBe(text);
-  });
-
-  it.each([
-    [-30, 'shade'],
-    [0, 'neutral'],
-    [30, 'sun'],
-  ])('%s is on the %s side', (balance, side) => {
-    expect(balanceSide(balance)).toBe(side);
-  });
-
-  it.each([
-    [-100, { shade: 100, sun: 0 }],
-    [-5, { shade: 5, sun: 0 }],
-    [0, { shade: 0, sun: 0 }],
-    [100, { shade: 0, sun: 100 }],
-  ])('%s gives %j: never both above 0', (balance, weights) => {
-    expect(weightsFromBalance(balance)).toEqual(weights);
   });
 });

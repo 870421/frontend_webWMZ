@@ -3,29 +3,25 @@ import userEvent from '@testing-library/user-event';
 
 import { RouteAssistant } from './RouteAssistant.jsx';
 
-const NO_WEIGHTS = { shade: 0, sun: 0, wind: 0, vegetation: 0 };
+// The answers of the panel (PBI-18, ADR-036).
+const NO_PREFERENCES = { sunShade: 'any', avoidWind: false, preferParks: false, extraMinutes: 5 };
 const APPLIED = {
   assistant: {
     status: 'applied',
-    explanation: 'Busco sombra y evito el viento, con hasta un 35 % más de tiempo.',
-    before: { weights: { ...NO_WEIGHTS, sun: 30 }, maxDetourPercentage: 25 },
-    after: { weights: { ...NO_WEIGHTS, shade: 50, wind: 40 }, maxDetourPercentage: 35 },
+    explanation: 'He buscado sombra y evitaré el viento, aunque tardes un poco más.',
+    before: { ...NO_PREFERENCES, sunShade: 'sun' },
+    after: { ...NO_PREFERENCES, sunShade: 'shade', avoidWind: true, extraMinutes: 10 },
     changes: [],
   },
   comparison: { status: 'selected' },
 };
-const PROFILES = [
-  { id: 1, name: 'Rápida', weights: NO_WEIGHTS, maxDetourPercentage: 25 },
-  { id: 2, name: 'Sombreada', weights: { ...NO_WEIGHTS, shade: 50 }, maxDetourPercentage: 25 },
-];
 
 function renderAssistant(props = {}) {
   const handlers = {
     onAsk: jest.fn().mockResolvedValue(undefined),
-    onSaveProfile: jest.fn(async (draft) => ({ id: 9, ...draft })),
-    onReplaceProfile: jest.fn(async (id, draft) => ({ id, ...draft })),
+    onUsePreferences: jest.fn().mockResolvedValue(undefined),
   };
-  const view = render(<RouteAssistant profiles={PROFILES} canSave {...handlers} {...props} />);
+  const view = render(<RouteAssistant canUsePreferences {...handlers} {...props} />);
   return { ...view, ...handlers };
 }
 
@@ -67,11 +63,11 @@ describe('RouteAssistant', () => {
     expect(screen.getByText('Cierzo está ajustando tu ruta...')).toBeInTheDocument();
   });
 
-  it('shows the explanation and every weight that changed, before → after, with the editor scales', () => {
+  it('shows the explanation and every answer that changed, before → after, in words', () => {
     renderAssistant({ status: 'done', result: APPLIED, applied: APPLIED.assistant });
 
     expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
-    const changes = within(screen.getByRole('list', { name: 'Pesos cambiados por Cierzo' }));
+    const changes = within(screen.getByRole('list', { name: 'Cambios de Cierzo' }));
     const rows = changes.getAllByRole('listitem');
     expect(
       rows.map((row) => [
@@ -79,25 +75,27 @@ describe('RouteAssistant', () => {
         row.querySelector('.assistant-change-value').textContent,
       ])
     ).toEqual([
-      ['Sombra o sol', 'Sol 30 % → Sombra 50 %'],
-      ['Evitar viento', '0 % → 40 %'],
-      ['Tiempo extra máximo', '+25 % → +35 %'],
+      ['Sombra o sol', 'Sol → Sombra'],
+      ['Evitar el viento', 'No → Sí'],
+      ['Tiempo extra', '+5 min → +10 min'],
     ]);
-    // One shade-sun bar from -100 (shade) to 100 (sun), as in the editor (ADR-030).
-    const [shadeSunBefore, shadeSunAfter] = within(rows[0]).getAllByRole('meter', { hidden: true });
-    expect(shadeSunBefore).toHaveAttribute('aria-valuenow', '30');
-    expect(shadeSunAfter).toHaveAttribute('aria-valuenow', '-50');
-    expect(shadeSunAfter).toHaveAttribute('aria-valuemin', '-100');
-    expect(rows[1].querySelectorAll('meter')[1]).toHaveAttribute('value', '40');
-    // The green did not change: it is not listed.
-    expect(changes.queryByText('Verde')).not.toBeInTheDocument();
+    // No weights or percentages (PBI-18): neither scales nor meters.
+    expect(screen.queryByRole('meter', { hidden: true })).not.toBeInTheDocument();
+    expect(
+      changes
+        .getAllByRole('listitem')
+        .map((row) => row.textContent)
+        .join(' ')
+    ).not.toMatch(/%/);
+    // Parks did not change: they are not listed.
+    expect(changes.queryByText('Por parques')).not.toBeInTheDocument();
   });
 
   it.each([
     ['not_understood', 'No he entendido la petición.'],
     ['timeout', 'Cierzo ha tardado demasiado. Tu ruta no ha cambiado.'],
     ['not_configured', 'Cierzo no está disponible en este servidor.'],
-  ])('a %s notice is shown and nothing can be saved', (status, message) => {
+  ])('a %s notice is shown and nothing can be used as preferences', (status, message) => {
     renderAssistant({
       status: 'done',
       result: {
@@ -107,7 +105,9 @@ describe('RouteAssistant', () => {
     });
 
     expect(screen.getByText(message)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Usar como mis preferencias' })
+    ).not.toBeInTheDocument();
   });
 
   it('shows an error without losing what the user wrote', async () => {
@@ -139,97 +139,54 @@ describe('RouteAssistant', () => {
     expect(onAsk).toHaveBeenCalledWith('sombra');
   });
 
-  describe('save as a route', () => {
-    it('"Cancelar" goes back to the assistant with the focus on "Guardar como ruta"', async () => {
+  describe('"Usar como mis preferencias" (PBI-18)', () => {
+    it('keeps the answers of Cierzo as the preferences of the user', async () => {
       const user = userEvent.setup();
-      const { onSaveProfile } = renderAssistant({
+      const { onUsePreferences } = renderAssistant({
         status: 'done',
         result: APPLIED,
         applied: APPLIED.assistant,
       });
 
-      await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
-      await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+      await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
 
-      expect(screen.queryByRole('region', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
-      expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toHaveFocus();
-      expect(onSaveProfile).not.toHaveBeenCalled();
-    });
-
-    it('opens the editor with the assistant weights and a free name', async () => {
-      const user = userEvent.setup();
-      const { onSaveProfile } = renderAssistant({
-        status: 'done',
-        result: APPLIED,
-        applied: APPLIED.assistant,
-        profiles: [...PROFILES, { id: 5, name: 'Ruta de Cierzo', weights: NO_WEIGHTS }],
-      });
-
-      await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
-      // The editor takes the place of the assistant, inside the same pop-up, with the focus.
-      const editor = screen.getByRole('region', { name: 'Guardar como ruta' });
-      const dialog = within(editor);
-      expect(screen.queryByLabelText('Pide a Cierzo un ajuste de la ruta')).not.toBeInTheDocument();
-      expect(dialog.getByLabelText('Nombre')).toHaveValue('Ruta de Cierzo (2)');
-      expect(editor).toContainElement(document.activeElement);
-      expect(dialog.getByLabelText('Sombra o sol')).toHaveValue('-50');
-      expect(dialog.getByLabelText('Evitar viento')).toHaveValue('40');
-      expect(dialog.getByLabelText('Tiempo extra máximo')).toHaveValue('35');
-
-      await user.click(dialog.getByRole('button', { name: 'Guardar' }));
-
-      expect(onSaveProfile).toHaveBeenCalledWith({
-        name: 'Ruta de Cierzo (2)',
-        weights: { shade: 50, sun: 0, wind: 40, vegetation: 0 },
-        maxDetourPercentage: 35,
-      });
-      expect(screen.queryByRole('region', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
+      expect(onUsePreferences).toHaveBeenCalledWith(APPLIED.assistant.after);
+      expect(await screen.findByText('Ya son tus preferencias.')).toBeInTheDocument();
       expect(
-        screen.getByText('Guardada en tus rutas como «Ruta de Cierzo (2)».')
-      ).toBeInTheDocument();
-      // The focus goes back to the button it came from.
-      expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toHaveFocus();
+        screen.queryByRole('button', { name: 'Usar como mis preferencias' })
+      ).not.toBeInTheDocument();
     });
 
-    it('warns about a repeated name and "Reemplazar" only changes that route, deleting none', async () => {
+    it('says why when they cannot be saved, and lets the user try again', async () => {
       const user = userEvent.setup();
-      const { onSaveProfile, onReplaceProfile } = renderAssistant({
-        status: 'done',
-        result: APPLIED,
-        applied: APPLIED.assistant,
-      });
-
-      await user.click(screen.getByRole('button', { name: 'Guardar como ruta' }));
-      const dialog = within(screen.getByRole('region', { name: 'Guardar como ruta' }));
-      await user.clear(dialog.getByLabelText('Nombre'));
-      await user.type(dialog.getByLabelText('Nombre'), 'sombreada');
-      expect(dialog.getByText('Ya tienes una ruta llamada «Sombreada».')).toBeInTheDocument();
-
-      await user.click(dialog.getByRole('button', { name: 'Reemplazar' }));
-      // Nothing else is deleted: the question only speaks of the weights of "Sombreada".
-      expect(dialog.getByText('Se sustituirán los pesos de «Sombreada».')).toBeInTheDocument();
-      expect(dialog.queryByText(/se borrará/)).not.toBeInTheDocument();
-      await user.click(dialog.getByRole('button', { name: 'Reemplazar «Sombreada»' }));
-
-      expect(onReplaceProfile).toHaveBeenCalledTimes(1);
-      expect(onReplaceProfile).toHaveBeenCalledWith(2, {
-        name: 'Sombreada',
-        weights: { shade: 50, sun: 0, wind: 40, vegetation: 0 },
-        maxDetourPercentage: 35,
-      });
-      expect(onSaveProfile).not.toHaveBeenCalled();
-      expect(screen.getByText('Guardada en tus rutas como «Sombreada».')).toBeInTheDocument();
-    });
-
-    it('is not offered when the routes cannot be saved', () => {
       renderAssistant({
         status: 'done',
         result: APPLIED,
         applied: APPLIED.assistant,
-        canSave: false,
+        onUsePreferences: jest
+          .fn()
+          .mockRejectedValue(new Error('No se han podido guardar tus preferencias.')),
       });
-      expect(screen.queryByRole('button', { name: 'Guardar como ruta' })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
+
+      expect(
+        await screen.findByText('No se han podido guardar tus preferencias.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Usar como mis preferencias' })).toBeEnabled();
+    });
+
+    it('is not offered when the preferences could not be loaded', () => {
+      renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+        canUsePreferences: false,
+      });
+
+      expect(
+        screen.queryByRole('button', { name: 'Usar como mis preferencias' })
+      ).not.toBeInTheDocument();
     });
   });
 });

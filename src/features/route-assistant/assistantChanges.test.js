@@ -1,42 +1,53 @@
 import { assistantChanges } from './assistantChanges.js';
 
-const setting = (weights, maxDetourPercentage = 25) => ({
-  weights: { shade: 0, sun: 0, wind: 0, vegetation: 0, ...weights },
-  maxDetourPercentage,
+// The answers of the panel (PBI-18, ADR-036).
+const answers = (overrides = {}) => ({
+  sunShade: 'any',
+  avoidWind: false,
+  preferParks: false,
+  extraMinutes: 5,
+  ...overrides,
 });
+const summary = (rows) =>
+  rows.map(({ key, beforeText, afterText }) => [key, beforeText, afterText]);
 
 describe('assistantChanges', () => {
-  it('shows shade and sun as one scale, as the editor does', () => {
-    expect(assistantChanges(setting({ sun: 30 }), setting({ shade: 50 }))).toEqual([
-      {
-        key: 'shadeSun',
-        label: 'Sombra o sol',
-        before: 30,
-        after: -50,
-        beforeText: 'Sol 30 %',
-        afterText: 'Sombra 50 %',
-      },
+  it('speaks of the answers, in the order of the questions, without weights or percentages', () => {
+    const rows = assistantChanges(
+      answers({ sunShade: 'sun' }),
+      answers({ sunShade: 'shade', avoidWind: true, preferParks: true, extraMinutes: 15 })
+    );
+
+    expect(summary(rows)).toEqual([
+      ['sunShade', 'Sol', 'Sombra'],
+      ['avoidWind', 'No', 'Sí'],
+      ['preferParks', 'No', 'Sí'],
+      ['extraMinutes', '+5 min', '+15 min'],
     ]);
+    expect(rows.map(({ icon }) => icon)).toEqual(['sun', 'wind', 'vegetation', 'time']);
   });
 
-  it('lists wind, green and the extra time in the order of the editor', () => {
-    const rows = assistantChanges(setting({}), setting({ wind: 50, vegetation: 60 }, 40));
-    expect(rows.map(({ key, beforeText, afterText }) => [key, beforeText, afterText])).toEqual([
-      ['wind', '0 %', '50 %'],
-      ['vegetation', '0 %', '60 %'],
-      ['time', 'Sin rodeo', '+40 %'],
+  it('only lists what changes', () => {
+    expect(summary(assistantChanges(answers({ sunShade: 'shade' }), answers()))).toEqual([
+      ['sunShade', 'Sombra', 'Me da igual'],
+      ['extraMinutes', '+5 min', 'La más rápida'],
     ]);
+    expect(assistantChanges(answers(), answers())).toEqual([]);
   });
 
-  it('back to the fastest route: the extra time says there is no detour', () => {
-    const rows = assistantChanges(setting({ shade: 50 }, 35), setting({}, 35));
-    expect(rows.map(({ key, afterText }) => [key, afterText])).toEqual([
-      ['shadeSun', 'Neutro'],
-      ['time', 'Sin rodeo'],
-    ]);
+  it('says "Nada" for no extra minutes and ignores them when every answer is indifferent', () => {
+    expect(
+      summary(
+        assistantChanges(
+          answers({ avoidWind: true }),
+          answers({ avoidWind: true, extraMinutes: 0 })
+        )
+      )
+    ).toEqual([['extraMinutes', '+5 min', 'Nada']]);
+    expect(assistantChanges(answers(), answers({ extraMinutes: 15 }))).toEqual([]);
   });
 
-  it('is empty when nothing that matters changes', () => {
-    expect(assistantChanges(setting({}, 25), setting({}, 40))).toEqual([]);
+  it('uses the shade icon for shade', () => {
+    expect(assistantChanges(answers(), answers({ sunShade: 'shade' }))[0].icon).toBe('shade');
   });
 });

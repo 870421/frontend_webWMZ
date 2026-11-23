@@ -73,8 +73,9 @@ function extraTimeSentence(subject, extraTime, alternative, fastest) {
 const NO_ALTERNATIVE_REASONS = {
   no_better_alternative:
     'Ninguna alternativa mejora lo que has pedido sin tardar más de lo que aceptas, así que la mejor opción es la más rápida.',
-  fastest_only:
-    'Con el tiempo actual no merece la pena desviarse: la recomendada es la más rápida.',
+  over_extra_time:
+    'Los caminos que encajan mejor con tus preferencias tardan más de lo que aceptas, así que la mejor opción es la más rápida.',
+  fastest_only: 'No merece la pena desviarse: la ruta elegida es la más rápida.',
 };
 
 function Bar({ label, value, hint }) {
@@ -123,7 +124,7 @@ function ShadeSunBar({ shade, sun }) {
 export function ComfortSummary({
   comparison,
   selectedRouteType,
-  alternativeLabel = 'Con sombra',
+  alternativeLabel = 'Tu ruta',
   weights = null,
   isExpanded = true,
 }) {

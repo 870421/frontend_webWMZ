@@ -1,5 +1,5 @@
-import { ProfileIcon } from '../route-profiles/ProfileIcon.jsx';
-import { SHADE_SUN_MAX, balanceText, shadeSunBalance } from '../route-profiles/shadeSun.js';
+import { Icon } from '../../components/ui/Icon.jsx';
+import { SHADE_SUN_MAX, balanceText, shadeSunBalance } from './shadeSun.js';
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
 const numberFormat = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
@@ -30,7 +30,8 @@ export function weatherSummary(weather) {
 }
 
 /**
- * Why the recommended route (PBI-9.1) is what it is: the criterion, the reason, the weights the
+ * Why the route of "Según el tiempo" (the recommended route of PBI-9.1, provisional until PBI-21,
+ * ADR-036) is what it is: the criterion, the reason, the weights the
  * backend applied (same icons and 0-100 scale as the route editor) and the weather it used. On small
  * screens it folds with the comparison and keeps only the criterion and the reason.
  */
@@ -52,8 +53,8 @@ export function RecommendationCard({ recommendation, isExpanded = true }) {
       aria-labelledby="recommendation-title"
     >
       <h2 id="recommendation-title">
-        <ProfileIcon kind="recommended" />
-        Recomendada: {label}
+        <Icon kind="recommended" />
+        Según el tiempo: {label}
       </h2>
       <p className="recommendation-reason" role="status">
         {reason}
@@ -62,7 +63,7 @@ export function RecommendationCard({ recommendation, isExpanded = true }) {
         <ul className="recommendation-weights" aria-label="Pesos aplicados">
           {/* The same scale as the route editor: one bar from shade to sun (ADR-030). */}
           <li className="recommendation-weight recommendation-weight-shade-sun">
-            <ProfileIcon kind={balance > 0 ? 'sun' : 'shade'} />
+            <Icon kind={balance > 0 ? 'sun' : 'shade'} />
             <span id="recommendation-weight-shade-sun">Sombra o sol</span>
             <span
               className={`shade-sun-scale ${balance > 0 ? 'is-sun' : 'is-shade'}`}
@@ -78,7 +79,7 @@ export function RecommendationCard({ recommendation, isExpanded = true }) {
             <span className="recommendation-weight-value">{balanceText(balance)}</span>
           </li>
           <li className="recommendation-weight recommendation-weight-wind">
-            <ProfileIcon kind="wind" />
+            <Icon kind="wind" />
             <span id="recommendation-weight-wind">Evitar viento</span>
             <meter
               min="0"
@@ -89,7 +90,7 @@ export function RecommendationCard({ recommendation, isExpanded = true }) {
             <span className="recommendation-weight-value">{weights.wind} %</span>
           </li>
           <li className="recommendation-weight recommendation-weight-vegetation">
-            <ProfileIcon kind="vegetation" />
+            <Icon kind="vegetation" />
             <span id="recommendation-weight-vegetation">Verde</span>
             <meter
               min="0"
@@ -100,7 +101,7 @@ export function RecommendationCard({ recommendation, isExpanded = true }) {
             <span className="recommendation-weight-value">{vegetation} %</span>
           </li>
           <li className="recommendation-weight recommendation-weight-time">
-            <ProfileIcon kind="time" />
+            <Icon kind="time" />
             <span>Tiempo extra máximo</span>
             <span className="recommendation-weight-value">
               {weighs ? `+${maxDetourPercentage} %` : 'Sin rodeo'}

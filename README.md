@@ -32,9 +32,10 @@ npm test
 
 ## Test de extremo a extremo (#161)
 
-Un test con Playwright recorre el flujo principal en un Chromium real: crear una cuenta, cerrar
-sesión y volver a entrar, elegir origen y destino con el autocompletado, calcular la ruta "Rápida" y
-después la "Recomendada", con su motivo y la comparación. Decisión: ADR-034 del `docs/DECISIONS.md`
+Un test con Playwright recorre el flujo principal en un Chromium real: crear una cuenta, responder
+«Evitar el viento» y +10 minutos, cerrar sesión y volver a entrar y encontrarlas (PBI-18), elegir
+origen y destino con el autocompletado, calcular la ruta más rápida (todo en «Me da igual») y
+después la de «Según el tiempo», con su motivo y la comparación «Tu ruta» / «La más rápida». Decisión: ADR-034 del `docs/DECISIONS.md`
 del workspace.
 
 ```bash
@@ -191,7 +192,43 @@ opción de la lista de cada campo.
 - El endpoint requiere sesión y se consume mediante `src/services/api/weatherApi.js`; si el proveedor
   no entrega `weatherCode`, el panel indica que el estado del cielo no está disponible.
 
+## Comprobaciones de la PBI-18 (preferencias sencillas)
+
+Las rutas guardadas se sustituyen por preguntas sencillas con los textos y los iconos de los bocetos
+del equipo (Mejoras_S4). El backend traduce las respuestas a pesos (ADR-036: ver DECISIONS.md en la
+carpeta docs del Drive del equipo); en la interfaz no se ven pesos ni porcentajes. Código:
+`src/features/route-preferences/` y `src/services/api/routePreferencesApi.js`.
+
+- Bajo origen y destino, «¿Cómo prefieres ir?» con:
+  - «Sombra o sol»: Sombra (paraguas) / Sol / Me da igual, excluyentes; «Me da igual» por defecto.
+  - «Viento y parques»: «Evitar el viento» (ráfagas) y «Por parques» (árbol), cada uno sí o no.
+  - «¿Cuánto más estás dispuesto a andar?»: Nada / +2 / +5 / +10 / +15, con el valor a la derecha
+    («+5 min» por defecto). Solo aparece si hay alguna preferencia.
+- Con todo en «Me da igual» «Calcular ruta» pide solo la ruta más rápida (`POST /api/routes/fastest`);
+  con alguna preferencia, `POST /api/routes/preferred` con las respuestas. La fecha y la hora solo se
+  piden con Sombra o Sol.
+- Las respuestas se guardan en la cuenta en cuanto cambian (`PUT /api/route-preferences`) y vuelven
+  al entrar en cualquier dispositivo (`GET /api/route-preferences`). Si no se pueden cargar se usan
+  las de por defecto y no se guardan; si un cambio no se puede guardar se avisa y se usa igualmente.
+- Con una ruta calculada, las preguntas se pliegan en un resumen («Sol · Por parques · +10 min») con
+  «Cambiar preferencias». Cambiar una respuesta borra la ruta calculada.
+- «Según el tiempo» (provisional hasta la PBI-21): un botón que funciona exactamente como la antigua
+  «Recomendada» (misma llamada y mismo 25 %); no se guarda. Elegir cualquier respuesta lo apaga.
+- La ruta elegida se llama «Tu ruta» y la otra «La más rápida» (comparación, resumen y leyenda). Sin
+  ruta mejor dentro del tiempo: «Hay caminos que encajan mejor con tus preferencias, pero ninguno
+  sin andar más de 5 min extra: te enseño la más rápida.».
+- Cierzo trabaja con las mismas respuestas y «Usar como mis preferencias» las guarda en la cuenta.
+- Teclado: Tab entra en cada grupo, las flechas mueven entre Sombra / Sol / Me da igual y entre los
+  minutos, espacio marca las casillas; el foco se ve. Todas las opciones miden al menos 44 px.
+- Comprobado con Playwright a 320, 390 y 1366 px (2026-11-23, entorno del e2e): ninguna opción se
+  sale del panel y todas miden 44 px o más. A 390 px y en el escritorio cada fila cabe en una línea;
+  a 320 px «Me da igual» y «Evitar el viento» ocupan dos líneas. En el móvil, el panel superior
+  abierto se desplaza por dentro si no cabe encima de la hoja inferior (320 × 640).
+
 ## Comprobaciones de la PBI-6
+
+> **Desde la PBI-18** ya no hay rutas guardadas: se eligen con las preguntas de «¿Cómo prefieres
+> ir?». Ver "Comprobaciones de la PBI-18". Esta sección se conserva como histórico.
 
 - Bajo origen y destino aparecen tus rutas como tarjetas con icono: Rápida, Sombreada, Soleada y las
   que crees. Sombra y sol son una sola escala (ADR-030): la tarjeta muestra el árbol o el sol, nunca
@@ -222,6 +259,10 @@ opción de la lista de cada campo.
 - Con viento flojo (menos de 10 km/h) la exposición es 0 y la ruta elegida es la rápida.
 
 ## Comprobaciones de la PBI-9.2 (asistente de rutas)
+
+> **Desde la PBI-18** Cierzo trabaja con las respuestas del panel en lugar de pesos, enseña los
+> cambios en palabras («Sol → Sombra», «+5 min → +10 min») y «Guardar como ruta» pasa a ser «Usar
+> como mis preferencias». Lo que sigue sobre pesos y «Guardar como ruta» es histórico.
 
 El asistente traduce lo que escribe el usuario a los pesos de la ruta y el backend la recalcula
 (`POST /api/routes/assistant`, ADR-033). El frontend no habla con el modelo ni conoce su clave: solo
@@ -319,6 +360,10 @@ nombre al modelo (ver README del backend).
 
 ## Comprobaciones de la PBI-9.1 (ruta recomendada)
 
+> **Desde la PBI-18** la «Recomendada» es el botón provisional «Según el tiempo» del panel de
+> preferencias (hasta la PBI-21): misma llamada y mismo 25 %; su bloque se titula «Según el tiempo:
+> <criterio>» y la ruta elegida, «Tu ruta». Ya no es una tarjeta de la fila de rutas.
+
 La ruta recomendada la decide el backend con el tiempo actual: `POST /api/routes/recommended` solo
 recibe `origin` y `destination` y devuelve la comparación de siempre más `recommendation` (criterio,
 pesos aplicados, tiempo extra, motivo, tiempo usado y reglas). La regla está en el ADR-029: ver
@@ -346,6 +391,9 @@ backend.
 
 ## Comprobaciones de la barra Sombra ↔ Sol
 
+> **Desde la PBI-18** la barra solo queda en la tarjeta de «Según el tiempo»: el editor, las tarjetas
+> y «Ver todas» se han retirado.
+
 Sombra y sol son los dos extremos de una sola escala (ADR-030: ver DECISIONS.md en la carpeta docs
 del Drive del equipo). La API no cambia: sigue enviando `weights.shade` y `weights.sun`, pero nunca los
 dos por encima de 0.
@@ -364,6 +412,9 @@ dos por encima de 0.
   controles del pop-up de al menos 44×44 px en el móvil y uso completo con el teclado.
 
 ## Comprobaciones de los nombres de ruta repetidos (#165)
+
+> **Desde la PBI-18** ya no hay rutas guardadas: se eligen con las preguntas de «¿Cómo prefieres
+> ir?». Ver "Comprobaciones de la PBI-18". Esta sección se conserva como histórico.
 
 Con el backend de la rama de #165 (migración `20261112000003-unique-route-profile-names` aplicada) y
 sesión iniciada. Los nombres se comparan sin mayúsculas ni espacios al principio o al final, pero
@@ -387,6 +438,9 @@ las tildes cuentan ("Rapida" no repite "Rápida").
       con el teclado.
 
 ## Comprobaciones de la PBI-10 fase B (el verde en las rutas)
+
+> **Desde la PBI-18** el verde se pide con «Por parques» (árbol); el % verde de cada ruta se sigue
+> viendo en la comparación y en el desglose.
 
 El backend calcula el porcentaje de trayecto verde de cada ruta (árboles y parques, ADR-026) y lo
 usa con el peso de vegetación (ADR-031: ver DECISIONS.md en la carpeta docs del Drive del equipo).

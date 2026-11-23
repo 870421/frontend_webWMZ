@@ -3,14 +3,14 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   getFastestRoute,
   getRecommendedRoute,
-  getWeightedRouteComparison,
+  getPreferredRouteComparison,
 } from '../../services/api/routesApi.js';
 import { useRoutePlanner } from './useRoutePlanner.js';
 
 jest.mock('../../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
   getRecommendedRoute: jest.fn(),
-  getWeightedRouteComparison: jest.fn(),
+  getPreferredRouteComparison: jest.fn(),
 }));
 
 const origin = { lat: 41.6488, lng: -0.8891 };
@@ -31,7 +31,7 @@ describe('useRoutePlanner', () => {
   beforeEach(() => {
     getFastestRoute.mockReset();
     getRecommendedRoute.mockReset();
-    getWeightedRouteComparison.mockReset();
+    getPreferredRouteComparison.mockReset();
   });
 
   it('asks the backend for the recommended route with only the points (PBI-9.1)', async () => {
@@ -57,7 +57,7 @@ describe('useRoutePlanner', () => {
       { origin, destination },
       { signal: expect.any(AbortSignal) }
     );
-    expect(getWeightedRouteComparison).not.toHaveBeenCalled();
+    expect(getPreferredRouteComparison).not.toHaveBeenCalled();
     expect(result.current).toMatchObject({
       status: 'success',
       fastest: route,
@@ -76,18 +76,18 @@ describe('useRoutePlanner', () => {
 
     expect(result.current.fastest).toEqual(route);
     expect(result.current.shaded).toBeNull();
-    expect(getWeightedRouteComparison).not.toHaveBeenCalled();
+    expect(getPreferredRouteComparison).not.toHaveBeenCalled();
   });
 
   it('stores both routes and their comparison for shaded routing', async () => {
     const comparison = { status: 'selected', fastest: route, shaded: { ...route, duration: 660 } };
-    getWeightedRouteComparison.mockResolvedValue(comparison);
+    getPreferredRouteComparison.mockResolvedValue(comparison);
     const { result } = renderHook(() => useRoutePlanner());
 
     await act(async () => {
       await result.current.calculateRoute(origin, destination, {
         routeType: 'shaded',
-        weights: { shade: 50, sun: 0 },
+        preferences: { sunShade: 'shade', avoidWind: false, preferParks: false, extraMinutes: 5 },
         date: '2026-06-21',
         time: '14:00',
         timeZone: 'Europe/Madrid',
@@ -100,8 +100,11 @@ describe('useRoutePlanner', () => {
       shaded: comparison.shaded,
       comparison,
     });
-    expect(getWeightedRouteComparison).toHaveBeenCalledWith(
-      expect.objectContaining({ weights: { shade: 50, sun: 0 }, date: '2026-06-21' }),
+    expect(getPreferredRouteComparison).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferences: expect.objectContaining({ sunShade: 'shade' }),
+        date: '2026-06-21',
+      }),
       { signal: expect.any(AbortSignal) }
     );
   });

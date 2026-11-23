@@ -1,56 +1,45 @@
-import { balanceText, shadeSunBalance } from '../route-profiles/shadeSun.js';
+import { SUN_SHADE_CHOICES, hasPreference } from '../route-preferences/preferenceTexts.js';
 
-const hasWeight = (weights) =>
-  weights.shade > 0 || weights.sun > 0 || weights.wind > 0 || weights.vegetation > 0;
-
-const percentText = (value) => `${value} %`;
+const sunShadeText = (value) => SUN_SHADE_CHOICES.find((choice) => choice.value === value).label;
+const yesNo = (value) => (value ? 'Sí' : 'No');
+// With every answer indifferent the route is the fastest one: the minutes do not count then.
+const minutesText = (preferences) => {
+  if (!hasPreference(preferences)) return 'La más rápida';
+  return preferences.extraMinutes === 0 ? 'Nada' : `+${preferences.extraMinutes} min`;
+};
 
 /**
- * The rows of what the assistant changed, as the route editor shows them: shade and sun are one
- * scale (ADR-030), then wind, green and the extra time. The extra time only counts when some weight
- * does (with every weight at 0 the route is the fastest one).
+ * The rows of what the assistant changed (PBI-9.2), in the words of the questions of the panel
+ * (PBI-18, ADR-036): shade or sun, wind, parks and the extra minutes. No weights or percentages.
  */
 export function assistantChanges(before, after) {
   const rows = [];
-  const shadeSunBefore = shadeSunBalance(before.weights);
-  const shadeSunAfter = shadeSunBalance(after.weights);
-  if (shadeSunBefore !== shadeSunAfter) {
+  if (before.sunShade !== after.sunShade) {
     rows.push({
-      key: 'shadeSun',
+      key: 'sunShade',
+      icon: after.sunShade === 'sun' || before.sunShade === 'sun' ? 'sun' : 'shade',
       label: 'Sombra o sol',
-      before: shadeSunBefore,
-      after: shadeSunAfter,
-      beforeText: balanceText(shadeSunBefore),
-      afterText: balanceText(shadeSunAfter),
+      beforeText: sunShadeText(before.sunShade),
+      afterText: sunShadeText(after.sunShade),
     });
   }
   [
-    { key: 'wind', label: 'Evitar viento' },
-    { key: 'vegetation', label: 'Verde' },
-  ].forEach(({ key, label }) => {
-    if (before.weights[key] !== after.weights[key]) {
-      rows.push({
-        key,
-        label,
-        before: before.weights[key],
-        after: after.weights[key],
-        beforeText: percentText(before.weights[key]),
-        afterText: percentText(after.weights[key]),
-      });
+    { key: 'avoidWind', icon: 'wind', label: 'Evitar el viento' },
+    { key: 'preferParks', icon: 'vegetation', label: 'Por parques' },
+  ].forEach(({ key, icon, label }) => {
+    if (before[key] !== after[key]) {
+      rows.push({ key, icon, label, beforeText: yesNo(before[key]), afterText: yesNo(after[key]) });
     }
   });
-  const detourText = (setting) =>
-    hasWeight(setting.weights) ? `+${setting.maxDetourPercentage} %` : 'Sin rodeo';
-  const beforeDetour = detourText(before);
-  const afterDetour = detourText(after);
-  if (beforeDetour !== afterDetour) {
+  const beforeMinutes = minutesText(before);
+  const afterMinutes = minutesText(after);
+  if (beforeMinutes !== afterMinutes) {
     rows.push({
-      key: 'time',
-      label: 'Tiempo extra máximo',
-      before: before.maxDetourPercentage,
-      after: after.maxDetourPercentage,
-      beforeText: beforeDetour,
-      afterText: afterDetour,
+      key: 'extraMinutes',
+      icon: 'time',
+      label: 'Tiempo extra',
+      beforeText: beforeMinutes,
+      afterText: afterMinutes,
     });
   }
   return rows;

@@ -2,12 +2,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { App } from './App.jsx';
-import {
-  createRouteProfile,
-  deleteRouteProfile,
-  listRouteProfiles,
-  updateRouteProfile,
-} from '../services/api/routeProfilesApi.js';
+import { getRoutePreferences, saveRoutePreferences } from '../services/api/routePreferencesApi.js';
 import {
   listRecentPlaces,
   listRouteFavorites,
@@ -15,8 +10,8 @@ import {
 } from '../services/api/routeHistoryApi.js';
 import {
   getFastestRoute,
+  getPreferredRouteComparison,
   getRecommendedRoute,
-  getWeightedRouteComparison,
 } from '../services/api/routesApi.js';
 
 jest.mock('../services/api/geocodingApi.js', () => ({
@@ -26,8 +21,8 @@ jest.mock('../services/api/geocodingApi.js', () => ({
 
 jest.mock('../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
+  getPreferredRouteComparison: jest.fn(),
   getRecommendedRoute: jest.fn(),
-  getWeightedRouteComparison: jest.fn(),
 }));
 
 jest.mock('../services/api/routeHistoryApi.js', () => ({
@@ -39,11 +34,10 @@ jest.mock('../services/api/routeHistoryApi.js', () => ({
   removeRouteFavorite: jest.fn(),
 }));
 
-jest.mock('../services/api/routeProfilesApi.js', () => ({
-  listRouteProfiles: jest.fn(),
-  createRouteProfile: jest.fn(),
-  updateRouteProfile: jest.fn(),
-  deleteRouteProfile: jest.fn(),
+jest.mock('../services/api/routePreferencesApi.js', () => ({
+  ...jest.requireActual('../services/api/routePreferencesApi.js'),
+  getRoutePreferences: jest.fn(),
+  saveRoutePreferences: jest.fn(),
 }));
 
 // The location is chosen with «Mi ubicación», the first option of the list of each field.
@@ -52,11 +46,8 @@ async function chooseMyLocation(user, field) {
   await user.click(screen.getByRole('option', { name: 'Mi ubicación' }));
 }
 
-const PROFILES = [
-  { id: 1, name: 'Rápida', presetKey: 'fastest', weights: { shade: 0, sun: 0 } },
-  { id: 2, name: 'Sombreada', presetKey: 'shaded', weights: { shade: 50, sun: 0 } },
-  { id: 3, name: 'Soleada', presetKey: 'sunny', weights: { shade: 0, sun: 50 } },
-].map((profile) => ({ ...profile, maxDetourPercentage: 25 }));
+// The preferences of the account (PBI-18): everything indifferent and 5 minutes by default.
+const PREFERENCES = { sunShade: 'any', avoidWind: false, preferParks: false, extraMinutes: 5 };
 
 jest.mock('../features/weather/WeatherPanel.jsx', () => ({
   WeatherPanel: () => <section data-testid="weather-panel" />,
@@ -105,11 +96,9 @@ describe('App', () => {
   beforeEach(() => {
     getFastestRoute.mockReset();
     getRecommendedRoute.mockReset();
-    getWeightedRouteComparison.mockReset();
-    listRouteProfiles.mockReset().mockResolvedValue(PROFILES);
-    createRouteProfile.mockReset();
-    updateRouteProfile.mockReset();
-    deleteRouteProfile.mockReset();
+    getPreferredRouteComparison.mockReset();
+    getRoutePreferences.mockReset().mockResolvedValue(PREFERENCES);
+    saveRoutePreferences.mockReset().mockImplementation(async (preferences) => preferences);
     listRecentPlaces.mockReset().mockResolvedValue([]);
     listRouteFavorites.mockReset().mockResolvedValue([]);
     recordRecentPlaces.mockReset().mockResolvedValue([]);
@@ -301,7 +290,7 @@ describe('App', () => {
     });
   });
 
-  it('asks to calculate again after choosing the shaded type with only the fastest route', async () => {
+  it('asks to calculate again after asking for shade with only the fastest route', async () => {
     const user = userEvent.setup();
     getFastestRoute.mockResolvedValue({
       geometry: {
@@ -321,7 +310,9 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
     await screen.findByRole('button', { name: 'Iniciar ruta' });
 
-    await user.click(await screen.findByRole('button', { name: 'Sombreada' }));
+    // Once a route is calculated, the questions fold into a summary.
+    await user.click(screen.getByRole('button', { name: 'Cambiar preferencias' }));
+    await user.click(screen.getByRole('radio', { name: 'Sombra' }));
 
     expect(screen.getByRole('button', { name: 'Calcular ruta' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Iniciar ruta' })).not.toBeInTheDocument();
@@ -502,7 +493,7 @@ describe('App', () => {
       duration: 660,
       exposure: { status: 'available', shadePercentage: 70, sunPercentage: 30 },
     };
-    getWeightedRouteComparison.mockResolvedValue({
+    getPreferredRouteComparison.mockResolvedValue({
       status: 'selected',
       fastest,
       shaded,
@@ -513,19 +504,19 @@ describe('App', () => {
 
     await user.click(screen.getByText('Select map point'));
     await user.click(screen.getByText('Select map point'));
-    await user.click(await screen.findByRole('button', { name: 'Sombreada' }));
+    await user.click(await screen.findByRole('radio', { name: 'Sombra' }));
     await user.clear(screen.getByLabelText('Fecha'));
     await user.type(screen.getByLabelText('Fecha'), '2026-06-21');
     await user.clear(screen.getByLabelText('Hora'));
     await user.type(screen.getByLabelText('Hora'), '14:00');
     await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
 
-    expect(getWeightedRouteComparison).toHaveBeenCalledWith(
+    expect(getPreferredRouteComparison).toHaveBeenCalledWith(
       expect.objectContaining({
         date: '2026-06-21',
         time: '14:00',
         timeZone: 'Europe/Madrid',
-        weights: { shade: 50, sun: 0 },
+        preferences: { ...PREFERENCES, sunShade: 'shade' },
       }),
       { signal: expect.any(AbortSignal) }
     );
@@ -533,129 +524,191 @@ describe('App', () => {
     expect(screen.getByTestId('route-geometry')).toHaveTextContent(
       JSON.stringify(shaded.geometry.coordinates)
     );
-    await user.click(screen.getByRole('button', { name: /Más rápida 10 min/ }));
+    await user.click(screen.getByRole('button', { name: /La más rápida 10 min/ }));
     expect(screen.getByTestId('route-geometry')).toHaveTextContent(
       JSON.stringify(fastest.geometry.coordinates)
     );
-    // Showing the fastest one does not change the chosen route type.
-    expect(screen.getByRole('button', { name: 'Sombreada' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    // Showing the fastest one does not change the answers: the summary still says them.
+    expect(screen.getByText('Sombra · +5 min')).toBeInTheDocument();
   });
 
-  describe('routes of the user', () => {
-    it('calculates a green route without asking for date and time (PBI-10 phase B)', async () => {
-      const user = userEvent.setup();
-      const parks = {
-        id: 4,
-        name: 'Parques',
-        presetKey: null,
-        weights: { shade: 0, sun: 0, wind: 0, vegetation: 80 },
-        maxDetourPercentage: 25,
-      };
-      listRouteProfiles.mockResolvedValue([...PROFILES, parks]);
-      getWeightedRouteComparison.mockReturnValue(new Promise(() => {}));
-      render(<App />);
-
-      await user.click(await screen.findByRole('button', { name: 'Parques' }));
-      // The green does not depend on the Sun: no date and time.
-      expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
+  describe('simple preferences (PBI-18)', () => {
+    const choosePoints = async (user) => {
       await user.click(screen.getByText('Select map point'));
       await user.click(screen.getByText('Select map point'));
-      await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+    };
 
-      expect(getWeightedRouteComparison).toHaveBeenCalledWith(
-        expect.objectContaining({ weights: parks.weights, maxDetourPercentage: 25 }),
-        { signal: expect.any(AbortSignal) }
-      );
-      expect(getFastestRoute).not.toHaveBeenCalled();
-    });
-
-    it('starts with the fastest route and only asks for it, without weights', async () => {
+    it('starts with «Me da igual», without minutes, and only asks for the fastest route', async () => {
       const user = userEvent.setup();
       getFastestRoute.mockReturnValue(new Promise(() => {}));
       render(<App />);
 
-      expect(await screen.findByRole('button', { name: 'Rápida' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      );
+      expect(await screen.findByRole('radio', { name: 'Me da igual' })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Evitar el viento' })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Por parques' })).not.toBeChecked();
+      // The minutes only appear with some preference.
+      expect(
+        screen.queryByRole('group', { name: '¿Cuánto más estás dispuesto a andar?' })
+      ).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
-      await user.click(screen.getByText('Select map point'));
-      await user.click(screen.getByText('Select map point'));
+      await choosePoints(user);
       await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
 
       expect(getFastestRoute).toHaveBeenCalledTimes(1);
-      expect(getWeightedRouteComparison).not.toHaveBeenCalled();
+      expect(getPreferredRouteComparison).not.toHaveBeenCalled();
     });
 
-    it('calculates with the weights of a route created by the user', async () => {
+    it('recovers the preferences of the account, on any device', async () => {
       const user = userEvent.setup();
-      const summer = {
-        id: 4,
-        name: 'Verano',
-        presetKey: null,
-        weights: { shade: 80, sun: 0 },
-        maxDetourPercentage: 10,
-      };
-      createRouteProfile.mockResolvedValue(summer);
-      getWeightedRouteComparison.mockReturnValue(new Promise(() => {}));
+      getRoutePreferences.mockResolvedValue({
+        ...PREFERENCES,
+        sunShade: 'sun',
+        avoidWind: true,
+        extraMinutes: 10,
+      });
+      getPreferredRouteComparison.mockReturnValue(new Promise(() => {}));
       render(<App />);
 
-      await user.click(await screen.findByRole('button', { name: 'Nueva ruta' }));
-      await user.type(screen.getByLabelText('Nombre'), 'Verano');
-      await user.click(screen.getByRole('button', { name: 'Guardar' }));
-
-      expect(createRouteProfile).toHaveBeenCalledWith({
-        name: 'Verano',
-        weights: { shade: 50, sun: 0, wind: 0, vegetation: 0 },
-        maxDetourPercentage: 25,
-      });
-      expect(await screen.findByRole('button', { name: 'Verano' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      );
-      await user.click(screen.getByText('Select map point'));
-      await user.click(screen.getByText('Select map point'));
+      expect(await screen.findByRole('radio', { name: 'Sol', checked: true })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Evitar el viento' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: '+10 minutos' })).toBeChecked();
+      await choosePoints(user);
       await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
-      expect(getWeightedRouteComparison).toHaveBeenCalledWith(
-        expect.objectContaining({ weights: { shade: 80, sun: 0 }, maxDetourPercentage: 10 }),
+
+      expect(getPreferredRouteComparison).toHaveBeenCalledWith(
+        expect.objectContaining({
+          preferences: { sunShade: 'sun', avoidWind: true, preferParks: false, extraMinutes: 10 },
+        }),
         { signal: expect.any(AbortSignal) }
       );
-      expect(screen.getByRole('status')).toHaveTextContent('Calculando la ruta «Verano»');
+      expect(getFastestRoute).not.toHaveBeenCalled();
+      expect(saveRoutePreferences).not.toHaveBeenCalled();
     });
 
-    it('goes back to the first route after deleting the chosen one', async () => {
+    it('saves every change in the account and shows the minutes with a preference', async () => {
       const user = userEvent.setup();
-      deleteRouteProfile.mockResolvedValue();
       render(<App />);
-      // Editing is offered once the routes of the user have arrived.
-      await screen.findByRole('button', { name: 'Nueva ruta' });
 
-      await user.click(screen.getByRole('button', { name: 'Soleada' }));
-      await user.click(screen.getByRole('button', { name: 'Borrar Soleada' }));
-      await user.click(screen.getByRole('button', { name: 'Borrar' }));
+      await user.click(await screen.findByRole('checkbox', { name: 'Por parques' }));
+      expect(saveRoutePreferences).toHaveBeenLastCalledWith(
+        { ...PREFERENCES, preferParks: true },
+        { signal: expect.any(AbortSignal) }
+      );
+      const minutes = screen.getByRole('group', { name: '¿Cuánto más estás dispuesto a andar?' });
+      expect(within(minutes).getByRole('radio', { name: '+5 minutos' })).toBeChecked();
+      expect(
+        within(minutes)
+          .getAllByRole('radio')
+          .map((radio) => radio.value)
+      ).toEqual(['0', '2', '5', '10', '15']);
+      expect(within(minutes).getByText('+5 min')).toBeInTheDocument();
 
-      expect(deleteRouteProfile).toHaveBeenCalledWith(3);
-      expect(screen.queryByRole('button', { name: 'Soleada' })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Rápida' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
+      await user.click(within(minutes).getByRole('radio', { name: 'Nada' }));
+      expect(saveRoutePreferences).toHaveBeenLastCalledWith(
+        { ...PREFERENCES, preferParks: true, extraMinutes: 0 },
+        { signal: expect.any(AbortSignal) }
+      );
+      // Shade and sun cannot go together: choosing one leaves the other.
+      await user.click(screen.getByRole('radio', { name: 'Sombra' }));
+      await user.click(screen.getByRole('radio', { name: 'Sol' }));
+      expect(screen.getByRole('radio', { name: 'Sombra' })).not.toBeChecked();
+      expect(saveRoutePreferences).toHaveBeenLastCalledWith(
+        { sunShade: 'sun', avoidWind: false, preferParks: true, extraMinutes: 0 },
+        { signal: expect.any(AbortSignal) }
       );
     });
 
-    it('offers the presets without editing when the routes cannot be loaded', async () => {
-      listRouteProfiles.mockRejectedValue(new Error('offline'));
+    it('calculates a parks route without asking for date and time (PBI-10 phase B)', async () => {
+      const user = userEvent.setup();
+      getPreferredRouteComparison.mockReturnValue(new Promise(() => {}));
       render(<App />);
 
-      expect(await screen.findByText(/No se han podido cargar tus rutas/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Sombreada' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Nueva ruta' })).not.toBeInTheDocument();
+      await user.click(await screen.findByRole('checkbox', { name: 'Por parques' }));
+      // The green does not depend on the Sun: no date and time.
+      expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
+      await choosePoints(user);
+      await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+
+      expect(getPreferredRouteComparison).toHaveBeenCalledWith(
+        expect.objectContaining({ preferences: { ...PREFERENCES, preferParks: true } }),
+        { signal: expect.any(AbortSignal) }
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('Calculando la ruta «Tu ruta»');
+    });
+
+    it('folds the questions into a summary once the route is calculated', async () => {
+      const user = userEvent.setup();
+      getRoutePreferences.mockResolvedValue({
+        ...PREFERENCES,
+        sunShade: 'sun',
+        preferParks: true,
+        extraMinutes: 10,
+      });
+      getPreferredRouteComparison.mockResolvedValue({
+        status: 'over_extra_time',
+        fastest: {
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [-0.89, 41.65],
+              [-0.88, 41.66],
+            ],
+          },
+          distance: 1000,
+          duration: 600,
+          exposure: { status: 'available', shadePercentage: 20, sunPercentage: 80 },
+        },
+        shaded: null,
+        additionalDurationSeconds: null,
+        strategy: { maximumExtraMinutes: 10 },
+      });
+      render(<App />);
+      await screen.findByRole('radio', { name: 'Sol', checked: true });
+      await choosePoints(user);
+      await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+
+      expect(await screen.findByText('Sol · Por parques · +10 min')).toBeInTheDocument();
+      expect(screen.queryByRole('radio', { name: 'Sol' })).not.toBeInTheDocument();
+      expect(screen.getAllByText(/ninguno sin andar más de 10 min extra/)[0]).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Cambiar preferencias' }));
+      expect(screen.getByRole('radio', { name: 'Sol' })).toBeChecked();
+      // Opening them does not lose the route; changing an answer does.
+      expect(screen.getByTestId('route-geometry')).not.toHaveTextContent('none');
+      await user.click(screen.getByRole('radio', { name: '+15 minutos' }));
+      expect(screen.getByTestId('route-geometry')).toHaveTextContent('none');
+    });
+
+    it('uses the defaults without saving them when the preferences cannot be loaded', async () => {
+      const user = userEvent.setup();
+      getRoutePreferences.mockRejectedValue(new Error('offline'));
+      render(<App />);
+
+      expect(
+        await screen.findByText(/No se han podido cargar tus preferencias/)
+      ).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Me da igual' })).toBeChecked();
+      await user.click(screen.getByRole('radio', { name: 'Sombra' }));
+      expect(screen.getByRole('radio', { name: 'Sombra' })).toBeChecked();
+      expect(saveRoutePreferences).not.toHaveBeenCalled();
+    });
+
+    it('says when a change could not be saved, and still uses it', async () => {
+      const user = userEvent.setup();
+      saveRoutePreferences.mockRejectedValue(
+        new Error('No se han podido guardar tus preferencias.')
+      );
+      render(<App />);
+
+      await user.click(await screen.findByRole('checkbox', { name: 'Evitar el viento' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No se han podido guardar tus preferencias. Se usarán en esta ruta.'
+      );
+      expect(screen.getByRole('checkbox', { name: 'Evitar el viento' })).toBeChecked();
     });
   });
 
-  describe('recommended route (PBI-9.1)', () => {
+  describe('provisional «Según el tiempo»: the recommended route of PBI-9.1', () => {
     const line = (lng) => ({
       type: 'LineString',
       coordinates: [
@@ -695,17 +748,20 @@ describe('App', () => {
       rules: [],
     };
 
-    it('goes first in the row, but the fastest route is still the default', async () => {
+    it('is off by default, is not saved and choosing an answer leaves it', async () => {
+      const user = userEvent.setup();
       render(<App />);
-      await screen.findByRole('button', { name: 'Nueva ruta' });
+      const weather = await screen.findByRole('button', { name: 'Según el tiempo' });
 
-      const cards = within(document.querySelector('.route-profile-list')).getAllByRole('button');
-      expect(cards[0]).toHaveAccessibleName('Recomendada');
-      expect(cards[0]).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.getByRole('button', { name: 'Rápida' })).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      );
+      expect(weather).toHaveAttribute('aria-pressed', 'false');
+      await user.click(weather);
+      expect(weather).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('radio', { name: 'Me da igual' })).not.toBeChecked();
+      expect(saveRoutePreferences).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole('radio', { name: 'Sombra' }));
+      expect(weather).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByRole('radio', { name: 'Sombra' })).toBeChecked();
     });
 
     it('is calculated for now with the weather and explains the criterion', async () => {
@@ -719,13 +775,13 @@ describe('App', () => {
         windChangePoints: 0,
         recommendation,
       });
+      getRoutePreferences.mockResolvedValue({ ...PREFERENCES, sunShade: 'sun' });
       render(<App />);
-      await screen.findByRole('button', { name: 'Nueva ruta' });
+      await screen.findByRole('radio', { name: 'Sol', checked: true });
 
-      await user.click(screen.getByRole('button', { name: 'Recomendada' }));
-      // Always for now: no date or time, and nothing to edit or delete.
+      await user.click(screen.getByRole('button', { name: 'Según el tiempo' }));
+      // Always for now: no date or time, even with «Sol» chosen.
       expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument();
       await user.click(screen.getByText('Select map point'));
       await user.click(screen.getByText('Select map point'));
       await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
@@ -734,10 +790,10 @@ describe('App', () => {
         { origin: expect.any(Object), destination: expect.any(Object) },
         { signal: expect.any(AbortSignal) }
       );
-      expect(getWeightedRouteComparison).not.toHaveBeenCalled();
+      expect(getPreferredRouteComparison).not.toHaveBeenCalled();
       expect(getFastestRoute).not.toHaveBeenCalled();
       expect(
-        await screen.findByRole('heading', { name: 'Recomendada: Calor' })
+        await screen.findByRole('heading', { name: 'Según el tiempo: Calor' })
       ).toBeInTheDocument();
       expect(screen.getByText(recommendation.reason)).toBeInTheDocument();
       expect(screen.getByRole('meter', { name: 'Sombra o sol' })).toHaveAttribute(
@@ -745,14 +801,15 @@ describe('App', () => {
         'Sombra 50 %'
       );
       expect(screen.getByText(/Tiempo usado \(dato de las 13:00\): 30 °C/)).toBeInTheDocument();
-      expect(screen.getByText('Recomendada añade 1 min.')).toBeInTheDocument();
-      // The comfort breakdown (PBI-11) explains the recommended route with the weights applied.
-      expect(
-        screen.getByRole('heading', { name: 'Confort de la ruta «Recomendada»' })
-      ).toBeVisible();
-      expect(screen.getByText(/«Recomendada» va a la sombra el \d+ % del recorrido/)).toHaveClass(
+      expect(screen.getByText('Tu ruta añade 1 min.')).toBeInTheDocument();
+      // The comfort breakdown (PBI-11) explains the route with the weights applied.
+      expect(screen.getByRole('heading', { name: 'Confort de la ruta «Tu ruta»' })).toBeVisible();
+      expect(screen.getByText(/«Tu ruta» va a la sombra el \d+ % del recorrido/)).toHaveClass(
         'is-asked'
       );
+      expect(
+        screen.getByText('Según el tiempo', { selector: '.preferences-summary p' })
+      ).toBeInTheDocument();
       expect(screen.getByTestId('route-geometry')).toHaveTextContent(
         JSON.stringify(shaded.geometry.coordinates)
       );
@@ -775,19 +832,16 @@ describe('App', () => {
         },
       });
       render(<App />);
-      await screen.findByRole('button', { name: 'Nueva ruta' });
 
-      await user.click(screen.getByRole('button', { name: 'Recomendada' }));
+      await user.click(await screen.findByRole('button', { name: 'Según el tiempo' }));
       await user.click(screen.getByText('Select map point'));
       await user.click(screen.getByText('Select map point'));
       await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
 
       expect(
-        await screen.findByRole('heading', { name: 'Recomendada: Tiempo templado' })
+        await screen.findByRole('heading', { name: 'Según el tiempo: Tiempo templado' })
       ).toBeInTheDocument();
-      expect(
-        screen.getByText('Con el tiempo actual, la ruta recomendada es la más rápida.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('La ruta elegida es la más rápida.')).toBeInTheDocument();
       expect(screen.getByTestId('route-geometry')).toHaveTextContent(
         JSON.stringify(fastest.geometry.coordinates)
       );

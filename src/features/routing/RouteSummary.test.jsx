@@ -21,7 +21,7 @@ describe('RouteSummary', () => {
   test('presenta el resumen completo de la ruta calculada', () => {
     render(<RouteSummary distance={1250.4} duration={930.2} />);
 
-    expect(screen.getByRole('heading', { name: 'Ruta rápida' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'La más rápida' })).toBeInTheDocument();
     expect(screen.getByText('16 min')).toBeInTheDocument();
     expect(screen.getByText('1,3 km')).toBeInTheDocument();
   });

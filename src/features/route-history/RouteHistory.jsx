@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { ProfileDialog } from '../route-profiles/ProfileDialog.jsx';
+import { Dialog } from '../../components/ui/Dialog.jsx';
 import { DEVICE_SOURCE } from '../route-search/useDeviceLocation.js';
 
 // PBI-12: button under the points that opens the favourite trips. Choosing one sets its origin and
@@ -148,7 +148,7 @@ function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
   }
 
   return (
-    <ProfileDialog title="Favoritos" onClose={onClose}>
+    <Dialog title="Favoritos" onClose={onClose}>
       {status === 'loading' && (
         <p className="profile-dialog-text" role="status">
           Cargando…
@@ -246,7 +246,7 @@ function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
           Cerrar
         </button>
       </div>
-    </ProfileDialog>
+    </Dialog>
   );
 }
 

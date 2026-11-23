@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 
 import { App } from './App.jsx';
 import { askRouteAssistant } from '../services/api/routeAssistantApi.js';
-import { listRouteProfiles } from '../services/api/routeProfilesApi.js';
+import { getRoutePreferences, saveRoutePreferences } from '../services/api/routePreferencesApi.js';
 import {
   listRecentPlaces,
   listRouteFavorites,
   recordRecentPlaces,
 } from '../services/api/routeHistoryApi.js';
-import { getFastestRoute } from '../services/api/routesApi.js';
+import { getFastestRoute, getRecommendedRoute } from '../services/api/routesApi.js';
 
 // The route assistant (PBI-9.2) inside the app: the API is simulated.
 jest.mock('../services/api/geocodingApi.js', () => ({
@@ -18,8 +18,8 @@ jest.mock('../services/api/geocodingApi.js', () => ({
 }));
 jest.mock('../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
+  getPreferredRouteComparison: jest.fn(),
   getRecommendedRoute: jest.fn(),
-  getWeightedRouteComparison: jest.fn(),
 }));
 jest.mock('../services/api/routeAssistantApi.js', () => ({ askRouteAssistant: jest.fn() }));
 jest.mock('../services/api/routeHistoryApi.js', () => ({
@@ -30,11 +30,10 @@ jest.mock('../services/api/routeHistoryApi.js', () => ({
   addRouteFavorite: jest.fn(),
   removeRouteFavorite: jest.fn(),
 }));
-jest.mock('../services/api/routeProfilesApi.js', () => ({
-  listRouteProfiles: jest.fn(),
-  createRouteProfile: jest.fn(),
-  updateRouteProfile: jest.fn(),
-  deleteRouteProfile: jest.fn(),
+jest.mock('../services/api/routePreferencesApi.js', () => ({
+  ...jest.requireActual('../services/api/routePreferencesApi.js'),
+  getRoutePreferences: jest.fn(),
+  saveRoutePreferences: jest.fn(),
 }));
 jest.mock('../features/weather/WeatherPanel.jsx', () => ({
   WeatherPanel: () => <section data-testid="weather-panel" />,
@@ -59,11 +58,8 @@ jest.mock('../features/map/MapView.jsx', () => ({
   },
 }));
 
-const NO_WEIGHTS = { shade: 0, sun: 0, wind: 0, vegetation: 0 };
-const PROFILES = [
-  { id: 1, name: 'Rápida', presetKey: 'fastest', weights: { shade: 0, sun: 0 } },
-  { id: 2, name: 'Sombreada', presetKey: 'shaded', weights: { shade: 50, sun: 0 } },
-].map((profile) => ({ ...profile, maxDetourPercentage: 25 }));
+// The answers of the panel (PBI-18, ADR-036): everything indifferent and 5 minutes.
+const NO_PREFERENCES = { sunShade: 'any', avoidWind: false, preferParks: false, extraMinutes: 5 };
 const line = (coordinates, distance, duration, shadePercentage) => ({
   geometry: { type: 'LineString', coordinates },
   distance,
@@ -88,16 +84,16 @@ const SHADED = line(
   700,
   70
 );
-const SHADE_SETTING = { weights: { ...NO_WEIGHTS, shade: 50 }, maxDetourPercentage: 35 };
+const SHADE_SETTING = { ...NO_PREFERENCES, sunShade: 'shade', extraMinutes: 15 };
 const APPLIED = {
   assistant: {
     status: 'applied',
-    explanation: 'Busco sombra y acepto hasta un 35 % más de tiempo.',
-    before: { weights: NO_WEIGHTS, maxDetourPercentage: 25 },
+    explanation: 'He buscado sombra aunque tardes un poco más.',
+    before: NO_PREFERENCES,
     after: SHADE_SETTING,
     changes: [
-      { factor: 'shade', before: 0, after: 50 },
-      { factor: 'maxDetourPercentage', before: 25, after: 35 },
+      { question: 'sunShade', before: 'any', after: 'shade' },
+      { question: 'extraMinutes', before: 5, after: 15 },
     ],
   },
   comparison: {
@@ -113,7 +109,7 @@ async function calculateFastestRoute(user) {
   render(<App />);
   await user.click(screen.getByText('Select map point'));
   await user.click(screen.getByText('Select map point'));
-  await screen.findByRole('button', { name: 'Sombreada' });
+  await screen.findByRole('radio', { name: 'Me da igual', checked: true });
   await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
   await screen.findByRole('button', { name: /^Abrir Cierzo, el asistente de rutas/ });
 }
@@ -135,7 +131,8 @@ describe('App with the route assistant', () => {
   beforeEach(() => {
     getFastestRoute.mockReset().mockResolvedValue(FASTEST);
     askRouteAssistant.mockReset();
-    listRouteProfiles.mockReset().mockResolvedValue(PROFILES);
+    getRoutePreferences.mockReset().mockResolvedValue(NO_PREFERENCES);
+    saveRoutePreferences.mockReset().mockImplementation(async (preferences) => preferences);
     listRecentPlaces.mockReset().mockResolvedValue([]);
     listRouteFavorites.mockReset().mockResolvedValue([]);
     recordRecentPlaces.mockReset().mockResolvedValue([]);
@@ -144,7 +141,7 @@ describe('App with the route assistant', () => {
   it('is offered only once there is a route, with a floating button and not in the panel', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByRole('button', { name: 'Sombreada' });
+    await screen.findByRole('radio', { name: 'Me da igual', checked: true });
     expect(screen.queryByRole('button', { name: /Cierzo/ })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Pide a Cierzo un ajuste de la ruta')).not.toBeInTheDocument();
 
@@ -178,7 +175,7 @@ describe('App with the route assistant', () => {
     render(<App />);
     await user.click(screen.getByText('Select map point'));
     await user.click(screen.getByText('Select map point'));
-    await screen.findByRole('button', { name: 'Sombreada' });
+    await screen.findByRole('radio', { name: 'Me da igual', checked: true });
     await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
     expect(screen.queryByRole('button', { name: /Cierzo/ })).not.toBeInTheDocument();
 
@@ -215,35 +212,35 @@ describe('App with the route assistant', () => {
       'prefiero la sombra y sin viento'
     );
     expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usar como mis preferencias' })).toBeInTheDocument();
   });
 
-  it('applies the new weights, shows the new route and what changed', async () => {
+  it('applies the new answers, shows the new route and what changed', async () => {
     const user = userEvent.setup();
     askRouteAssistant.mockResolvedValue(APPLIED);
     await calculateFastestRoute(user);
 
     await ask(user, 'prefiero la sombra aunque tarde más');
 
-    // The current weights of "Rápida", without a date: the backend uses now.
+    // The current answers (everything indifferent), without a date: the backend uses now.
     expect(askRouteAssistant).toHaveBeenCalledWith(
       {
         origin: expect.objectContaining({ lat: 41.65, lng: -0.89 }),
         destination: expect.objectContaining({ lat: 41.65, lng: -0.89 }),
         message: 'prefiero la sombra aunque tarde más',
-        weights: NO_WEIGHTS,
-        maxDetourPercentage: 25,
+        preferences: NO_PREFERENCES,
       },
       { signal: expect.any(AbortSignal) }
     );
     expect(await screen.findByText(APPLIED.assistant.explanation)).toBeInTheDocument();
     expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
-    const changes = screen.getByRole('list', { name: 'Pesos cambiados por Cierzo' });
-    expect(within(changes).getByText('Neutro → Sombra 50 %')).toBeInTheDocument();
+    const changes = screen.getByRole('list', { name: 'Cambios de Cierzo' });
+    expect(within(changes).getByText('Me da igual → Sombra')).toBeInTheDocument();
+    expect(within(changes).getByText('La más rápida → +15 min')).toBeInTheDocument();
     expect(screen.getByText('70 % de sombra')).toBeInTheDocument();
   });
 
-  it('a second request starts from the weights the assistant applied', async () => {
+  it('a second request starts from the answers the assistant applied', async () => {
     const user = userEvent.setup();
     askRouteAssistant.mockResolvedValue(APPLIED);
     await calculateFastestRoute(user);
@@ -253,7 +250,7 @@ describe('App with the route assistant', () => {
     await ask(user, 'y evita el viento');
 
     expect(askRouteAssistant).toHaveBeenLastCalledWith(
-      expect.objectContaining({ message: 'y evita el viento', ...SHADE_SETTING }),
+      expect.objectContaining({ message: 'y evita el viento', preferences: SHADE_SETTING }),
       expect.anything()
     );
   });
@@ -275,7 +272,7 @@ describe('App with the route assistant', () => {
     expect(screen.getByRole('button', { name: 'Iniciar ruta' })).toBeInTheDocument();
   });
 
-  it('an error after an adjustment keeps the adjusted route and its weights', async () => {
+  it('an error after an adjustment keeps the adjusted route and its answers', async () => {
     const user = userEvent.setup();
     askRouteAssistant
       .mockResolvedValueOnce(APPLIED)
@@ -291,7 +288,7 @@ describe('App with the route assistant', () => {
     expect(await screen.findByText(/Tu ruta no ha cambiado/)).toBeInTheDocument();
     expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
     expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Guardar como ruta' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usar como mis preferencias' })).toBeInTheDocument();
   });
 
   it('a request it does not understand keeps the route and says so', async () => {
@@ -300,7 +297,7 @@ describe('App with the route assistant', () => {
       assistant: {
         status: 'not_understood',
         message: 'No he entendido la petición.',
-        before: { weights: NO_WEIGHTS, maxDetourPercentage: 25 },
+        before: NO_PREFERENCES,
         after: null,
         changes: [],
       },
@@ -315,7 +312,7 @@ describe('App with the route assistant', () => {
     expect(shownGeometry()).toBe(before);
   });
 
-  it('choosing another route type leaves the assistant answer behind', async () => {
+  it('choosing another answer leaves the assistant answer behind', async () => {
     const user = userEvent.setup();
     askRouteAssistant.mockResolvedValue(APPLIED);
     await calculateFastestRoute(user);
@@ -323,11 +320,67 @@ describe('App with the route assistant', () => {
     await screen.findByText(APPLIED.assistant.explanation);
     await user.keyboard('{Escape}');
 
-    await user.click(screen.getByRole('button', { name: 'Sombreada' }));
+    await user.click(screen.getByRole('button', { name: 'Cambiar preferencias' }));
+    await user.click(screen.getByRole('radio', { name: 'Sol' }));
 
     expect(screen.queryByText(APPLIED.assistant.explanation)).not.toBeInTheDocument();
     expect(shownGeometry()).toBe('none');
     // Without a route there is no assistant.
     expect(screen.queryByRole('button', { name: /Cierzo/ })).not.toBeInTheDocument();
+  });
+
+  it('"Usar como mis preferencias" saves the answers of Cierzo in the account (PBI-18)', async () => {
+    const user = userEvent.setup();
+    askRouteAssistant.mockResolvedValue(APPLIED);
+    await calculateFastestRoute(user);
+    await ask(user, 'prefiero la sombra aunque tarde más');
+    await screen.findByText(APPLIED.assistant.explanation);
+
+    await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
+
+    expect(saveRoutePreferences).toHaveBeenCalledWith(SHADE_SETTING, {
+      signal: expect.any(AbortSignal),
+    });
+    expect(await screen.findByText('Ya son tus preferencias.')).toBeInTheDocument();
+    // The route on screen stays: it already is the route of those answers.
+    expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
+    await user.keyboard('{Escape}');
+    expect(screen.getByText('Sombra · +15 min')).toBeInTheDocument();
+  });
+
+  it('with «Según el tiempo» starts from the answers behind the weights the weather chose', async () => {
+    const user = userEvent.setup();
+    getRecommendedRoute.mockResolvedValue({
+      status: 'selected',
+      fastest: { ...FASTEST, windExposure: { status: 'available', exposure: 0 } },
+      shaded: { ...SHADED, windExposure: { status: 'available', exposure: 0 } },
+      additionalDurationSeconds: 100,
+      weights: { shade: 50, sun: 0, wind: 50, vegetation: 0 },
+      recommendation: {
+        criterion: 'hot_windy',
+        label: 'Calor y cierzo',
+        reason: 'Hace calor y sopla cierzo.',
+        weights: { shade: 50, sun: 0, wind: 50 },
+        maxDetourPercentage: 25,
+        weather: null,
+        rules: [],
+      },
+    });
+    askRouteAssistant.mockReturnValue(new Promise(() => {}));
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Según el tiempo' }));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByText('Select map point'));
+    await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
+    await screen.findByRole('button', { name: /^Abrir Cierzo, el asistente de rutas/ });
+
+    await ask(user, 'y por parques');
+
+    expect(askRouteAssistant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferences: { sunShade: 'shade', avoidWind: true, preferParks: false, extraMinutes: 5 },
+      }),
+      expect.anything()
+    );
   });
 });

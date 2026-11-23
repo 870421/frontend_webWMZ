@@ -1,5 +1,6 @@
 import { ASSISTANT_NAME } from '../../features/route-assistant/assistantName.js';
 import { apiRequest } from './client.js';
+import { isValidPreferences } from './routePreferencesApi.js';
 import { normalizeWeightedComparison } from './routesApi.js';
 
 // The statuses of the route assistant (PBI-9.2, ADR-033). Only "applied" brings a new route; the
@@ -13,8 +14,8 @@ export const ASSISTANT_STATUSES = [
   'provider_busy',
   'not_configured',
 ];
-const WEIGHT_KEYS = ['shade', 'sun', 'wind', 'vegetation'];
-const CHANGE_FACTORS = [...WEIGHT_KEYS, 'maxDetourPercentage'];
+// What an answer of the assistant may change: the same questions as the panel (PBI-18, ADR-036).
+const CHANGE_QUESTIONS = ['sunShade', 'avoidWind', 'preferParks', 'extraMinutes'];
 
 const ASSISTANT_ERROR_MESSAGES = {
   401: `Tu sesión ha caducado. Inicia sesión de nuevo para usar a ${ASSISTANT_NAME}.`,
@@ -24,40 +25,26 @@ const ASSISTANT_ERROR_MESSAGES = {
   504: 'El cálculo de la ruta ha tardado demasiado. Tu ruta no ha cambiado.',
 };
 
-const isPercentage = (value, max = 100) => Number.isInteger(value) && value >= 0 && value <= max;
-
-function isValidSetting(setting) {
-  return (
-    WEIGHT_KEYS.every((key) => isPercentage(setting?.weights?.[key])) &&
-    isPercentage(setting.maxDetourPercentage, 40)
-  );
-}
-
 function isValidAssistant(assistant) {
-  if (!ASSISTANT_STATUSES.includes(assistant?.status) || !isValidSetting(assistant.before)) {
+  if (!ASSISTANT_STATUSES.includes(assistant?.status) || !isValidPreferences(assistant.before)) {
     return false;
   }
   if (assistant.status !== 'applied') return typeof assistant.message === 'string';
   return (
     typeof assistant.explanation === 'string' &&
-    isValidSetting(assistant.after) &&
+    isValidPreferences(assistant.after) &&
     Array.isArray(assistant.changes) &&
-    assistant.changes.every(
-      (change) =>
-        CHANGE_FACTORS.includes(change?.factor) &&
-        Number.isInteger(change.before) &&
-        Number.isInteger(change.after)
-    )
+    assistant.changes.every((change) => CHANGE_QUESTIONS.includes(change?.question))
   );
 }
 
 /**
- * Asks the route assistant to adjust the weights of the current route with the user's words. Only
- * the request and the weights travel; the backend talks to the language model. `comparison` is a
- * weighted comparison when the assistant applied new weights, and null otherwise.
+ * Asks the route assistant to adjust the preferences of the current route with the user's words.
+ * Only the request and the answers travel; the backend talks to the language model. `comparison` is
+ * a weighted comparison when the assistant applied new answers, and null otherwise.
  */
 export async function askRouteAssistant(
-  { origin, destination, date, time, timeZone, message, weights, maxDetourPercentage },
+  { origin, destination, date, time, timeZone, message, preferences },
   { signal } = {}
 ) {
   let data;
@@ -72,8 +59,7 @@ export async function askRouteAssistant(
         time,
         timeZone,
         message,
-        weights,
-        maxDetourPercentage,
+        preferences,
       }),
       errorMessages: ASSISTANT_ERROR_MESSAGES,
       fallbackErrorMessage: `${ASSISTANT_NAME} no está disponible ahora mismo. Tu ruta no ha cambiado.`,

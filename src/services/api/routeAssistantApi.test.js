@@ -1,12 +1,12 @@
 import { askRouteAssistant } from './routeAssistantApi.js';
 
-const NO_WEIGHTS = { shade: 0, sun: 0, wind: 0, vegetation: 0 };
+// The answers of the panel (PBI-18, ADR-036): everything indifferent and 5 minutes.
+const NO_PREFERENCES = { sunShade: 'any', avoidWind: false, preferParks: false, extraMinutes: 5 };
 const REQUEST = {
   origin: { lat: 41.65, lng: -0.89, label: 'Plaza del Pilar' },
   destination: { lat: 41.64, lng: -0.88, label: 'Casa' },
   message: 'prefiero la sombra aunque tarde más',
-  weights: NO_WEIGHTS,
-  maxDetourPercentage: 25,
+  preferences: NO_PREFERENCES,
 };
 const route = (coordinates, distance, duration, shadePercentage) => ({
   geometry: { type: 'LineString', coordinates },
@@ -35,12 +35,12 @@ const SELECTED = route(
 const APPLIED = {
   assistant: {
     status: 'applied',
-    explanation: 'Busco sombra y acepto hasta un 35 % más de tiempo.',
-    before: { weights: NO_WEIGHTS, maxDetourPercentage: 25 },
-    after: { weights: { ...NO_WEIGHTS, shade: 50 }, maxDetourPercentage: 35 },
+    explanation: 'He buscado sombra aunque tardes un poco más.',
+    before: NO_PREFERENCES,
+    after: { ...NO_PREFERENCES, sunShade: 'shade', extraMinutes: 15 },
     changes: [
-      { factor: 'shade', before: 0, after: 50 },
-      { factor: 'maxDetourPercentage', before: 25, after: 35 },
+      { question: 'sunShade', before: 'any', after: 'shade' },
+      { question: 'extraMinutes', before: 5, after: 15 },
     ],
   },
   comparison: {
@@ -61,7 +61,7 @@ describe('askRouteAssistant', () => {
     global.fetch = originalFetch;
   });
 
-  it('sends only the points, the request and the current weights', async () => {
+  it('sends only the points, the request and the current answers', async () => {
     global.fetch = respond(APPLIED);
     await askRouteAssistant({
       ...REQUEST,
@@ -78,12 +78,11 @@ describe('askRouteAssistant', () => {
       time: '13:00',
       timeZone: 'Europe/Madrid',
       message: 'prefiero la sombra aunque tarde más',
-      weights: NO_WEIGHTS,
-      maxDetourPercentage: 25,
+      preferences: NO_PREFERENCES,
     });
   });
 
-  it('returns the applied weights and the recalculated comparison as the app uses it', async () => {
+  it('returns the applied answers and the recalculated comparison as the app uses it', async () => {
     global.fetch = respond(APPLIED);
     const { assistant, comparison } = await askRouteAssistant(REQUEST);
 
@@ -101,7 +100,7 @@ describe('askRouteAssistant', () => {
       assistant: {
         status: 'not_understood',
         message: 'No he entendido la petición.',
-        before: { weights: NO_WEIGHTS, maxDetourPercentage: 25 },
+        before: NO_PREFERENCES,
         after: null,
         changes: [],
       },
@@ -136,12 +135,29 @@ describe('askRouteAssistant', () => {
   it.each([
     ['an unknown status', { ...APPLIED, assistant: { ...APPLIED.assistant, status: 'magic' } }],
     [
-      'applied weights out of range',
+      'applied minutes that are not an option',
+      {
+        ...APPLIED,
+        assistant: { ...APPLIED.assistant, after: { ...NO_PREFERENCES, extraMinutes: 25 } },
+      },
+    ],
+    [
+      'old weights instead of answers',
       {
         ...APPLIED,
         assistant: {
           ...APPLIED.assistant,
-          after: { weights: { ...NO_WEIGHTS, shade: 150 }, maxDetourPercentage: 25 },
+          before: { weights: { shade: 0, sun: 0 }, maxDetourPercentage: 25 },
+        },
+      },
+    ],
+    [
+      'a change of something that is not a question',
+      {
+        ...APPLIED,
+        assistant: {
+          ...APPLIED.assistant,
+          changes: [{ question: 'maxDetourPercentage', before: 25, after: 35 }],
         },
       },
     ],

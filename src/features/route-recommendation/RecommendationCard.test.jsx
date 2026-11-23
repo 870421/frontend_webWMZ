@@ -25,7 +25,7 @@ describe('RecommendationCard', () => {
     render(<RecommendationCard recommendation={hotAndCierzo} />);
 
     expect(
-      screen.getByRole('heading', { name: 'Recomendada: Calor y cierzo' })
+      screen.getByRole('heading', { name: 'Según el tiempo: Calor y cierzo' })
     ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(hotAndCierzo.reason);
     const weights = within(screen.getByRole('list', { name: 'Pesos aplicados' }));

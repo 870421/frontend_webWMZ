@@ -62,7 +62,7 @@ describe('RouteComparisonPanel with wind (PBI-8.2)', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /Con sombra/ })).toHaveTextContent(
+    expect(screen.getByRole('button', { name: /Tu ruta/ })).toHaveTextContent(
       '70 % de sombra40 % de exposición al viento'
     );
     // What changes is explained in percentages by the comfort breakdown (PBI-11), never in points.
@@ -91,7 +91,7 @@ describe('RouteComparisonPanel', () => {
     expect(screen.getByText('20 % de sombra')).toBeInTheDocument();
     expect(screen.getByText('70 % de sombra')).toBeInTheDocument();
     expect(screen.getByText(/añade 2 min/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Con sombra/ }));
+    await user.click(screen.getByRole('button', { name: /Tu ruta/ }));
     expect(onSelectRoute).toHaveBeenCalledWith('shaded');
   });
 
@@ -110,8 +110,10 @@ describe('RouteComparisonPanel', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /Más rápida/ })).toHaveTextContent('15 min · 1,3 km');
-    expect(screen.getByRole('button', { name: /Con sombra/ })).toHaveTextContent('17 min · 980 m');
+    expect(screen.getByRole('button', { name: /La más rápida/ })).toHaveTextContent(
+      '15 min · 1,3 km'
+    );
+    expect(screen.getByRole('button', { name: /Tu ruta/ })).toHaveTextContent('17 min · 980 m');
   });
 
   it('sums up the selected route in one line when collapsed', () => {
@@ -132,7 +134,7 @@ describe('RouteComparisonPanel', () => {
       />
     );
     const summary = () => container.querySelector('.comparison-collapsed-summary');
-    expect(summary()).toHaveTextContent('Con sombra · 17 min · 70 % de sombra');
+    expect(summary()).toHaveTextContent('Tu ruta · 17 min · 70 % de sombra');
 
     rerender(
       <RouteComparisonPanel
@@ -143,7 +145,7 @@ describe('RouteComparisonPanel', () => {
         onToggleExpanded={jest.fn()}
       />
     );
-    expect(summary()).toHaveTextContent('Más rápida · 15 min · 20 % de sombra');
+    expect(summary()).toHaveTextContent('La más rápida · 15 min · 20 % de sombra');
 
     rerender(
       <RouteComparisonPanel
@@ -205,7 +207,7 @@ describe('RouteComparisonPanel', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /Con sombra/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Tu ruta/ })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('No hay una alternativa');
   });
 
@@ -224,6 +226,50 @@ describe('RouteComparisonPanel', () => {
     );
 
     expect(screen.getByRole('status')).toHaveTextContent('sin tardar más de un 10 % extra');
+  });
+
+  describe('extra time in minutes (PBI-18)', () => {
+    const renderStatus = (status, minutes) =>
+      render(
+        <RouteComparisonPanel
+          comparison={{
+            status,
+            fastest: route(900, 20),
+            shaded: null,
+            strategy: { maximumExtraMinutes: minutes },
+          }}
+          selectedRouteType="fastest"
+          onSelectRoute={jest.fn()}
+          isExpanded={false}
+          onToggleExpanded={jest.fn()}
+        />
+      );
+
+    it('says, in minutes, that there are better routes but they take too long', () => {
+      renderStatus('over_extra_time', 5);
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Hay caminos que encajan mejor con tus preferencias, pero ninguno sin andar más de 5 min extra: te enseño la más rápida.'
+      );
+      // Important: it is the reason why there is no alternative, also folded on a phone.
+      expect(screen.getByRole('status')).toHaveClass('comparison-result-important');
+    });
+
+    it('says, in minutes, that no route suits the preferences better', () => {
+      renderStatus('no_better_alternative', 10);
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'No hay un camino que encaje mejor con tus preferencias sin andar más de 10 min extra.'
+      );
+    });
+
+    it('with no extra minutes speaks of not walking more', () => {
+      renderStatus('no_better_alternative', 0);
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'No hay un camino que encaje mejor con tus preferencias sin andar más.'
+      );
+    });
   });
 
   it('names the alternative after the chosen route and says when it has less shade', () => {
@@ -259,7 +305,7 @@ describe('RouteComparisonPanel', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /Con sombra/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Tu ruta/ })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('El Sol está demasiado bajo');
   });
 });
@@ -280,9 +326,7 @@ describe('RouteComparisonPanel with the recommended route (PBI-9.1)', () => {
       />
     );
 
-    expect(
-      screen.getByText('Con el tiempo actual, la ruta recomendada es la más rápida.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('La ruta elegida es la más rápida.')).toBeInTheDocument();
     expect(screen.queryByText(/sombra/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Recomendada/ })).toBeDisabled();
   });
