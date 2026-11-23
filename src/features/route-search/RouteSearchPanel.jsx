@@ -471,30 +471,33 @@ export function RouteSearchPanel({
           ))}
         </div>
         {routeHistory}
-        {preferences}
-        {asksSolarDateTime && (
-          <div className="solar-date-time" aria-label="Momento para estimar la sombra">
-            <label>
-              Fecha
-              <input
-                type="date"
-                value={solarDate}
-                required
-                onChange={(event) => onSolarDateChange(event.target.value)}
-              />
-            </label>
-            <label>
-              Hora
-              <input
-                type="time"
-                value={solarTime}
-                required
-                onChange={(event) => onSolarTimeChange(event.target.value)}
-              />
-            </label>
-          </div>
-        )}
         <div className="route-actions" ref={routeActionsRef}>
+          {/* The questions and the date go in the bottom sheet on small screens, next to «Calcular
+              ruta», as in the sketches; on large screens this box adds nothing and the order is the
+              same as before. */}
+          {preferences}
+          {asksSolarDateTime && (
+            <div className="solar-date-time" aria-label="Momento para estimar la sombra">
+              <label>
+                Fecha
+                <input
+                  type="date"
+                  value={solarDate}
+                  required
+                  onChange={(event) => onSolarDateChange(event.target.value)}
+                />
+              </label>
+              <label>
+                Hora
+                <input
+                  type="time"
+                  value={solarTime}
+                  required
+                  onChange={(event) => onSolarTimeChange(event.target.value)}
+                />
+              </label>
+            </div>
+          )}
           <div className="map-guidance">
             <p>También puedes marcar el origen y el destino tocando directamente el mapa.</p>
             <p className={`active-map-target active-map-target-${activePoint}`}>

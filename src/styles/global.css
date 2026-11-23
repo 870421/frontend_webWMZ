@@ -2051,7 +2051,7 @@ input:focus-visible {
     background: rgba(255, 255, 255, 0.97);
     box-shadow: 0 0.7rem 2rem rgba(24, 48, 39, 0.2);
     backdrop-filter: blur(0.65rem);
-    max-height: min(55vh, 30rem);
+    max-height: min(62vh, 34rem);
     overflow-y: auto;
   }
 
@@ -2125,8 +2125,65 @@ input:focus-visible {
   /* Ruta Sombreada (PBI-5.4) en pantallas pequeñas: el panel superior y la hoja inferior tapaban
      la mayor parte del mapa. Plegado, el panel solo deja la cabecera; con resultado, la hoja
      inferior no repite la ruta en el resumen y en la comparación. */
-  .route-search-panel.is-collapsed .solar-date-time,
-  .route-search-panel.is-collapsed .route-preferences { display: none; }
+  /* Las preguntas (PBI-18) y la fecha van en la hoja inferior, junto a «Calcular ruta», como en los
+     bocetos: arriba solo quedan el buscador y los favoritos, y el mapa se ve entre los dos. */
+  .route-actions .route-preferences,
+  .route-actions .solar-date-time { grid-column: 1 / -1; }
+
+  /* Con las preguntas abiertas la hoja deja ver el mapa entre ella y el panel: se limita su altura,
+     se desplaza por dentro y los botones se quedan fijos al pie, como con el recorrido abierto. */
+  .route-actions:has(.preference-group) {
+    max-height: min(52vh, 28rem);
+    padding-bottom: 0;
+  }
+
+  .route-actions:has(.preference-group) .route-footer {
+    position: sticky;
+    z-index: 2;
+    bottom: 0;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+    order: 3;
+    padding: 0.45rem 0 0.55rem;
+    background: #ffffff;
+  }
+
+  .route-actions:has(.preference-group) .route-footer::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 1rem;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff);
+    pointer-events: none;
+  }
+
+  /* Con una ruta calculada y el panel plegado, la hoja solo enseña el resultado; «Ruta» vuelve a
+     mostrar las preguntas y la fecha, como cuando estaban en el panel superior. */
+  .route-search-panel.is-collapsed .route-actions:has(.route-summary, .route-comparison) .route-preferences,
+  .route-search-panel.is-collapsed .route-actions:has(.route-summary, .route-comparison) .solar-date-time {
+    display: none;
+  }
+
+  /* «¿Cómo prefieres ir?» y «Según el tiempo de hoy» en una sola fila, como en los bocetos. */
+  .route-actions .route-preferences { gap: 0.6rem; }
+
+  .route-actions .route-preferences-header { flex-wrap: nowrap; }
+
+  .route-actions .route-preferences-header h3 {
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+
+  .route-actions .weather-choice {
+    padding: 0 0.55rem;
+    font-size: 0.74rem;
+    white-space: nowrap;
+  }
 
   .solar-date-time { gap: 0.4rem; }
 
@@ -2894,6 +2951,11 @@ input:focus-visible {
   .auth-card { padding: 1.5rem 1rem; }
 }
 
+/* Móviles bajos (320 × 640): con las preguntas abiertas, la hoja ocupa menos para que se vea el mapa. */
+@media (max-width: 56.24rem) and (max-height: 42rem) {
+  .route-actions:has(.preference-group) { max-height: 44vh; }
+}
+
 /* Pantallas muy bajas (móvil en horizontal): el panel abierto y la comparación no caben a la vez. */
 @media (max-width: 56.24rem) and (max-height: 30rem) {
   .route-search-panel:not(.is-collapsed) .route-comparison,
@@ -2908,9 +2970,7 @@ input:focus-visible {
 /* Pantallas pequeñas: con el menú de usuario abierto, el panel de búsqueda se recoge para que el
    desplegable no se monte encima. Vuelve a como estaba al cerrar el menú. */
 @media (max-width: 56.24rem) {
-  .app-shell:has(.user-menu-dropdown) .point-list,
-  .app-shell:has(.user-menu-dropdown) .route-preferences,
-  .app-shell:has(.user-menu-dropdown) .solar-date-time { display: none; }
+  .app-shell:has(.user-menu-dropdown) .point-list { display: none; }
 }
 
 /* El desplegable empieza por debajo de la barra superior, que llega hasta el icono de usuario. */
@@ -3215,6 +3275,8 @@ input:focus-visible {
 
 /* En 320 px los textos de las opciones se ajustan para que quepan las tres en una fila. */
 @media (max-width: 22rem) {
+  .route-actions .route-preferences-header { flex-wrap: wrap; }
+
   .preference-choice > span,
   .preference-toggle > span { font-size: 0.82rem; }
 
