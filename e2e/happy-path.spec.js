@@ -1,7 +1,8 @@
-// Happy path of WeatherMapZ (#161): sign up, answer the simple preferences (PBI-18), log out and log
-// in again and find them, choose the origin and the destination with the autocomplete, calculate the
-// fastest route and then the one of "Según el tiempo" with its reason and the comparison. External
-// services are fake (fake-services.js).
+// Happy path of WeatherMapZ (#161): sign up with «Según el tiempo de hoy» on (PBI-21), which marks
+// the answers with the weather and says why, change the minutes (PBI-18), log out and log in again and
+// find them, choose the origin and the destination with the autocomplete, calculate the fastest route
+// and then the one the weather marks, with the comparison. External services are fake
+// (fake-services.js).
 import { expect, test } from '@playwright/test';
 
 import { FAKE_SERVICES_URL, FRONTEND_PORT } from './environment.js';
@@ -57,17 +58,24 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   const userMenu = page.getByRole('button', { name: `Menú de usuario de ${user.name}` });
   await expect(userMenu).toBeVisible();
 
-  // A new account answers «Me da igual» to everything: no minutes to choose (PBI-18).
+  // A new account starts with «Según el tiempo de hoy» on (PBI-21): the fake weather is mild with a
+  // strong cierzo, so it marks «Evitar el viento», leaves «Me da igual» and says why.
+  const byWeather = page.getByRole('button', { name: 'Según el tiempo de hoy' });
+  await expect(byWeather).toHaveAttribute('aria-pressed', 'true');
+  const reason = page.getByText(/cierzo de 40 km\/h/);
+  await expect(reason).toContainText('he marcado «Evitar el viento»');
   const indifferent = page.getByRole('radio', { name: 'Me da igual' });
   await expect(indifferent).toBeChecked();
-  const minutes = page.getByRole('group', { name: '¿Cuánto más estás dispuesto a andar?' });
-  await expect(minutes).toBeHidden();
   const avoidWind = page.getByRole('checkbox', { name: 'Evitar el viento' });
-  await avoidWind.check();
+  await expect(avoidWind).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Por parques' })).not.toBeChecked();
+  // With a preference the minutes are asked (PBI-18); changing them keeps the weather on.
+  const minutes = page.getByRole('group', { name: '¿Cuánto más estás dispuesto a andar?' });
   await expect(minutes).toBeVisible();
   await expect(minutes.getByRole('radio', { name: '+5 minutos' })).toBeChecked();
   await minutes.getByText('+10').click();
   await expect(minutes.getByRole('radio', { name: '+10 minutos' })).toBeChecked();
+  await expect(byWeather).toHaveAttribute('aria-pressed', 'true');
 
   // Log out and log in with the new account: the preferences come back from the account.
   await userMenu.click();
@@ -77,10 +85,13 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await page.getByLabel('Contraseña', { exact: true }).fill(user.password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await expect(userMenu).toBeVisible();
+  await expect(byWeather).toHaveAttribute('aria-pressed', 'true');
   await expect(avoidWind).toBeChecked();
   await expect(minutes.getByRole('radio', { name: '+10 minutos' })).toBeChecked();
-  // Back to «Me da igual» for the fastest route.
+  // Unchecking the wind by hand turns the weather off: everything indifferent, the fastest route.
   await avoidWind.uncheck();
+  await expect(byWeather).toHaveAttribute('aria-pressed', 'false');
+  await expect(reason).toBeHidden();
   await expect(indifferent).toBeChecked();
   await expect(minutes).toBeHidden();
 
@@ -108,14 +119,12 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await page.keyboard.press('Escape');
   await expect(recentPlaces).toBeHidden();
 
-  // "Según el tiempo" (the recommended route of PBI-9.1, provisional until PBI-21): its reason
-  // (strong cierzo of the fake weather) and the comparison.
-  await page.getByRole('button', { name: 'Según el tiempo' }).click();
+  // «Según el tiempo de hoy» on again: it marks the wind again and the route of those answers is
+  // compared with the fastest one, with the minutes of the bar.
+  await byWeather.click();
+  await expect(reason).toContainText('he marcado «Evitar el viento»');
+  await expect(avoidWind).toBeChecked();
   await page.getByRole('button', { name: 'Calcular ruta' }).click();
-  const recommendation = page.getByRole('region', { name: /^Según el tiempo:/ });
-  await expect(recommendation).toBeVisible();
-  await expect(recommendation.getByRole('status')).toContainText(/cierzo de 40 km\/h/);
-  await expect(recommendation.getByRole('status')).toContainText('se evita el viento de cara');
   const comparison = page.getByRole('region', { name: 'Comparación' });
   await expect(comparison).toBeVisible();
   const fastestOption = comparison.getByRole('button', { name: /La más rápida/ });
