@@ -192,6 +192,32 @@ opción de la lista de cada campo.
 - El endpoint requiere sesión y se consume mediante `src/services/api/weatherApi.js`; si el proveedor
   no entrega `weatherCode`, el panel indica que el estado del cielo no está disponible.
 
+## Comprobaciones de la PBI-21 («Según el tiempo de hoy»)
+
+El tiempo de ahora marca las preguntas de la PBI-18 y explica por qué (ADR-037: ver DECISIONS.md en
+la carpeta docs del Drive del equipo). Sustituye a la «Recomendada» de la PBI-9.1: la ruta se calcula
+con `POST /api/routes/preferred`, las respuestas marcadas y los minutos de la barra. Código:
+`src/features/route-preferences/` y `getWeatherSuggestion` en `src/services/api/routePreferencesApi.js`.
+
+- Botón «Según el tiempo de hoy» (icono de sol con nube) junto a «¿Cómo prefieres ir?». Activado,
+  pide `GET /api/route-preferences/weather` y marca «Sombra» con calor, «Sol» con frío y «Evitar el
+  viento» con viento fuerte; con tiempo templado o de noche deja «Me da igual» (la ruta más rápida).
+  «Por parques» nunca se marca solo.
+- Debajo del botón, el motivo: «Hace calor (sensación de 31 °C) y sopla cierzo de 35 km/h: he
+  marcado «Sombra» y «Evitar el viento».». Mientras consulta: «Consultando el tiempo de hoy…».
+- Las opciones marcadas se ven marcadas y se pueden cambiar. Elegir a mano sombra, sol o el viento
+  lo apaga (el motivo desaparece); «Por parques» y los minutos no.
+- Viene activado para los usuarios nuevos y se guarda en la cuenta (`byWeather` en
+  `PUT /api/route-preferences`): al volver a entrar, en cualquier dispositivo, se recuerda la última
+  elección y, si está activado, se vuelve a consultar el tiempo.
+- Sin datos del tiempo (o si falla la petición) se avisa y no se cambia ninguna respuesta.
+- Con él activado no se piden fecha y hora: es el tiempo de ahora.
+- El tiempo extra es el de la barra (+2 … +15 min), no el 25 % de la antigua «Recomendada», cuya
+  tarjeta se ha retirado.
+- Prueba real del 2026-11-23 (20:05, 10 °C, viento de 1 km/h, de noche) con un usuario nuevo: entra
+  activado, con «Me da igual» y «Es de noche y hay poco viento (1 km/h): no hace falta desviarse, así
+  que te propongo la ruta más rápida.»; al elegir «Sombra» se apaga.
+
 ## Comprobaciones de la PBI-18 (preferencias sencillas)
 
 Las rutas guardadas se sustituyen por preguntas sencillas con los textos y los iconos de los bocetos
@@ -212,8 +238,8 @@ carpeta docs del Drive del equipo); en la interfaz no se ven pesos ni porcentaje
   las de por defecto y no se guardan; si un cambio no se puede guardar se avisa y se usa igualmente.
 - Con una ruta calculada, las preguntas se pliegan en un resumen («Sol · Por parques · +10 min») con
   «Cambiar preferencias». Cambiar una respuesta borra la ruta calculada.
-- «Según el tiempo» (provisional hasta la PBI-21): un botón que funciona exactamente como la antigua
-  «Recomendada» (misma llamada y mismo 25 %); no se guarda. Elegir cualquier respuesta lo apaga.
+- «Según el tiempo de hoy»: ver «Comprobaciones de la PBI-21» (sustituye al botón provisional
+  «Según el tiempo» de la PBI-18).
 - La ruta elegida se llama «Tu ruta» y la otra «La más rápida» (comparación, resumen y leyenda). Sin
   ruta mejor dentro del tiempo: «Hay caminos que encajan mejor con tus preferencias, pero ninguno
   sin andar más de 5 min extra: te enseño la más rápida.».
@@ -360,9 +386,9 @@ nombre al modelo (ver README del backend).
 
 ## Comprobaciones de la PBI-9.1 (ruta recomendada)
 
-> **Desde la PBI-18** la «Recomendada» es el botón provisional «Según el tiempo» del panel de
-> preferencias (hasta la PBI-21): misma llamada y mismo 25 %; su bloque se titula «Según el tiempo:
-> <criterio>» y la ruta elegida, «Tu ruta». Ya no es una tarjeta de la fila de rutas.
+> **Desde la PBI-21** el frontend ya no usa `POST /api/routes/recommended` ni muestra el bloque de
+> la recomendación: «Según el tiempo de hoy» marca las preguntas con la misma regla (ver
+> «Comprobaciones de la PBI-21»). Lo que sigue es histórico.
 
 La ruta recomendada la decide el backend con el tiempo actual: `POST /api/routes/recommended` solo
 recibe `origin` y `destination` y devuelve la comparación de siempre más `recommendation` (criterio,
@@ -391,8 +417,8 @@ backend.
 
 ## Comprobaciones de la barra Sombra ↔ Sol
 
-> **Desde la PBI-18** la barra solo queda en la tarjeta de «Según el tiempo»: el editor, las tarjetas
-> y «Ver todas» se han retirado.
+> **Desde la PBI-18** el editor, las tarjetas y «Ver todas» se han retirado, y desde la PBI-21
+> también la tarjeta de la recomendación: la barra ya no aparece.
 
 Sombra y sol son los dos extremos de una sola escala (ADR-030: ver DECISIONS.md en la carpeta docs
 del Drive del equipo). La API no cambia: sigue enviando `weights.shade` y `weights.sun`, pero nunca los

@@ -1,9 +1,4 @@
-import {
-  answersFromWeights,
-  hasPreference,
-  minutesText,
-  preferencesSummary,
-} from './preferenceTexts.js';
+import { hasPreference, minutesText, preferencesSummary } from './preferenceTexts.js';
 
 const answers = (overrides = {}) => ({
   sunShade: 'any',
@@ -35,23 +30,5 @@ describe('words of the simple preferences (PBI-18)', () => {
 
   it('writes the minutes as the buttons of the sketches', () => {
     expect([0, 2, 5, 10, 15].map(minutesText)).toEqual(['Nada', '+2', '+5', '+10', '+15']);
-  });
-
-  it('reads the weights of «Según el tiempo» as answers', () => {
-    expect(answersFromWeights({ shade: 50, sun: 0, wind: 50 })).toEqual({
-      sunShade: 'shade',
-      avoidWind: true,
-      preferParks: false,
-    });
-    expect(answersFromWeights({ shade: 0, sun: 50, wind: 0, vegetation: 0 })).toEqual({
-      sunShade: 'sun',
-      avoidWind: false,
-      preferParks: false,
-    });
-    expect(answersFromWeights(undefined)).toEqual({
-      sunShade: 'any',
-      avoidWind: false,
-      preferParks: false,
-    });
   });
 });

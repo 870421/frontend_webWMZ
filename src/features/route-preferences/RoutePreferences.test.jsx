@@ -11,7 +11,7 @@ function renderPreferences(props = {}) {
   return { ...view, ...handlers };
 }
 
-describe('RoutePreferences (PBI-18)', () => {
+describe('RoutePreferences (PBI-18, PBI-21)', () => {
   it('asks the questions of the sketches, with «Me da igual» by default', () => {
     renderPreferences();
 
@@ -59,20 +59,40 @@ describe('RoutePreferences (PBI-18)', () => {
     expect(onChange).toHaveBeenLastCalledWith({ avoidWind: true });
   });
 
-  it('«Según el tiempo» is a toggle that leaves the answers unmarked and the minutes out', async () => {
+  it('«Según el tiempo de hoy» shows the answers the weather marked and why', async () => {
     const user = userEvent.setup();
     const { onToggleWeather } = renderPreferences({
-      preferences: { ...DEFAULTS, sunShade: 'sun' },
+      preferences: { ...DEFAULTS, sunShade: 'shade', avoidWind: true },
       byWeather: true,
+      weather: {
+        status: 'available',
+        message:
+          'Hace calor (sensación de 31 °C) y sopla cierzo: he marcado «Sombra» y «Evitar el viento».',
+      },
     });
 
-    const weather = screen.getByRole('button', { name: 'Según el tiempo' });
+    const weather = screen.getByRole('button', { name: 'Según el tiempo de hoy' });
     expect(weather).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('status')).toHaveTextContent('con el tiempo de ahora');
-    expect(screen.getByRole('radio', { name: 'Sol' })).not.toBeChecked();
-    expect(screen.queryByRole('group', { name: /Cuánto más/ })).not.toBeInTheDocument();
+    expect(weather.querySelector('.profile-icon-weather')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Hace calor (sensación de 31 °C) y sopla cierzo: he marcado «Sombra» y «Evitar el viento».'
+    );
+    // The answers are checked, so they can be changed afterwards, and the minutes are asked.
+    expect(screen.getByRole('radio', { name: 'Sombra' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Evitar el viento' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Por parques' })).not.toBeChecked();
+    expect(screen.getByRole('group', { name: /Cuánto más/ })).toBeInTheDocument();
     await user.click(weather);
     expect(onToggleWeather).toHaveBeenCalledTimes(1);
+  });
+
+  it('«Según el tiempo de hoy» off: no reason is shown', () => {
+    renderPreferences({ weather: { status: 'idle', message: '' } });
+    expect(screen.getByRole('button', { name: 'Según el tiempo de hoy' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('once a route is calculated folds into a summary with «Cambiar preferencias»', async () => {
@@ -90,14 +110,16 @@ describe('RoutePreferences (PBI-18)', () => {
 
     rerender(
       <RoutePreferences
-        preferences={DEFAULTS}
+        preferences={{ ...DEFAULTS, sunShade: 'shade' }}
         byWeather
         isCompact
         onChange={onChange}
         onToggleWeather={jest.fn()}
       />
     );
-    expect(screen.getByText('Según el tiempo', { selector: 'p' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Según el tiempo de hoy: Sombra · +5 min', { selector: 'p' })
+    ).toBeInTheDocument();
   });
 
   it('says when the preferences could not be loaded or saved', () => {

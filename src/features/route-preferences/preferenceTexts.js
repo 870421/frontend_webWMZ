@@ -14,16 +14,6 @@ export const hasPreference = ({ sunShade, avoidWind, preferParks }) =>
 
 export const minutesText = (minutes) => (minutes === 0 ? 'Nada' : `+${minutes}`);
 
-// The answers behind some weights (> 0 is "yes"). Only for the provisional "Según el tiempo", whose
-// weights come from the backend (the recommended route of PBI-9.1), so that the route assistant can
-// start from them (ADR-036).
-export function answersFromWeights(weights = {}) {
-  let sunShade = 'any';
-  if (weights.shade > 0) sunShade = 'shade';
-  else if (weights.sun > 0) sunShade = 'sun';
-  return { sunShade, avoidWind: weights.wind > 0, preferParks: weights.vegetation > 0 };
-}
-
 // "Sol · Por parques · +10 min"; with every answer indifferent, the fastest route.
 export function preferencesSummary(preferences) {
   if (!hasPreference(preferences)) return 'Me da igual · La más rápida';
