@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { ProfileDialog } from '../route-profiles/ProfileDialog.jsx';
+import { Dialog } from '../../components/ui/Dialog.jsx';
 import { ASSISTANT_NAME, CierzoLogo } from './CierzoLogo.jsx';
 
 /**
@@ -35,7 +35,7 @@ export function AssistantFab({ isAdjusted = false, children }) {
         </span>
       </button>
       {isOpen && (
-        <ProfileDialog
+        <Dialog
           title={
             <>
               <CierzoLogo />
@@ -50,7 +50,7 @@ export function AssistantFab({ isAdjusted = false, children }) {
               Cerrar
             </button>
           </div>
-        </ProfileDialog>
+        </Dialog>
       )}
     </>
   );

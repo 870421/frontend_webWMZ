@@ -365,8 +365,8 @@ export function RouteSearchPanel({
   routeCalculation = { status: 'idle', errorMessage: '' },
   routeType = 'fastest',
   asksSolarDateTime = routeType === 'shaded',
-  alternativeLabel = 'Con sombra',
-  profilePicker = null,
+  alternativeLabel = 'Tu ruta',
+  preferences = null,
   routeHistory = null,
   // The places used recently as origin or destination (#180), offered in both fields.
   recentPlaces = [],
@@ -471,7 +471,7 @@ export function RouteSearchPanel({
           ))}
         </div>
         {routeHistory}
-        {profilePicker}
+        {preferences}
         {asksSolarDateTime && (
           <div className="solar-date-time" aria-label="Momento para estimar la sombra">
             <label>
@@ -551,7 +551,7 @@ export function RouteSearchPanel({
               duration={displayedRoute.duration}
               shadePercentage={displayedRoute.exposure?.shadePercentage}
               greenPercentage={displayedRoute.vegetation?.greenPercentage}
-              title={showsAlternative ? alternativeLabel : 'Ruta rápida'}
+              title={showsAlternative ? alternativeLabel : 'La más rápida'}
             />
           )}
           {renderComparison?.({

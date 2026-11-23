@@ -8,14 +8,12 @@ import { AssistantFab } from '../features/route-assistant/AssistantFab.jsx';
 import { RouteAssistant } from '../features/route-assistant/RouteAssistant.jsx';
 import { useRouteAssistant } from '../features/route-assistant/useRouteAssistant.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
-import { RouteProfilePicker } from '../features/route-profiles/RouteProfilePicker.jsx';
+import { RoutePreferences } from '../features/route-preferences/RoutePreferences.jsx';
 import {
-  RECOMMENDED_PROFILE,
-  RECOMMENDED_PROFILE_ID,
-  hasEnvironmentalWeight,
-  hasShadeWeight,
-  useRouteProfiles,
-} from '../features/route-profiles/useRouteProfiles.js';
+  answersFromWeights,
+  hasPreference,
+} from '../features/route-preferences/preferenceTexts.js';
+import { useRoutePreferences } from '../features/route-preferences/useRoutePreferences.js';
 import { RecommendationCard } from '../features/route-recommendation/RecommendationCard.jsx';
 import { NavigationPanel } from '../features/routing/NavigationPanel.jsx';
 import { useRouteNavigation } from '../features/routing/useRouteNavigation.js';
@@ -29,6 +27,9 @@ import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
 import { WeatherPanel } from '../features/weather/WeatherPanel.jsx';
 
 const ignoreMapPoint = () => {};
+// The route chosen with the preferences (or the weather) is "Tu ruta", as in the sketches of the
+// team (Mejoras_S4); the other one is "La más rápida".
+const ALTERNATIVE_LABEL = 'Tu ruta';
 
 function getStepGeometry(route, stepIndex) {
   const [start, end] = route.steps[stepIndex].wayPoints;
@@ -38,10 +39,13 @@ function getStepGeometry(route, stepIndex) {
 export function App({ userMenu = null }) {
   const routePoints = useRoutePoints();
   const routePlanner = useRoutePlanner();
-  const routeProfiles = useRouteProfiles();
+  const routePreferences = useRoutePreferences();
+  const { preferences } = routePreferences;
   const routeHistory = useRouteHistory();
   const routeAssistant = useRouteAssistant();
-  const [profileId, setProfileId] = useState(null);
+  // "Según el tiempo": the recommended route of PBI-9.1 as it was, provisional until PBI-21. It is
+  // not saved in the account (ADR-036).
+  const [byWeather, setByWeather] = useState(false);
   // Which of the two calculated routes is shown: the fastest one or the one chosen with the weights.
   const [shownRoute, setShownRoute] = useState('shaded');
   const [solarDateTime, setSolarDateTime] = useState(getZaragozaDateTime);
@@ -61,19 +65,7 @@ export function App({ userMenu = null }) {
     };
   }
 
-  // The recommended route (PBI-9.1) goes first, but the default is still the first saved route.
-  const pickerProfiles = [RECOMMENDED_PROFILE, ...routeProfiles.profiles];
-  // While loading, the presets are shown with their presetKey as id: a choice made then is kept
-  // once the routes of the user arrive.
-  const profile =
-    pickerProfiles.find(({ id }) => id === profileId) ??
-    routeProfiles.profiles.find(({ presetKey }) => presetKey && presetKey === profileId) ??
-    routeProfiles.profiles[0] ??
-    null;
-  // Internally "shaded" is still the route chosen with the weights: it is shown like the Shaded
-  // Route of PBI-5.4, with the name of the profile.
-  // The recommended route is compared with the fastest one like any route with weights.
-  const isRecommended = profile?.id === RECOMMENDED_PROFILE_ID;
+  const isRecommended = byWeather;
   // The route on screen. An answer of the route assistant (PBI-9.2) only counts while the route it
   // belongs to is shown: choosing another route, other points or another time leaves it behind.
   const shownComparisonOrRoute = routePlanner.comparison ?? routePlanner.fastest;
@@ -85,17 +77,16 @@ export function App({ userMenu = null }) {
     routePlanner.comparison && routeAssistant.applied?.comparison === routePlanner.comparison
       ? routeAssistant.applied.assistant
       : null;
-  // The type of the chosen route decides how "Calcular ruta" works and whether a date is asked for;
-  // the type on screen follows the assistant's weights when it changed them.
-  const profileRouteType =
-    isRecommended || (profile && hasEnvironmentalWeight(profile.weights)) ? 'shaded' : 'fastest';
-  let routeType = profileRouteType;
-  if (adjustment)
-    routeType = hasEnvironmentalWeight(adjustment.after.weights) ? 'shaded' : 'fastest';
-  // The recommended route is always for now, with the current weather.
+  // The answers decide how "Calcular ruta" works and whether a date is asked for: with every answer
+  // indifferent only the fastest route is calculated (PBI-18). The type on screen follows the
+  // assistant's answers when it changed them.
+  const chosenRouteType = isRecommended || hasPreference(preferences) ? 'shaded' : 'fastest';
+  let routeType = chosenRouteType;
+  if (adjustment) routeType = hasPreference(adjustment.after) ? 'shaded' : 'fastest';
+  // Only shade and sun depend on the date and time; "Según el tiempo" is always for now.
   const asksSolarDateTime =
-    !isRecommended && profileRouteType === 'shaded' && hasShadeWeight(profile.weights);
-  const alternativeLabel = adjustment ? 'Ajustada' : (profile?.name ?? 'Con sombra');
+    !isRecommended && chosenRouteType === 'shaded' && preferences.sunShade !== 'any';
+  const alternativeLabel = ALTERNATIVE_LABEL;
   const selectedRouteType =
     routeType === 'shaded' && shownRoute === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
   const activeRoute = selectedRouteType === 'shaded' ? routePlanner.shaded : routePlanner.fastest;
@@ -109,44 +100,40 @@ export function App({ userMenu = null }) {
   const showsAssistant =
     Boolean(activeRoute) && routePlanner.status !== 'loading' && !navigation.isActive;
 
-  function selectProfile(id) {
+  // A new answer means another route: the calculated ones go away and "Según el tiempo" too.
+  function changePreferences(changes) {
     routePlanner.clearRoutes();
     setShownRoute('shaded');
-    setProfileId(id);
+    setByWeather(false);
+    routePreferences.change(changes);
   }
 
-  async function saveProfile(id, draft) {
-    const saved = await routeProfiles.saveProfile(id, draft);
-    // The calculated routes were chosen with the old weights.
-    if (saved.id === profile?.id) routePlanner.clearRoutes();
-    return saved;
-  }
-
-  async function deleteProfile(id) {
-    await routeProfiles.deleteProfile(id);
-    if (id === profile?.id) selectProfile(null);
+  function toggleWeather() {
+    routePlanner.clearRoutes();
+    setShownRoute('shaded');
+    setByWeather((current) => !current);
   }
 
   // The places of a route that is calculated go to the recent places (#180); a failed one does not.
   async function calculateRoute(origin, destination, dateTime = solarDateTime) {
     setShownRoute('shaded');
     const result = await routePlanner.calculateRoute(origin, destination, {
-      routeType: profileRouteType,
+      routeType: chosenRouteType,
       recommended: isRecommended,
-      weights: profile?.weights,
-      maxDetourPercentage: profile?.maxDetourPercentage,
+      preferences,
       ...dateTime,
     });
     if (result) routeHistory.recordPlaces([origin, destination]);
   }
 
-  // The weights of the route on screen: the assistant's, the recommended ones or the profile's.
-  function currentSetting() {
+  // The answers of the route on screen: the assistant's, those behind the weights the weather chose
+  // or the user's.
+  function currentPreferences() {
     if (adjustment) return adjustment.after;
-    const source = isRecommended ? routePlanner.comparison?.recommendation : profile;
+    if (!isRecommended) return preferences;
     return {
-      weights: { shade: 0, sun: 0, wind: 0, vegetation: 0, ...source?.weights },
-      maxDetourPercentage: source?.maxDetourPercentage ?? 25,
+      ...answersFromWeights(routePlanner.comparison?.recommendation?.weights),
+      extraMinutes: preferences.extraMinutes,
     };
   }
 
@@ -158,7 +145,7 @@ export function App({ userMenu = null }) {
       // The date and time chosen by the user, if they chose one; otherwise the backend uses now.
       ...(asksSolarDateTime ? solarDateTime : {}),
       message,
-      ...currentSetting(),
+      preferences: currentPreferences(),
     });
     if (result?.comparison) {
       setShownRoute('shaded');
@@ -212,14 +199,7 @@ export function App({ userMenu = null }) {
                     result={assistantIsCurrent ? routeAssistant.result : null}
                     applied={adjustment}
                     errorMessage={routeAssistant.errorMessage}
-                    canSave={routeProfiles.isEditable}
-                    profiles={routeProfiles.profiles}
                     onAsk={askAssistant}
-                    onSaveProfile={(profileDraft) => routeProfiles.saveProfile(null, profileDraft)}
-                    // From the assistant the route is always new: nothing is deleted (#165).
-                    onReplaceProfile={(existingId, profileDraft) =>
-                      routeProfiles.replaceProfile(existingId, profileDraft, null)
-                    }
                     {...draft}
                   />
                 )}
@@ -274,16 +254,15 @@ export function App({ userMenu = null }) {
                   onSelectTrip={repeatTrip}
                 />
               }
-              profilePicker={
-                <RouteProfilePicker
-                  profiles={pickerProfiles}
-                  selectedId={profile?.id ?? null}
-                  isEditable={routeProfiles.isEditable}
-                  loadFailed={routeProfiles.loadFailed}
-                  onSelect={selectProfile}
-                  onSave={saveProfile}
-                  onDelete={deleteProfile}
-                  onReplace={routeProfiles.replaceProfile}
+              preferences={
+                <RoutePreferences
+                  preferences={preferences}
+                  byWeather={byWeather}
+                  isCompact={Boolean(routePlanner.fastest)}
+                  loadFailed={routePreferences.loadFailed}
+                  saveError={routePreferences.saveError}
+                  onChange={changePreferences}
+                  onToggleWeather={toggleWeather}
                 />
               }
               solarDate={solarDateTime.date}
@@ -309,10 +288,8 @@ export function App({ userMenu = null }) {
                       selectedRouteType={selectedRouteType}
                       alternativeLabel={alternativeLabel}
                       weights={
-                        adjustment?.after.weights ??
-                        (isRecommended
-                          ? routePlanner.comparison.recommendation?.weights
-                          : profile?.weights)
+                        routePlanner.comparison.weights ??
+                        routePlanner.comparison.recommendation?.weights
                       }
                       isExpanded={collapse.isExpanded}
                     />

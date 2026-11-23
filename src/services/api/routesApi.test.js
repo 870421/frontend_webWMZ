@@ -1,4 +1,12 @@
-import { getFastestRoute, getRecommendedRoute, getWeightedRouteComparison } from './routesApi.js';
+import { getFastestRoute, getPreferredRouteComparison, getRecommendedRoute } from './routesApi.js';
+
+const answers = (overrides = {}) => ({
+  sunShade: 'any',
+  avoidWind: false,
+  preferParks: false,
+  extraMinutes: 5,
+  ...overrides,
+});
 
 describe('getFastestRoute', () => {
   const originalFetch = global.fetch;
@@ -64,7 +72,7 @@ describe('getFastestRoute', () => {
     await expect(getFastestRoute({ origin, destination })).rejects.toThrow(message);
   });
 
-  it('posts the solar instant and the weights and validates the comparison', async () => {
+  it('posts the solar instant and the answers and validates the comparison (PBI-18)', async () => {
     const environmentalRoute = {
       ...route,
       exposure: {
@@ -89,13 +97,13 @@ describe('getFastestRoute', () => {
     });
 
     await expect(
-      getWeightedRouteComparison({
+      getPreferredRouteComparison({
         origin,
         destination,
         date: '2026-06-21',
         time: '14:00',
         timeZone: 'Europe/Madrid',
-        weights: { shade: 50, sun: 0 },
+        preferences: answers({ sunShade: 'shade', extraMinutes: 10 }),
       })
     ).resolves.toEqual({
       ...comparison,
@@ -105,14 +113,14 @@ describe('getFastestRoute', () => {
       windChangePoints: null,
       greenChangePercentagePoints: null,
     });
-    expect(global.fetch.mock.calls[0][0]).toMatch(/\/routes\/weighted$/);
+    expect(global.fetch.mock.calls[0][0]).toMatch(/\/routes\/preferred$/);
     expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
       origin: { lat: origin.lat, lng: origin.lng },
       destination: { lat: destination.lat, lng: destination.lng },
       date: '2026-06-21',
       time: '14:00',
       timeZone: 'Europe/Madrid',
-      weights: { shade: 50, sun: 0 },
+      preferences: answers({ sunShade: 'shade', extraMinutes: 10 }),
     });
   });
 
@@ -140,18 +148,18 @@ describe('getFastestRoute', () => {
       destination,
       date: '2026-11-06',
       time: '23:00',
-      weights: { shade: 0, sun: 0, wind: 100 },
+      preferences: answers({ avoidWind: true }),
     };
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce(reply(windyRoute(90)))
       .mockResolvedValueOnce(reply(windyRoute(140)));
 
-    await expect(getWeightedRouteComparison(request)).resolves.toMatchObject({
+    await expect(getPreferredRouteComparison(request)).resolves.toMatchObject({
       shaded: { windExposure: { exposure: 30 } },
       windChangePoints: -60,
     });
-    await expect(getWeightedRouteComparison(request)).rejects.toThrow('comparación no válida');
+    await expect(getPreferredRouteComparison(request)).rejects.toThrow('comparación no válida');
   });
 
   it('rejects invented or out-of-range shaded metrics', async () => {
@@ -171,12 +179,12 @@ describe('getFastestRoute', () => {
     });
 
     await expect(
-      getWeightedRouteComparison({
+      getPreferredRouteComparison({
         origin,
         destination,
         date: '2026-06-21',
         time: '14:00',
-        weights: { shade: 50, sun: 0 },
+        preferences: answers({ sunShade: 'shade' }),
       })
     ).rejects.toThrow('comparación no válida');
   });
@@ -288,6 +296,41 @@ describe('getFastestRoute', () => {
   });
 });
 
+describe('the route of the answers with only the fastest route (PBI-18)', () => {
+  it('accepts fastest_only, without shade data', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        comparison: {
+          status: 'fastest_only',
+          fastest: {
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [-0.88, 41.65],
+                [-0.87, 41.66],
+              ],
+            },
+            distance: 900,
+            duration: 600,
+          },
+          selected: null,
+          additionalDurationSeconds: null,
+          strategy: { maximumExtraMinutes: 5 },
+        },
+      }),
+    });
+
+    await expect(
+      getPreferredRouteComparison({
+        origin: { lat: 41.65, lng: -0.88 },
+        destination: { lat: 41.66, lng: -0.87 },
+        preferences: answers(),
+      })
+    ).resolves.toMatchObject({ status: 'fastest_only', shaded: null });
+  });
+});
+
 describe('green percentage in the weighted comparison (PBI-10 phase B)', () => {
   const originalFetch = global.fetch;
   afterEach(() => {
@@ -312,7 +355,7 @@ describe('green percentage in the weighted comparison (PBI-10 phase B)', () => {
     destination: { lat: 41.656, lng: -0.878 },
     date: '2026-11-12',
     time: '23:00',
-    weights: { shade: 0, sun: 0, wind: 0, vegetation: 100 },
+    preferences: answers({ preferParks: true }),
   };
   const reply = (selected, greenChangePercentagePoints) => ({
     ok: true,
@@ -327,19 +370,19 @@ describe('green percentage in the weighted comparison (PBI-10 phase B)', () => {
     }),
   });
 
-  it('keeps the green of each route and its change, and sends the vegetation weight', async () => {
+  it('keeps the green of each route and its change, and sends the answer about parks', async () => {
     global.fetch = jest.fn().mockResolvedValue(reply(greenRoute(80), 75));
 
-    await expect(getWeightedRouteComparison(request)).resolves.toMatchObject({
+    await expect(getPreferredRouteComparison(request)).resolves.toMatchObject({
       shaded: { vegetation: { greenPercentage: 80 } },
       greenChangePercentagePoints: 75,
     });
-    expect(JSON.parse(global.fetch.mock.calls[0][1].body).weights).toEqual(request.weights);
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body).preferences).toEqual(request.preferences);
   });
 
   it('rejects an impossible green percentage', async () => {
     global.fetch = jest.fn().mockResolvedValue(reply(greenRoute(130), 125));
 
-    await expect(getWeightedRouteComparison(request)).rejects.toThrow('comparación no válida');
+    await expect(getPreferredRouteComparison(request)).rejects.toThrow('comparación no válida');
   });
 });

@@ -96,7 +96,6 @@ input:focus-visible {
 .control-panel > *,
 .route-form,
 .selection-mode,
-.route-type-mode,
 .point-list,
 .map-guidance {
   min-width: 0;
@@ -164,16 +163,14 @@ input:focus-visible {
   gap: 0.85rem;
 }
 
-.selection-mode,
-.route-type-mode {
+.selection-mode {
   min-width: 0;
   border: 0;
   margin: 0;
   padding: 0;
 }
 
-.selection-mode legend,
-.route-type-mode legend {
+.selection-mode legend {
   margin-bottom: 0.4rem;
   color: #65758c;
   font-size: 0.72rem;
@@ -208,189 +205,6 @@ input:focus-visible {
   box-shadow: 0 0.15rem 0.45rem rgba(26, 63, 52, 0.1);
 }
 
-.route-type-control button:last-child.is-active {
-  color: #176d58;
-  background: #e5f7ef;
-}
-
-/* PBI-6: las rutas del usuario como tarjetas con icono; los iconos de arriba actúan sobre la elegida. */
-.route-profiles-header {
-  display: flex;
-  min-height: 2rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.3rem;
-}
-
-.route-profiles-title {
-  color: #65758c;
-  font-size: 0.72rem;
-  font-weight: 750;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-}
-
-.route-profile-tools {
-  display: flex;
-  margin-left: auto;
-  gap: 0.15rem;
-}
-
-.route-profiles-all {
-  border: 0;
-  padding: 0.2rem 0.1rem;
-  color: #176d58;
-  background: none;
-  font-size: 0.76rem;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-.profile-icons {
-  display: flex;
-  gap: 0.2rem;
-}
-
-.route-profile-carousel { position: relative; }
-
-/* Flechas sobre el borde cortado, con un degradado para que se vea que hay más. */
-.route-profile-arrow {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  bottom: 0;
-  display: grid;
-  width: 2.2rem;
-  place-items: center;
-  border: 0;
-  padding: 0;
-  color: #176d58;
-  cursor: pointer;
-}
-
-.route-profile-arrow .profile-icon {
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 50%;
-  padding: 0.3rem;
-  background: #ffffff;
-  box-shadow: 0 0.15rem 0.5rem rgba(24, 48, 39, 0.22);
-}
-
-.route-profile-arrow-before {
-  left: 0;
-  justify-items: start;
-  background: linear-gradient(to right, #ffffff 35%, rgba(255, 255, 255, 0));
-}
-
-.route-profile-arrow-after {
-  right: 0;
-  justify-items: end;
-  background: linear-gradient(to left, #ffffff 35%, rgba(255, 255, 255, 0));
-}
-
-.all-profiles-search {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid #d7e1e7;
-  border-radius: 0.7rem;
-  padding: 0 0.75rem;
-  color: #7b8899;
-}
-
-.all-profiles-search input {
-  min-width: 0;
-  min-height: 2.6rem;
-  flex: 1;
-  border: 0;
-  outline: 0;
-  color: var(--ink);
-  background: none;
-  font: inherit;
-  font-size: 0.95rem;
-}
-
-.all-profiles-search:focus-within { border-color: #2c8a5f; }
-
-.all-profiles-list {
-  display: grid;
-  max-height: 50dvh;
-  gap: 0.35rem;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.all-profiles-list button {
-  display: grid;
-  width: 100%;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.6rem;
-  border: 1px solid #dfe7ec;
-  border-radius: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  color: var(--ink);
-  background: #f7f9fa;
-  text-align: left;
-  cursor: pointer;
-}
-
-.all-profiles-list button strong {
-  overflow: hidden;
-  font-size: 0.9rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.all-profiles-list button small {
-  color: #7b8899;
-  font-size: 0.74rem;
-  white-space: nowrap;
-}
-
-.all-profiles-list button.is-active {
-  border-color: #2c8a5f;
-  background: #e8f5ef;
-}
-
-.all-profiles-list .profile-icon-shade,
-.route-profile-list .profile-icon-shade { color: #2c8a5f; }
-
-.all-profiles-list .profile-icon-sun,
-.route-profile-list .profile-icon-sun { color: #d48a12; }
-
-.all-profiles-list .profile-icon-wind,
-.route-profile-list .profile-icon-wind { color: #3a7ca5; }
-
-.all-profiles-list .profile-icon-vegetation,
-.route-profile-list .profile-icon-vegetation { color: #5a9a2e; }
-
-.all-profiles-list .profile-icon-fastest { color: #6b7b91; }
-
-.route-profile-tools button {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  place-items: center;
-  border: 0;
-  border-radius: 0.55rem;
-  color: #176d58;
-  background: transparent;
-  cursor: pointer;
-}
-
-.route-profile-tools button:hover,
-.route-profile-tools button:focus-visible { background: #e8f5ef; }
-
-.route-profile-tools .route-profile-tool-delete { color: #a2441f; }
-
-.route-profile-tools .route-profile-tool-delete:hover,
-.route-profile-tools .route-profile-tool-delete:focus-visible { background: #fff1eb; }
-
 .profile-icon {
   width: 1.15rem;
   height: 1.15rem;
@@ -400,64 +214,6 @@ input:focus-visible {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.9;
-}
-
-.route-profile-list {
-  display: grid;
-  /* Wide enough for the longest fixed name, "Recomendada" (PBI-9.1), without cutting it. */
-  grid-auto-columns: minmax(7rem, 1fr);
-  grid-auto-flow: column;
-  gap: 0.4rem;
-  overflow-x: auto;
-  /* Al llevar la tarjeta elegida a la vista, que no quede debajo de una flecha. */
-  scroll-padding-inline: 2.4rem;
-  scrollbar-width: none;
-}
-
-.route-profile-list::-webkit-scrollbar { display: none; }
-
-.route-profile-list button {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  justify-items: start;
-  gap: 0.1rem;
-  border: 1px solid #dfe7ec;
-  border-radius: 0.75rem;
-  padding: 0.5rem 0.6rem;
-  color: #536174;
-  background: #f7f9fa;
-  text-align: left;
-  cursor: pointer;
-}
-
-.route-profile-list button strong {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--ink);
-  font-size: 0.82rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.route-profile-summary {
-  display: grid;
-  gap: 0.05rem;
-}
-
-.route-profile-list button small {
-  color: #7b8899;
-  font-size: 0.7rem;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.route-profile-list .profile-icon-fastest { color: #6b7b91; }
-
-.route-profile-list button.is-active {
-  border-color: #2c8a5f;
-  background: #e8f5ef;
-  box-shadow: inset 0 0 0 1px #2c8a5f;
 }
 
 /* Pop-up: ventana centrada y, en el móvil, hoja que sube desde abajo. */
@@ -495,185 +251,10 @@ input:focus-visible {
   font-size: 0.88rem;
 }
 
-.route-profile-editor {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.route-profile-name {
-  display: grid;
-  gap: 0.3rem;
-  color: #536174;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.route-profile-name input {
-  min-height: 2.6rem;
-  border: 1px solid #d7e1e7;
-  border-radius: 0.65rem;
-  padding: 0 0.75rem;
-  color: var(--ink);
-  background: #ffffff;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.route-profile-name input[aria-invalid="true"] { border-color: #c0573a; }
-
-.route-profile-weight {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.route-profile-weight span {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--ink);
-  font-size: 0.88rem;
-  font-weight: 700;
-}
-
-.route-profile-weight output {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-}
-
-.route-profile-weight-shade .profile-icon { color: #2c8a5f; }
-.route-profile-weight-sun .profile-icon { color: #d48a12; }
-.route-profile-weight-wind .profile-icon { color: #3a7ca5; }
-
-.route-profile-weight input { width: 100%; }
-.route-profile-weight-shade input { accent-color: #2c8a5f; }
-.route-profile-weight-sun input { accent-color: #d48a12; }
-.route-profile-weight-wind input { accent-color: #3a7ca5; }
-.route-profile-weight-vegetation .profile-icon { color: #5a9a2e; }
-.route-profile-weight-vegetation input { accent-color: #5a9a2e; }
-.route-profile-weight-time .profile-icon { color: #536174; }
-
-/* One bar for shade and sun (ADR-030): shade to the left, neutral in the middle, sun to the right. */
-.route-profile-weight-shade-sun .profile-icon { color: #2c8a5f; }
-
-.shade-sun-ends {
-  display: flex;
-  justify-content: space-between;
-  color: #536174;
-  font-size: 0.76rem;
-  font-weight: 650;
-}
-
-.route-profile-weight .shade-sun-ends span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-weight: 650;
-}
-
-.shade-sun-ends .profile-icon-shade { color: #2c8a5f; }
-.shade-sun-ends .profile-icon-sun { color: #d48a12; }
-
-.route-profile-weight-shade-sun .shade-sun-range {
-  /* Own track: the browser fill from the left would suggest shade when sun is chosen. */
-  width: 100%;
-  min-height: 2rem;
-  margin: 0;
-  border-radius: 0.6rem;
-  background: linear-gradient(#8794a6, #8794a6) center / 2px 1rem no-repeat;
-  cursor: pointer;
-  appearance: none;
-}
-
-.shade-sun-range::-webkit-slider-runnable-track {
-  height: 0.45rem;
-  border-radius: 999px;
-  background: linear-gradient(to right, #b9dfcb, #e3e8ee 50%, #f3d9a8);
-}
-
-.shade-sun-range::-moz-range-track {
-  height: 0.45rem;
-  border-radius: 999px;
-  background: linear-gradient(to right, #b9dfcb, #e3e8ee 50%, #f3d9a8);
-}
-
-.shade-sun-range::-webkit-slider-thumb {
-  width: 1.3rem;
-  height: 1.3rem;
-  margin-top: -0.425rem;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  background: var(--shade-sun-thumb, #536174);
-  box-shadow: 0 1px 4px rgba(28, 42, 63, 0.35);
-  appearance: none;
-}
-
-.shade-sun-range::-moz-range-thumb {
-  width: 1.3rem;
-  height: 1.3rem;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  background: var(--shade-sun-thumb, #536174);
-  box-shadow: 0 1px 4px rgba(28, 42, 63, 0.35);
-}
-
-.shade-sun-range.is-shade { --shade-sun-thumb: #2c8a5f; }
-.shade-sun-range.is-sun { --shade-sun-thumb: #d48a12; }
-
-.shade-sun-range:focus-visible {
-  outline: 3px solid #b9dfcb;
-  outline-offset: 2px;
-}
-.route-profile-weight-time input { accent-color: #536174; }
-.route-profile-weight-time input:disabled { opacity: 0.45; }
-
-.route-profile-help {
-  margin: 0;
-  color: #7b8899;
-  font-size: 0.76rem;
-}
-
 .field-error {
   margin: 0;
   color: #a2441f;
   font-size: 0.76rem;
-}
-
-/* A route name that another route already has (#165): replace it or change the name. */
-.name-conflict-live:empty { display: none; }
-
-.name-conflict-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.name-conflict-actions button {
-  min-height: 2.4rem;
-  border-radius: 0.7rem;
-  padding: 0 0.9rem;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-.name-conflict-actions .profile-dialog-danger {
-  border: 0;
-  color: #ffffff;
-}
-
-.name-conflict-confirm {
-  display: grid;
-  gap: 0.5rem;
-  border: 1px solid #efc9b8;
-  border-radius: 0.7rem;
-  padding: 0.65rem 0.75rem;
-  background: #fff6f1;
-}
-
-.name-conflict-confirm p {
-  margin: 0;
-  color: var(--ink);
-  font-size: 0.85rem;
 }
 
 .profile-dialog-actions {
@@ -1821,12 +1402,6 @@ input:focus-visible {
   color: #5b4fc4;
 }
 
-.route-assistant-save-title {
-  margin: 0;
-  color: #35445a;
-  font-size: 0.92rem;
-}
-
 /* The logo of Cierzo (#181): strokes in the current colour, the leaf in light green. */
 .cierzo-logo-leaf { fill: #c8f0da; }
 
@@ -2027,28 +1602,6 @@ input:focus-visible {
   font-weight: 700;
   white-space: nowrap;
 }
-
-.assistant-change-scales {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.assistant-change-scales meter {
-  width: 100%;
-  height: 0.55rem;
-}
-
-.assistant-change-arrow { color: #8794a6; }
-
-.assistant-change-wind .profile-icon { color: #3a7ca5; }
-.assistant-change-wind meter { accent-color: #3a7ca5; }
-.assistant-change-vegetation .profile-icon { color: #5a9a2e; }
-.assistant-change-vegetation meter { accent-color: #5a9a2e; }
-.assistant-change-shadeSun .profile-icon { color: #2c8a5f; }
-.assistant-change-time .profile-icon { color: #536174; }
 
 .route-assistant-save {
   justify-self: start;
@@ -2680,17 +2233,8 @@ input:focus-visible {
   /* Ruta Sombreada (PBI-5.4) en pantallas pequeñas: el panel superior y la hoja inferior tapaban
      la mayor parte del mapa. Plegado, el panel solo deja la cabecera; con resultado, la hoja
      inferior no repite la ruta en el resumen y en la comparación. */
-  .route-search-panel.is-collapsed .route-type-mode,
-  .route-search-panel.is-collapsed .solar-date-time { display: none; }
-
-  .route-type-mode legend {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
+  .route-search-panel.is-collapsed .solar-date-time,
+  .route-search-panel.is-collapsed .route-preferences { display: none; }
 
   .solar-date-time { gap: 0.4rem; }
 
@@ -3485,7 +3029,7 @@ input:focus-visible {
    desplegable no se monte encima. Vuelve a como estaba al cerrar el menú. */
 @media (max-width: 56.24rem) {
   .app-shell:has(.user-menu-dropdown) .point-list,
-  .app-shell:has(.user-menu-dropdown) .route-type-mode,
+  .app-shell:has(.user-menu-dropdown) .route-preferences,
   .app-shell:has(.user-menu-dropdown) .solar-date-time { display: none; }
 }
 
@@ -3555,9 +3099,7 @@ input:focus-visible {
    impediría ampliar con dos dedos. */
 @media (pointer: coarse) {
   .point-input-shell input,
-  .solar-date-time input,
-  .route-profile-name input,
-  .all-profiles-search input { font-size: 16px; }
+  .solar-date-time input { font-size: 16px; }
 }
 
 /* Touch targets of at least 44×44 px on small screens (WCAG 2.5.5), checked at 390 and 320 px with
@@ -3568,8 +3110,7 @@ input:focus-visible {
   .route-steps-header button,
   .route-actions .clear-selection-button,
   .route-actions .route-submit,
-  .point-input-shell input,
-  .all-profiles-search input { min-height: 2.75rem; }
+  .point-input-shell input { min-height: 2.75rem; }
 
   .input-icon-button {
     width: 2.75rem;
@@ -3577,26 +3118,243 @@ input:focus-visible {
     min-height: 2.75rem;
   }
 
-  .route-profile-tools button {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
+  .profile-dialog-actions button { min-height: 2.75rem; }
+}
 
-  .route-profile-weight input[type='range'] { min-height: 2.75rem; }
+/* PBI-18: «¿Cómo prefieres ir?», como en los bocetos del equipo (Mejoras_S4). Radios y casillas
+   nativos (teclado y lectores de pantalla) dibujados como botones de al menos 44 px. */
+.route-preferences {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
 
-  .route-profile-name input,
-  .profile-dialog-actions button,
-  .name-conflict-actions button { min-height: 2.75rem; }
+.route-preferences-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
 
-  .route-profiles-all {
-    min-height: 2.75rem;
-    padding: 0 0.35rem;
-    white-space: nowrap;
+.route-preferences-header h3 {
+  margin: 0;
+  color: #17322a;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.weather-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0 0.7rem;
+  border: 1px solid #cfe3d9;
+  border-radius: 999px;
+  color: #176d58;
+  background: #eef7f2;
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.weather-choice.is-active {
+  border-color: #176d58;
+  color: #ffffff;
+  background: #176d58;
+}
+
+.preferences-note {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.65rem;
+  color: #3d4f48;
+  background: #f2f6f4;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.preference-group {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.preference-group legend {
+  margin-bottom: 0.45rem;
+  padding: 0;
+  color: #4d5d6f;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.preference-minutes legend {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.preference-minutes-value {
+  flex: none;
+  color: #176d58;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.sun-shade-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.8rem;
+  background: #f0f4f6;
+}
+
+.toggle-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.minute-choices {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.preference-choice,
+.preference-toggle {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.preference-choice input,
+.preference-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.preference-choice > span,
+.preference-toggle > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0 0.4rem;
+  border-radius: 0.6rem;
+  color: #3d4f48;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+}
+
+.preference-toggle > span {
+  justify-content: flex-start;
+  padding: 0 0.55rem;
+  font-size: 0.86rem;
+  white-space: nowrap;
+  border: 1px solid #d5e0dc;
+  background: #ffffff;
+}
+
+.minute-choices .preference-choice > span {
+  border: 1px solid #d5e0dc;
+  background: #ffffff;
+}
+
+.sun-shade-choices input:checked + span,
+.minute-choices input:checked + span {
+  border-color: #176d58;
+  color: #ffffff;
+  background: #176d58;
+}
+
+.preference-toggle input:checked + span {
+  border: 2px solid #176d58;
+  color: #176d58;
+  background: #eef7f2;
+}
+
+.preference-choice input:focus-visible + span,
+.preference-toggle input:focus-visible + span {
+  outline: 3px solid #2c8a5f;
+  outline-offset: 2px;
+}
+
+.route-preferences .profile-icon-shade { color: #3a6b8f; }
+.route-preferences .profile-icon-sun { color: #d48a12; }
+.route-preferences .profile-icon-wind { color: #3a7ca5; }
+.route-preferences .profile-icon-vegetation { color: #2c8a5f; }
+.route-preferences .profile-icon-recommended { color: inherit; }
+.route-preferences input:checked + span .profile-icon { color: inherit; }
+
+.preferences-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.preferences-summary p {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  color: #176d58;
+  background: #eef7f2;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.preferences-summary button {
+  min-height: 2.75rem;
+  border: 1px solid #d7e1e7;
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  color: #176d58;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.preferences-summary button:hover { background: #f1f8f4; }
+
+/* En 320 px los textos de las opciones se ajustan para que quepan las tres en una fila. */
+@media (max-width: 22rem) {
+  .preference-choice > span,
+  .preference-toggle > span { font-size: 0.82rem; }
+
+  .preference-toggle > span {
+    padding: 0 0.4rem;
+    white-space: normal;
   }
 }
 
-/* At 320 px the header does not fit with 44 px buttons: the visual title goes (the fieldset keeps
-   its accessible legend, "Tipo de ruta"). */
-@media (max-width: 22rem) {
-  .route-profiles-title { display: none; }
+.assistant-change-sunShade .profile-icon-shade { color: #3a6b8f; }
+.assistant-change-sunShade .profile-icon-sun { color: #d48a12; }
+.assistant-change-avoidWind .profile-icon { color: #3a7ca5; }
+.assistant-change-preferParks .profile-icon { color: #2c8a5f; }
+.assistant-change-extraMinutes .profile-icon { color: #536174; }
+
+/* PBI-18: con las preguntas, el panel superior abierto puede no caber encima de la hoja inferior en
+   pantallas bajas (320 × 640): se desplaza por dentro en lugar de quedar tapado por la hoja. */
+@media (max-width: 56.24rem) {
+  .control-panel:has(.route-search-panel:not(.is-collapsed)) {
+    max-height: calc(100dvh - var(--route-sheet-height, 6.5rem) - 1.75rem);
+    overflow-y: auto;
+  }
 }

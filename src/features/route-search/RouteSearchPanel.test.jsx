@@ -549,7 +549,7 @@ describe('RouteSearchPanel', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: 'Ruta rápida' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'La más rápida' })).toBeInTheDocument();
     expect(screen.getByText('16 min')).toBeInTheDocument();
     expect(screen.getByText('1,3 km')).toBeInTheDocument();
   });
@@ -558,9 +558,9 @@ describe('RouteSearchPanel', () => {
     const onSolarDateChange = jest.fn();
     const onSolarTimeChange = jest.fn();
     const { rerender } = render(
-      <RouteSearchPanel routeType="fastest" profilePicker={<p>Selector de rutas</p>} />
+      <RouteSearchPanel routeType="fastest" preferences={<p>Preguntas</p>} />
     );
-    expect(screen.getByText('Selector de rutas')).toBeInTheDocument();
+    expect(screen.getByText('Preguntas')).toBeInTheDocument();
     expect(screen.queryByLabelText('Hora')).not.toBeInTheDocument();
 
     rerender(

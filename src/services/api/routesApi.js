@@ -114,42 +114,6 @@ function isValidComparison(comparison) {
   );
 }
 
-// Same shape as the Shaded Route comparison: the route chosen with the weights takes the place of
-// the shaded one.
-export async function getWeightedRouteComparison(
-  { origin, destination, date, time, timeZone, weights, maxDetourPercentage },
-  { signal } = {}
-) {
-  const data = await apiRequest('/routes/weighted', {
-    method: 'POST',
-    signal,
-    body: JSON.stringify({
-      origin: { lat: origin.lat, lng: origin.lng },
-      destination: { lat: destination.lat, lng: destination.lng },
-      date,
-      time,
-      timeZone,
-      weights,
-      maxDetourPercentage,
-    }),
-    errorMessages: ROUTE_ERROR_MESSAGES,
-    fallbackErrorMessage: 'No se ha podido calcular la ruta. Inténtalo de nuevo.',
-  });
-  const comparison = data?.comparison && {
-    ...data.comparison,
-    shaded: data.comparison.selected ?? null,
-    shadeImprovementPercentagePoints: data.comparison.shadeChangePercentagePoints ?? null,
-    windChangePoints: data.comparison.windChangePoints ?? null,
-    greenChangePercentagePoints: data.comparison.greenChangePercentagePoints ?? null,
-  };
-
-  if (!isValidComparison(comparison)) {
-    throw new Error('El servidor ha devuelto una comparación no válida. Inténtalo de nuevo.');
-  }
-
-  return comparison;
-}
-
 const WEIGHT_KEYS = ['shade', 'sun', 'wind'];
 
 // The weights and the reason chosen by the backend with the current weather (PBI-9.1, ADR-029).
@@ -195,7 +159,38 @@ export function normalizeWeightedComparison(raw) {
   return isValidRecommendedComparison(comparison) ? comparison : null;
 }
 
-// Recommended route (PBI-9.1): only the points. It is always for now, with the current weather, so
+// The route of the user's answers (PBI-18, ADR-036). The backend turns them into weights and compares
+// the fastest route with the alternative that suits them within the extra minutes. Same shape as the
+// Shaded Route comparison: the chosen route takes the place of the shaded one. With every answer
+// indifferent the frontend asks for the fastest route instead; if it still came here, the backend
+// would answer `fastest_only`.
+export async function getPreferredRouteComparison(
+  { origin, destination, date, time, timeZone, preferences },
+  { signal } = {}
+) {
+  const { sunShade, avoidWind, preferParks, extraMinutes } = preferences;
+  const data = await apiRequest('/routes/preferred', {
+    method: 'POST',
+    signal,
+    body: JSON.stringify({
+      origin: { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng },
+      date,
+      time,
+      timeZone,
+      preferences: { sunShade, avoidWind, preferParks, extraMinutes },
+    }),
+    errorMessages: ROUTE_ERROR_MESSAGES,
+    fallbackErrorMessage: 'No se ha podido calcular la ruta. Inténtalo de nuevo.',
+  });
+  const comparison = normalizeWeightedComparison(data?.comparison);
+  if (!comparison) {
+    throw new Error('El servidor ha devuelto una comparación no válida. Inténtalo de nuevo.');
+  }
+  return comparison;
+}
+
+// Recommended route (PBI-9.1, the provisional "Según el tiempo" until PBI-21): only the points. It is always for now, with the current weather, so
 // no date or time is sent. Same shape as the weighted comparison, plus `recommendation`.
 export async function getRecommendedRoute({ origin, destination }, { signal } = {}) {
   const data = await apiRequest('/routes/recommended', {

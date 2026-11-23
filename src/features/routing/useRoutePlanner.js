@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   getFastestRoute,
+  getPreferredRouteComparison,
   getRecommendedRoute,
-  getWeightedRouteComparison,
 } from '../../services/api/routesApi.js';
 
 const EMPTY_STATE = {
@@ -49,7 +49,8 @@ export function useRoutePlanner() {
     setState({ ...EMPTY_STATE, status: 'loading' });
 
     try {
-      // The recommended route (PBI-9.1): the backend chooses the weights with the current weather.
+      // "Según el tiempo" (the recommended route of PBI-9.1, provisional until PBI-21): the backend
+      // chooses the weights with the current weather.
       if (options.recommended) {
         const comparison = await getRecommendedRoute(
           { origin, destination },
@@ -66,17 +67,16 @@ export function useRoutePlanner() {
         return comparison;
       }
 
-      // Any route that weighs shade or sun is compared with the fastest one (ADR-023).
+      // With some preference the route of the answers is compared with the fastest one (PBI-18).
       if (options.routeType === 'shaded') {
-        const comparison = await getWeightedRouteComparison(
+        const comparison = await getPreferredRouteComparison(
           {
             origin,
             destination,
             date: options.date,
             time: options.time,
             timeZone: options.timeZone,
-            weights: options.weights,
-            maxDetourPercentage: options.maxDetourPercentage,
+            preferences: options.preferences,
           },
           { signal: controller.signal }
         );

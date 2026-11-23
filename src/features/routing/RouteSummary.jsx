@@ -46,7 +46,7 @@ export function RouteSummary({
   duration,
   shadePercentage = null,
   greenPercentage = null,
-  title = 'Ruta rápida',
+  title = 'La más rápida',
 }) {
   return (
     <section className="route-summary" aria-labelledby="route-summary-title">

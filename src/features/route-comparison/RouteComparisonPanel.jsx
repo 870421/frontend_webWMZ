@@ -11,13 +11,38 @@ const statusMessages = {
   sun_below_horizon: 'El Sol está bajo el horizonte en el momento seleccionado.',
   sun_too_low:
     'El Sol está demasiado bajo en el momento seleccionado para estimar la sombra. Prueba con una hora más central del día.',
-  // Only the recommended route (PBI-9.1) asks for the fastest one alone.
-  fastest_only: 'Con el tiempo actual, la ruta recomendada es la más rápida.',
+  // "Según el tiempo" (PBI-9.1) or an assistant that removed every preference.
+  fastest_only: 'La ruta elegida es la más rápida.',
 };
+
+// The extra time the user accepts, in minutes (PBI-18, ADR-036). The provisional "Según el tiempo"
+// still uses the percentage of the recommended route (PBI-9.1) until PBI-21.
+function noAlternativeText(comparison) {
+  const minutes = comparison.strategy?.maximumExtraMinutes;
+  const factor = comparison.strategy?.maximumDurationFactor;
+  if (Number.isFinite(minutes)) {
+    const limit = minutes === 0 ? 'sin andar más' : `sin andar más de ${minutes} min extra`;
+    if (comparison.status === 'over_extra_time') {
+      return `Hay caminos que encajan mejor con tus preferencias, pero ninguno ${limit}: te enseño la más rápida.`;
+    }
+    if (comparison.status === 'no_better_alternative') {
+      return `No hay un camino que encaje mejor con tus preferencias ${limit}.`;
+    }
+  }
+  if (comparison.status === 'no_better_alternative' && Number.isFinite(factor)) {
+    return `No hay una alternativa que mejore lo suficiente lo que has elegido sin tardar más de un ${Math.round((factor - 1) * 100)} % extra.`;
+  }
+  return statusMessages[comparison.status] || 'No hay una comparación disponible.';
+}
 
 // Without shade to compare, the reason must stay visible on small screens: the cards do not explain
 // it. "No better alternative" is already readable from the disabled card.
-const REASON_ALWAYS_VISIBLE = ['insufficient_exposure_data', 'sun_below_horizon', 'sun_too_low'];
+const REASON_ALWAYS_VISIBLE = [
+  'insufficient_exposure_data',
+  'sun_below_horizon',
+  'sun_too_low',
+  'over_extra_time',
+];
 
 // A route that only weighs wind has no shadows calculated (ADR-025): nothing to say about shade.
 // The same when only the fastest route was asked for (a recommended route with every weight at 0).
@@ -60,16 +85,12 @@ function RouteTimeAndDistance({ route }) {
 export function RouteComparisonPanel({
   comparison,
   selectedRouteType,
-  alternativeLabel = 'Con sombra',
+  alternativeLabel = 'Tu ruta',
   onSelectRoute,
   isExpanded = true,
   onToggleExpanded = null,
 }) {
   if (!comparison) return null;
-  const durationFactor = comparison.strategy?.maximumDurationFactor;
-  const maxDetourPercentage = Number.isFinite(durationFactor)
-    ? Math.round((durationFactor - 1) * 100)
-    : null;
   const hasShadedRoute = Boolean(comparison.shaded);
   const showsShadedRoute = selectedRouteType === 'shaded' && hasShadedRoute;
   const selectedRoute = showsShadedRoute ? comparison.shaded : comparison.fastest;
@@ -86,7 +107,7 @@ export function RouteComparisonPanel({
         <h2 id="route-comparison-title">Comparación</h2>
         {!isExpanded && (
           <p className="comparison-collapsed-summary">
-            <strong>{showsShadedRoute ? alternativeLabel : 'Más rápida'}</strong>
+            <strong>{showsShadedRoute ? alternativeLabel : 'La más rápida'}</strong>
             {[formatRouteDuration(selectedRoute.duration), ...routeFactors(selectedRoute)]
               .map((part) => ` · ${part}`)
               .join('')}
@@ -110,7 +131,7 @@ export function RouteComparisonPanel({
           aria-pressed={selectedRouteType === 'fastest'}
           onClick={() => onSelectRoute('fastest')}
         >
-          <strong>Más rápida</strong>
+          <strong>La más rápida</strong>
           <RouteTimeAndDistance route={comparison.fastest} />
           <RouteFactors route={comparison.fastest} />
         </button>
@@ -139,9 +160,7 @@ export function RouteComparisonPanel({
         </p>
       ) : (
         <p className={resultClass} role="status">
-          {comparison.status === 'no_better_alternative' && maxDetourPercentage !== null
-            ? `No hay una alternativa que mejore lo suficiente lo que has elegido sin tardar más de un ${maxDetourPercentage} % extra.`
-            : statusMessages[comparison.status] || 'No hay una comparación disponible.'}
+          {noAlternativeText(comparison)}
         </p>
       )}
     </section>
