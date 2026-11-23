@@ -212,6 +212,7 @@ describe('App with the route assistant', () => {
       'prefiero la sombra y sin viento'
     );
     expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usar como mis preferencias' })).toBeInTheDocument();
   });
 
   it('applies the new answers, shows the new route and what changed', async () => {
@@ -287,6 +288,7 @@ describe('App with the route assistant', () => {
     expect(await screen.findByText(/Tu ruta no ha cambiado/)).toBeInTheDocument();
     expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
     expect(screen.getByText(APPLIED.assistant.explanation)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usar como mis preferencias' })).toBeInTheDocument();
   });
 
   it('a request it does not understand keeps the route and says so', async () => {
@@ -325,6 +327,25 @@ describe('App with the route assistant', () => {
     expect(shownGeometry()).toBe('none');
     // Without a route there is no assistant.
     expect(screen.queryByRole('button', { name: /Cierzo/ })).not.toBeInTheDocument();
+  });
+
+  it('"Usar como mis preferencias" saves the answers of Cierzo in the account (PBI-18)', async () => {
+    const user = userEvent.setup();
+    askRouteAssistant.mockResolvedValue(APPLIED);
+    await calculateFastestRoute(user);
+    await ask(user, 'prefiero la sombra aunque tarde más');
+    await screen.findByText(APPLIED.assistant.explanation);
+
+    await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
+
+    expect(saveRoutePreferences).toHaveBeenCalledWith(SHADE_SETTING, {
+      signal: expect.any(AbortSignal),
+    });
+    expect(await screen.findByText('Ya son tus preferencias.')).toBeInTheDocument();
+    // The route on screen stays: it already is the route of those answers.
+    expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
+    await user.keyboard('{Escape}');
+    expect(screen.getByText('Sombra · +15 min')).toBeInTheDocument();
   });
 
   it('with «Según el tiempo» starts from the answers behind the weights the weather chose', async () => {

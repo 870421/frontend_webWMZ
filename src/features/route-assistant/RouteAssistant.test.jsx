@@ -19,8 +19,9 @@ const APPLIED = {
 function renderAssistant(props = {}) {
   const handlers = {
     onAsk: jest.fn().mockResolvedValue(undefined),
+    onUsePreferences: jest.fn().mockResolvedValue(undefined),
   };
-  const view = render(<RouteAssistant {...handlers} {...props} />);
+  const view = render(<RouteAssistant canUsePreferences {...handlers} {...props} />);
   return { ...view, ...handlers };
 }
 
@@ -136,5 +137,56 @@ describe('RouteAssistant', () => {
     expect(onMessageChange).toHaveBeenLastCalledWith('sombrax');
     await user.click(screen.getByRole('button', { name: 'Ajustar' }));
     expect(onAsk).toHaveBeenCalledWith('sombra');
+  });
+
+  describe('"Usar como mis preferencias" (PBI-18)', () => {
+    it('keeps the answers of Cierzo as the preferences of the user', async () => {
+      const user = userEvent.setup();
+      const { onUsePreferences } = renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
+
+      expect(onUsePreferences).toHaveBeenCalledWith(APPLIED.assistant.after);
+      expect(await screen.findByText('Ya son tus preferencias.')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Usar como mis preferencias' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('says why when they cannot be saved, and lets the user try again', async () => {
+      const user = userEvent.setup();
+      renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+        onUsePreferences: jest
+          .fn()
+          .mockRejectedValue(new Error('No se han podido guardar tus preferencias.')),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
+
+      expect(
+        await screen.findByText('No se han podido guardar tus preferencias.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Usar como mis preferencias' })).toBeEnabled();
+    });
+
+    it('is not offered when the preferences could not be loaded', () => {
+      renderAssistant({
+        status: 'done',
+        result: APPLIED,
+        applied: APPLIED.assistant,
+        canUsePreferences: false,
+      });
+
+      expect(
+        screen.queryByRole('button', { name: 'Usar como mis preferencias' })
+      ).not.toBeInTheDocument();
+    });
   });
 });

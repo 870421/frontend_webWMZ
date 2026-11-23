@@ -137,6 +137,13 @@ export function App({ userMenu = null }) {
     };
   }
 
+  // "Usar como mis preferencias": the assistant's answers become the user's. The route on screen
+  // already is theirs, so it stays.
+  async function usePreferences(answers) {
+    await routePreferences.replace(answers);
+    setByWeather(false);
+  }
+
   // The assistant recalculates the route of the same points; if it fails, the route stays.
   async function askAssistant(message) {
     const result = await routeAssistant.ask(shownComparisonOrRoute, {
@@ -199,7 +206,9 @@ export function App({ userMenu = null }) {
                     result={assistantIsCurrent ? routeAssistant.result : null}
                     applied={adjustment}
                     errorMessage={routeAssistant.errorMessage}
+                    canUsePreferences={!routePreferences.loadFailed}
                     onAsk={askAssistant}
+                    onUsePreferences={usePreferences}
                     {...draft}
                   />
                 )}

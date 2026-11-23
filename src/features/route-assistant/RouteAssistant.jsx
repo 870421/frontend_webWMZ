@@ -24,7 +24,8 @@ function ChangeRow({ row }) {
 /**
  * The route assistant (PBI-9.2): the user asks for an adjustment in their own words, the backend
  * turns it into the answers of the panel (PBI-18, ADR-036) and recalculates the route. It shows what
- * changed (before → after, in words). When the assistant fails or does not understand, it says so and the route on screen stays. It is parked
+ * changed (before → after, in words) and can keep those answers as the user's preferences. When the
+ * assistant fails or does not understand, it says so and the route on screen stays. It is parked
  * (Mejoras_S4): no new functions.
  *
  * It is drawn inside the pop-up of the floating button (#179), which gives it its title. The text
@@ -36,13 +37,18 @@ export function RouteAssistant({
   result = null,
   applied = null,
   errorMessage = '',
+  canUsePreferences = false,
   onAsk,
+  onUsePreferences,
   message: externalMessage,
   onMessageChange,
 }) {
   const [ownMessage, setOwnMessage] = useState('');
   const message = externalMessage ?? ownMessage;
   const setMessage = onMessageChange ?? setOwnMessage;
+  // 'idle', 'saving', 'saved' or an error message, for the answers applied on screen.
+  const [usage, setUsage] = useState({ applied: null, state: 'idle', error: '' });
+  const usageOfApplied = usage.applied === applied ? usage : { state: 'idle', error: '' };
   const isLoading = status === 'loading';
   // The last answer, when it is a notice; the answers applied stay below it.
   const latest = status === 'done' ? result?.assistant : null;
@@ -54,6 +60,16 @@ export function RouteAssistant({
     event.preventDefault();
     if (!text || isLoading) return;
     await onAsk(text);
+  }
+
+  async function usePreferences() {
+    setUsage({ applied, state: 'saving', error: '' });
+    try {
+      await onUsePreferences(applied.after);
+      setUsage({ applied, state: 'saved', error: '' });
+    } catch (error) {
+      setUsage({ applied, state: 'idle', error: error.message });
+    }
   }
 
   return (
@@ -101,9 +117,25 @@ export function RouteAssistant({
                 <ChangeRow key={row.key} row={row} />
               ))}
             </ul>
+            {usageOfApplied.state === 'saved' && (
+              <p className="form-message">Ya son tus preferencias.</p>
+            )}
+            {usageOfApplied.error && (
+              <p className="form-message form-message-error">{usageOfApplied.error}</p>
+            )}
           </>
         )}
       </div>
+      {applied && canUsePreferences && usageOfApplied.state !== 'saved' && (
+        <button
+          type="button"
+          className="secondary-button route-assistant-save"
+          disabled={usageOfApplied.state === 'saving'}
+          onClick={usePreferences}
+        >
+          {usageOfApplied.state === 'saving' ? 'Guardando...' : 'Usar como mis preferencias'}
+        </button>
+      )}
     </div>
   );
 }
