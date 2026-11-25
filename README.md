@@ -192,6 +192,23 @@ opción de la lista de cada campo.
 - El endpoint requiere sesión y se consume mediante `src/services/api/weatherApi.js`; si el proveedor
   no entrega `weatherCode`, el panel indica que el estado del cielo no está disponible.
 
+## Comprobaciones del diseño móvil (preguntas en la hoja inferior)
+
+Como en los bocetos del equipo: en pantallas pequeñas (< 900 px) el panel superior solo lleva el
+buscador y «Favoritos», y «¿Cómo prefieres ir?» (con «Según el tiempo de hoy» en la misma fila), los
+minutos y la fecha van en la hoja inferior, encima de «Limpiar» y «Calcular ruta». En escritorio no
+cambia nada.
+
+- Entre el panel y la hoja se ve el mapa (390 × 844: el panel acaba a 242 px y la hoja empieza a
+  395 px; 320 × 640: 240 y 348 px). Sin scroll horizontal.
+- La hoja se desplaza por dentro y los botones se quedan fijos al pie.
+- Un asa arriba de la hoja pliega y despliega las preguntas y la fecha («Ocultar preferencias» /
+  «Mostrar preferencias» para lectores de pantalla). Al calcular se pliegan solas.
+- «Favoritos» es solo una estrella en la cabecera, entre el nombre y «Ocultar» (el nombre sigue para
+  lectores de pantalla). A 320 px se oculta el logo para que quepa todo.
+- Al calcular, el panel se pliega y la hoja solo enseña el resultado; «Ruta» vuelve a mostrar las
+  preguntas.
+
 ## Comprobaciones de la PBI-21 («Según el tiempo de hoy»)
 
 El tiempo de ahora marca las preguntas de la PBI-18 y explica por qué (ADR-037: ver DECISIONS.md en

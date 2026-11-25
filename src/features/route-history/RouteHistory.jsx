@@ -261,7 +261,8 @@ export function RouteHistory({ history, currentTrip = null, onSelectTrip }) {
         onClick={() => setIsOpen(true)}
       >
         <Icon kind="star" />
-        Favoritos
+        {/* Only the star on small screens (global.css); the name stays for screen readers. */}
+        <span className="history-button-label">Favoritos</span>
       </button>
       {isOpen && (
         <FavoritesDialog

@@ -389,6 +389,9 @@ export function RouteSearchPanel({
   // steps) never open together: they would overlap. Opening one folds the other. On large screens
   // only the steps react to this state.
   const [sheetDetail, setSheetDetail] = useState(null);
+  // On small screens the handle on top of the bottom sheet folds the questions and the date, as in
+  // the sketches; calculating a route folds them too so the result and the map are seen.
+  const [isSheetFolded, setIsSheetFolded] = useState(false);
   const routeActionsRef = useRef(null);
 
   useSheetHeight(routeActionsRef);
@@ -400,6 +403,7 @@ export function RouteSearchPanel({
 
   function toggleSheetDetail(detail) {
     setIsMobilePanelOpen(false);
+    setIsSheetFolded(true);
     setSheetDetail((current) => (current === detail ? null : detail));
   }
   const displayedRoute = routeCalculation.activeRoute || routeCalculation.route;
@@ -471,30 +475,42 @@ export function RouteSearchPanel({
           ))}
         </div>
         {routeHistory}
-        {preferences}
-        {asksSolarDateTime && (
-          <div className="solar-date-time" aria-label="Momento para estimar la sombra">
-            <label>
-              Fecha
-              <input
-                type="date"
-                value={solarDate}
-                required
-                onChange={(event) => onSolarDateChange(event.target.value)}
-              />
-            </label>
-            <label>
-              Hora
-              <input
-                type="time"
-                value={solarTime}
-                required
-                onChange={(event) => onSolarTimeChange(event.target.value)}
-              />
-            </label>
-          </div>
-        )}
-        <div className="route-actions" ref={routeActionsRef}>
+        <div className={`route-actions ${isSheetFolded ? 'is-folded' : ''}`} ref={routeActionsRef}>
+          <button
+            type="button"
+            className="sheet-handle"
+            aria-expanded={!isSheetFolded}
+            aria-label={isSheetFolded ? 'Mostrar preferencias' : 'Ocultar preferencias'}
+            onClick={() => setIsSheetFolded((folded) => !folded)}
+          >
+            <span aria-hidden="true" />
+          </button>
+          {/* The questions and the date go in the bottom sheet on small screens, next to «Calcular
+              ruta», as in the sketches; on large screens this box adds nothing and the order is the
+              same as before. */}
+          {preferences}
+          {asksSolarDateTime && (
+            <div className="solar-date-time" aria-label="Momento para estimar la sombra">
+              <label>
+                Fecha
+                <input
+                  type="date"
+                  value={solarDate}
+                  required
+                  onChange={(event) => onSolarDateChange(event.target.value)}
+                />
+              </label>
+              <label>
+                Hora
+                <input
+                  type="time"
+                  value={solarTime}
+                  required
+                  onChange={(event) => onSolarTimeChange(event.target.value)}
+                />
+              </label>
+            </div>
+          )}
           <div className="map-guidance">
             <p>También puedes marcar el origen y el destino tocando directamente el mapa.</p>
             <p className={`active-map-target active-map-target-${activePoint}`}>
@@ -596,6 +612,7 @@ export function RouteSearchPanel({
                   // On mobile the open search panel covers most of the map; fold it so the route
                   // is visible. The toggle (and this state) only has an effect on small screens.
                   setIsMobilePanelOpen(false);
+                  setIsSheetFolded(true);
                   setSheetDetail(null);
                   onCalculateRoute();
                 }}
