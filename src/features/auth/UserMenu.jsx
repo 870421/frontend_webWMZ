@@ -25,7 +25,10 @@ function LogoutIcon() {
   );
 }
 
-export function UserMenu() {
+export function UserMenu({
+  onOpenTutorial = () => window.dispatchEvent(new window.Event('weathermapz:open-tour')),
+  onOpenFavorites = () => window.dispatchEvent(new window.Event('weathermapz:open-favorites')),
+}) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
@@ -80,6 +83,7 @@ export function UserMenu() {
         className="user-menu-button"
         onClick={() => setOpen((isOpen) => !isOpen)}
         ref={buttonRef}
+        data-tour="user-menu"
         type="button"
       >
         <span aria-hidden="true">{getInitials(user.name)}</span>
@@ -104,6 +108,39 @@ export function UserMenu() {
             ref={menuRef}
             role="menu"
           >
+            {onOpenTutorial && (
+              <button
+                className="user-menu-item user-menu-item-tutorial"
+                onClick={() => {
+                  close({ returnFocus: true });
+                  onOpenTutorial();
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m10 8 6 4-6 4Z" />
+                </svg>
+                Ver tutorial
+              </button>
+            )}
+            {onOpenFavorites && (
+              <button
+                className="user-menu-item user-menu-item-favorites"
+                onClick={() => {
+                  close();
+                  onOpenFavorites();
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+                  <path d="m12 3 2.75 5.58 6.16.9-4.46 4.35 1.05 6.14L12 17.07l-5.5 2.9 1.05-6.14L3.1 9.48l6.16-.9L12 3Z" />
+                </svg>
+                Favoritos
+              </button>
+            )}
             <button
               className="user-menu-item"
               onClick={() => {

@@ -29,6 +29,14 @@ export function WeatherPanel() {
   const buttonRef = useRef(null);
 
   useEffect(() => {
+    const openFromTutorial = () => setOpen(true);
+    window.addEventListener('weathermapz:open-weather', openFromTutorial);
+    return () => {
+      window.removeEventListener('weathermapz:open-weather', openFromTutorial);
+    };
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     getCurrentWeather({ signal: controller.signal })
       .then((currentWeather) => {
@@ -79,6 +87,7 @@ export function WeatherPanel() {
       ref={rootRef}
       className={`weather-panel${open ? ' is-open' : ''}`}
       aria-label="Tiempo actual de Zaragoza"
+      data-tour="current-weather"
     >
       <button
         ref={buttonRef}

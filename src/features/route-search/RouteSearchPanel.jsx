@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { HistoryIcon } from '../route-history/RouteHistory.jsx';
 import { placeKey } from '../route-history/useRouteHistory.js';
 import { RouteSteps } from '../routing/RouteSteps.jsx';
+import { InfoButton } from '../../components/ui/InfoButton.jsx';
 import { RouteSummary } from '../routing/RouteSummary.jsx';
 import { DEVICE_SOURCE, MY_LOCATION_LABEL } from './useDeviceLocation.js';
 import { usePlaceAutocomplete } from './usePlaceAutocomplete.js';
@@ -367,7 +368,6 @@ export function RouteSearchPanel({
   asksSolarDateTime = routeType === 'shaded',
   alternativeLabel = 'Tu ruta',
   preferences = null,
-  routeHistory = null,
   // The places used recently as origin or destination (#180), offered in both fields.
   recentPlaces = [],
   solarDate = '',
@@ -380,6 +380,8 @@ export function RouteSearchPanel({
   onStartNavigation = noop,
   navigationError = '',
   pointErrorMessage = '',
+  guidedTourActive = false,
+  onOpenTutorial = noop,
 }) {
   const isLocating = geolocation.status === 'loading';
   const isCalculating = routeCalculation.status === 'loading';
@@ -392,6 +394,8 @@ export function RouteSearchPanel({
   // On small screens the handle on top of the bottom sheet folds the questions and the date, as in
   // the sketches; calculating a route folds them too so the result and the map are seen.
   const [isSheetFolded, setIsSheetFolded] = useState(false);
+  const panelOpen = guidedTourActive || isMobilePanelOpen;
+  const sheetFolded = guidedTourActive ? false : isSheetFolded;
   const routeActionsRef = useRef(null);
 
   useSheetHeight(routeActionsRef);
@@ -419,7 +423,7 @@ export function RouteSearchPanel({
 
   return (
     <section
-      className={`panel-section route-search-panel ${isMobilePanelOpen ? '' : 'is-collapsed'}`}
+      className={`panel-section route-search-panel ${panelOpen ? '' : 'is-collapsed'}`}
       aria-labelledby="route-search-title"
     >
       <h2 id="route-search-title" className="visually-hidden">
@@ -428,18 +432,24 @@ export function RouteSearchPanel({
       <button
         type="button"
         className="mobile-panel-toggle"
-        aria-expanded={isMobilePanelOpen}
+        aria-expanded={panelOpen}
         aria-controls="route-search-content"
         onClick={toggleMobilePanel}
       >
-        <span>{isMobilePanelOpen ? 'Ocultar' : 'Ruta'}</span>
+        <span>{panelOpen ? 'Ocultar' : 'Ruta'}</span>
         <svg viewBox="0 0 20 20" aria-hidden="true">
           <path d="m5 8 5 5 5-5" />
         </svg>
       </button>
       <div id="route-search-content" className="route-form">
         <fieldset className="selection-mode">
-          <legend>El clic en el mapa fija</legend>
+          <legend>
+            El clic en el mapa fija{' '}
+            <InfoButton label="selección en el mapa">
+              Elige primero si el toque fijará el origen o el destino. También puedes buscar una
+              dirección o usar tu ubicación.
+            </InfoButton>
+          </legend>
           <div className="segmented-control">
             {['origin', 'destination'].map((name) => (
               <button
@@ -454,7 +464,7 @@ export function RouteSearchPanel({
             ))}
           </div>
         </fieldset>
-        <div className="point-list">
+        <div className="point-list" data-tour="points">
           {['origin', 'destination'].map((name) => (
             <PointInput
               key={name}
@@ -474,13 +484,26 @@ export function RouteSearchPanel({
             />
           ))}
         </div>
-        {routeHistory}
-        <div className={`route-actions ${isSheetFolded ? 'is-folded' : ''}`} ref={routeActionsRef}>
+        <div className="route-help-row">
+          <InfoButton label="origen y destino">
+            Busca direcciones, selecciona un lugar reciente o usa Mi ubicación. También puedes fijar
+            los puntos tocando el mapa.
+          </InfoButton>
+          <span>Ayuda sobre cómo elegir los puntos</span>
+        </div>
+        <button type="button" className="guided-tour-launch" onClick={onOpenTutorial}>
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M4 5.5h16v12H9l-5 3v-15Z" />
+            <path d="M8 10h8M8 13h5" />
+          </svg>
+          Te ayudo paso a paso
+        </button>
+        <div className={`route-actions ${sheetFolded ? 'is-folded' : ''}`} ref={routeActionsRef}>
           <button
             type="button"
             className="sheet-handle"
-            aria-expanded={!isSheetFolded}
-            aria-label={isSheetFolded ? 'Mostrar preferencias' : 'Ocultar preferencias'}
+            aria-expanded={!sheetFolded}
+            aria-label={sheetFolded ? 'Mostrar preferencias' : 'Ocultar preferencias'}
             onClick={() => setIsSheetFolded((folded) => !folded)}
           >
             <span aria-hidden="true" />
@@ -488,7 +511,7 @@ export function RouteSearchPanel({
           {/* The questions and the date go in the bottom sheet on small screens, next to «Calcular
               ruta», as in the sketches; on large screens this box adds nothing and the order is the
               same as before. */}
-          {preferences}
+          <div data-tour="preferences">{preferences}</div>
           {asksSolarDateTime && (
             <div className="solar-date-time" aria-label="Momento para estimar la sombra">
               <label>
@@ -600,27 +623,44 @@ export function RouteSearchPanel({
               <span aria-hidden="true">×</span> Limpiar
             </button>
             {canStartRoute ? (
-              <button type="button" className="route-submit" onClick={onStartNavigation}>
-                Iniciar ruta
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="route-submit"
+                  data-tour="start-navigation"
+                  onClick={onStartNavigation}
+                >
+                  Iniciar ruta
+                </button>
+                <InfoButton label="iniciar navegación">
+                  Inicia la navegación GPS cuando ya has calculado una ruta.
+                </InfoButton>
+              </>
             ) : (
-              <button
-                type="button"
-                className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
-                disabled={!canCalculate}
-                onClick={() => {
-                  // On mobile the open search panel covers most of the map; fold it so the route
-                  // is visible. The toggle (and this state) only has an effect on small screens.
-                  setIsMobilePanelOpen(false);
-                  setIsSheetFolded(true);
-                  setSheetDetail(null);
-                  onCalculateRoute();
-                }}
-                title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
-              >
-                {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
-                {calculateButtonLabel}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={`route-submit ${isCalculating ? 'is-loading' : ''}`}
+                  data-tour="calculate-route"
+                  disabled={!canCalculate}
+                  onClick={() => {
+                    // On mobile the open search panel covers most of the map; fold it so the route
+                    // is visible. The toggle (and this state) only has an effect on small screens.
+                    setIsMobilePanelOpen(false);
+                    setIsSheetFolded(true);
+                    setSheetDetail(null);
+                    onCalculateRoute();
+                  }}
+                  title={!origin || !destination ? 'Selecciona un origen y un destino' : undefined}
+                >
+                  {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
+                  {calculateButtonLabel}
+                </button>
+                <InfoButton label="calcular ruta">
+                  Calcula el recorrido entre los puntos seleccionados. El resultado muestra
+                  duración, distancia y los datos ambientales disponibles.
+                </InfoButton>
+              </>
             )}
           </div>
         </div>

@@ -14,6 +14,13 @@ jest.mock('../features/auth/UserMenu.jsx', () => ({
   UserMenu: () => <span>User menu</span>,
 }));
 
+jest.mock('../features/auth/AuthProvider.jsx', () => ({
+  useAuth: () => ({
+    user: { id: 7, name: 'Ana', email: 'ana@example.com' },
+    saveTutorialStatus: jest.fn(),
+  }),
+}));
+
 describe('Router', () => {
   it('renders the application behind the authentication gate with the user menu', () => {
     render(<Router />);

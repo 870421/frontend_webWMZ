@@ -125,11 +125,29 @@ describe('App', () => {
     expect(screen.getByTestId('map-view')).toBeInTheDocument();
   });
 
+  it('opens the tutorial when requested from the profile menu', async () => {
+    render(
+      <App user={{ id: 7, name: 'Ana', email: 'ana@example.com', tutorialStatus: 'completed' }} />
+    );
+
+    act(() => window.dispatchEvent(new window.Event('weathermapz:open-tour')));
+
+    expect(await screen.findByRole('dialog', { name: 'Origen y destino' })).toBeInTheDocument();
+  });
+
   it('shows the current weather outside the map and the route controls', () => {
     render(<App />);
     const weather = screen.getByTestId('weather-panel');
     expect(screen.getByTestId('map-view')).not.toContainElement(weather);
     expect(screen.getByLabelText('Controles de ruta')).not.toContainElement(weather);
+  });
+
+  it('opens the favorites section from the profile menu action', async () => {
+    render(<App />);
+
+    act(() => window.dispatchEvent(new window.Event('weathermapz:open-favorites')));
+
+    expect(await screen.findByRole('dialog', { name: 'Favoritos' })).toBeInTheDocument();
   });
 
   it('keeps map selection, editable inputs and markers synchronized', async () => {
@@ -468,7 +486,7 @@ describe('App', () => {
       getFastestRoute.mockResolvedValue(route);
       render(<App />);
 
-      await user.click(screen.getByRole('button', { name: 'Favoritos' }));
+      act(() => window.dispatchEvent(new window.Event('weathermapz:open-favorites')));
       await user.click(await screen.findByRole('button', { name: /^Casa/ }));
 
       expect(screen.getByLabelText('Origen')).toHaveValue('Calle Mayor, Zaragoza');

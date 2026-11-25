@@ -46,6 +46,18 @@ describe('RoutePreferences (PBI-18, PBI-21)', () => {
     expect(within(minutes).getByText('+10 min')).toBeInTheDocument();
   });
 
+  it('shows a non-editable minutes preview when the tutorial explains that preference', () => {
+    renderPreferences({ showExtraTimeForTour: true });
+
+    const preview = screen.getByRole('group', { name: '¿Cuánto más estás dispuesto a andar?' });
+    expect(preview).toHaveAttribute('data-tour', 'extra-time');
+    expect(
+      within(preview).getByText('Este ajuste aparecerá cuando elijas alguna preferencia.')
+    ).toBeInTheDocument();
+    expect(within(preview).queryByRole('radio')).not.toBeInTheDocument();
+    expect(within(preview).getByText('+10')).toBeInTheDocument();
+  });
+
   it('works with the keyboard: arrows move along the options, space toggles', async () => {
     const user = userEvent.setup();
     const { onChange } = renderPreferences({ preferences: { ...DEFAULTS, sunShade: 'shade' } });

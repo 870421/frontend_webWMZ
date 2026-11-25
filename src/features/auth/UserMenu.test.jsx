@@ -48,11 +48,24 @@ describe('UserMenu', () => {
     );
     expect(screen.getByText('ana@correo.es')).toBeInTheDocument();
     const logoutItem = screen.getByRole('menuitem', { name: 'Cerrar sesión' });
-    expect(logoutItem).toHaveFocus();
+    const tutorialItem = screen.getByRole('menuitem', { name: 'Ver tutorial' });
+    expect(tutorialItem).toHaveClass('user-menu-item-tutorial');
+    expect(tutorialItem.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(tutorialItem).toHaveFocus();
 
     await userEvent.click(logoutItem);
 
     expect(logout).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('opens favorites from the profile menu', async () => {
+    const openFavorites = jest.fn();
+    render(<UserMenu onOpenFavorites={openFavorites} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Menú de usuario de Ana López' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Favoritos' }));
+
+    expect(openFavorites).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -62,12 +75,16 @@ describe('UserMenu', () => {
 
     await userEvent.keyboard('{Enter}');
     const logoutItem = screen.getByRole('menuitem', { name: 'Cerrar sesión' });
-    expect(logoutItem).toHaveFocus();
+    expect(screen.getByRole('menuitem', { name: 'Ver tutorial' })).toHaveFocus();
 
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Favoritos' })).toHaveFocus();
     await userEvent.keyboard('{ArrowDown}');
     expect(logoutItem).toHaveFocus();
     await userEvent.keyboard('{ArrowUp}');
-    expect(logoutItem).toHaveFocus();
+    expect(screen.getByRole('menuitem', { name: 'Favoritos' })).toHaveFocus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(screen.getByRole('menuitem', { name: 'Ver tutorial' })).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 // Pop-up over the map: a centred window on large screens and a sheet from the bottom on phones.
 // Escape or a tap outside closes it, and the focus goes back to whatever opened it. It is drawn in
 // <body> so that the panel it is opened from cannot clip or move it.
-export function Dialog({ title, onClose, children }) {
+export function Dialog({ title, onClose, children, className = '' }) {
   const dialogRef = useRef(null);
   const onCloseRef = useRef(onClose);
 
@@ -34,7 +34,7 @@ export function Dialog({ title, onClose, children }) {
     >
       <div
         ref={dialogRef}
-        className="profile-dialog"
+        className={`profile-dialog ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="profile-dialog-title"
