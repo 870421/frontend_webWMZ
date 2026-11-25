@@ -9,7 +9,7 @@ import {
   preferencesSummary,
 } from './preferenceTexts.js';
 
-const WEATHER_SUMMARY = 'Según el tiempo';
+const WEATHER_LABEL = 'Según el tiempo de hoy';
 
 /**
  * "¿Cómo prefieres ir?" (PBI-18, ADR-036): shade or sun, avoid the wind, go through parks and how
@@ -17,14 +17,16 @@ const WEATHER_SUMMARY = 'Según el tiempo';
  * buttons and checkboxes, so they work with a finger, a mouse and the keyboard. The minutes only
  * appear when some preference is chosen: with every answer indifferent the route is the fastest one.
  *
- * "Según el tiempo" is provisional until PBI-21: it is the recommended route of PBI-9.1 as it was
- * (the weather chooses the weights) and it is not saved. Choosing any answer leaves it.
+ * «Según el tiempo de hoy» (PBI-21, ADR-037): the weather marks the answers it chooses, which are
+ * shown checked, and the reason goes under the button. Choosing shade, sun or the wind by hand
+ * leaves it; parks and the minutes do not.
  *
  * Once a route is calculated the questions fold into a short summary with "Cambiar preferencias".
  */
 export function RoutePreferences({
   preferences,
   byWeather = false,
+  weather = { status: 'idle', message: '' },
   isCompact = false,
   loadFailed = false,
   saveError = '',
@@ -33,8 +35,10 @@ export function RoutePreferences({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const showsQuestions = !isCompact || isEditing;
-  const asksMinutes = !byWeather && hasPreference(preferences);
-  const summary = byWeather ? WEATHER_SUMMARY : preferencesSummary(preferences);
+  const asksMinutes = hasPreference(preferences);
+  const summary = byWeather
+    ? `${WEATHER_LABEL}: ${preferencesSummary(preferences)}`
+    : preferencesSummary(preferences);
 
   function choose(changes) {
     setIsEditing(false);
@@ -54,8 +58,8 @@ export function RoutePreferences({
             onToggleWeather();
           }}
         >
-          <Icon kind="recommended" />
-          Según el tiempo
+          <Icon kind="weather" />
+          {WEATHER_LABEL}
         </button>
       </div>
 
@@ -73,10 +77,12 @@ export function RoutePreferences({
         </div>
       ) : (
         <>
-          {byWeather && (
-            <p className="preferences-note" role="status">
-              Elegiré la sombra, el sol o evitar el viento con el tiempo de ahora. Elige cualquier
-              opción para usar tus preferencias.
+          {byWeather && weather.message && (
+            <p
+              className={`preferences-note ${weather.status === 'loading' ? 'is-loading' : ''}`}
+              role="status"
+            >
+              {weather.message}
             </p>
           )}
           <fieldset className="preference-group">
@@ -88,7 +94,7 @@ export function RoutePreferences({
                     type="radio"
                     name="sun-shade"
                     value={value}
-                    checked={!byWeather && preferences.sunShade === value}
+                    checked={preferences.sunShade === value}
                     onChange={() => choose({ sunShade: value })}
                   />
                   <span>
@@ -105,7 +111,7 @@ export function RoutePreferences({
               <label className="preference-toggle">
                 <input
                   type="checkbox"
-                  checked={!byWeather && preferences.avoidWind}
+                  checked={preferences.avoidWind}
                   onChange={(event) => choose({ avoidWind: event.target.checked })}
                 />
                 <span>
@@ -116,7 +122,7 @@ export function RoutePreferences({
               <label className="preference-toggle">
                 <input
                   type="checkbox"
-                  checked={!byWeather && preferences.preferParks}
+                  checked={preferences.preferParks}
                   onChange={(event) => choose({ preferParks: event.target.checked })}
                 />
                 <span>

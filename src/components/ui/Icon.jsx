@@ -23,7 +23,15 @@ const PATHS = {
   ),
   // Gusts: wind.
   wind: <path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8a2.5 2.5 0 1 1-2.5 2.5" />,
-  // Thermometer: the route chosen with the current weather (PBI-9.1, "Según el tiempo").
+  // Sun behind a cloud: «Según el tiempo de hoy» (PBI-21), the answers the weather marks.
+  weather: (
+    <>
+      <path d="M8.5 3.5v1.6M3.6 8.4h1.6M5 5l1.1 1.1M12 5l-1.1 1.1" />
+      <path d="M5.9 11.2a3.2 3.2 0 1 1 5.6-3" />
+      <path d="M8 19.5h9.5a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A2.8 2.8 0 0 0 8 19.5Z" />
+    </>
+  ),
+  // Thermometer: the recommended route of PBI-9.1.
   recommended: (
     <>
       <path d="M10 14.5V5a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0Z" />

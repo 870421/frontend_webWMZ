@@ -9,12 +9,8 @@ import { RouteAssistant } from '../features/route-assistant/RouteAssistant.jsx';
 import { useRouteAssistant } from '../features/route-assistant/useRouteAssistant.js';
 import { RouteComparisonPanel } from '../features/route-comparison/RouteComparisonPanel.jsx';
 import { RoutePreferences } from '../features/route-preferences/RoutePreferences.jsx';
-import {
-  answersFromWeights,
-  hasPreference,
-} from '../features/route-preferences/preferenceTexts.js';
+import { hasPreference } from '../features/route-preferences/preferenceTexts.js';
 import { useRoutePreferences } from '../features/route-preferences/useRoutePreferences.js';
-import { RecommendationCard } from '../features/route-recommendation/RecommendationCard.jsx';
 import { NavigationPanel } from '../features/routing/NavigationPanel.jsx';
 import { useRouteNavigation } from '../features/routing/useRouteNavigation.js';
 import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
@@ -31,6 +27,11 @@ const ignoreMapPoint = () => {};
 // team (Mejoras_S4); the other one is "La más rápida".
 const ALTERNATIVE_LABEL = 'Tu ruta';
 
+// What a route is calculated with: the answers and the minutes, without «Según el tiempo de hoy».
+function answersAndMinutes({ sunShade, avoidWind, preferParks, extraMinutes }) {
+  return { sunShade, avoidWind, preferParks, extraMinutes };
+}
+
 function getStepGeometry(route, stepIndex) {
   const [start, end] = route.steps[stepIndex].wayPoints;
   return { type: 'LineString', coordinates: route.geometry.coordinates.slice(start, end + 1) };
@@ -43,9 +44,6 @@ export function App({ userMenu = null }) {
   const { preferences } = routePreferences;
   const routeHistory = useRouteHistory();
   const routeAssistant = useRouteAssistant();
-  // "Según el tiempo": the recommended route of PBI-9.1 as it was, provisional until PBI-21. It is
-  // not saved in the account (ADR-036).
-  const [byWeather, setByWeather] = useState(false);
   // Which of the two calculated routes is shown: the fastest one or the one chosen with the weights.
   const [shownRoute, setShownRoute] = useState('shaded');
   const [solarDateTime, setSolarDateTime] = useState(getZaragozaDateTime);
@@ -65,7 +63,6 @@ export function App({ userMenu = null }) {
     };
   }
 
-  const isRecommended = byWeather;
   // The route on screen. An answer of the route assistant (PBI-9.2) only counts while the route it
   // belongs to is shown: choosing another route, other points or another time leaves it behind.
   const shownComparisonOrRoute = routePlanner.comparison ?? routePlanner.fastest;
@@ -80,12 +77,12 @@ export function App({ userMenu = null }) {
   // The answers decide how "Calcular ruta" works and whether a date is asked for: with every answer
   // indifferent only the fastest route is calculated (PBI-18). The type on screen follows the
   // assistant's answers when it changed them.
-  const chosenRouteType = isRecommended || hasPreference(preferences) ? 'shaded' : 'fastest';
+  const chosenRouteType = hasPreference(preferences) ? 'shaded' : 'fastest';
   let routeType = chosenRouteType;
   if (adjustment) routeType = hasPreference(adjustment.after) ? 'shaded' : 'fastest';
-  // Only shade and sun depend on the date and time; "Según el tiempo" is always for now.
+  // Only shade and sun depend on the date and time; «Según el tiempo de hoy» is the weather of now.
   const asksSolarDateTime =
-    !isRecommended && chosenRouteType === 'shaded' && preferences.sunShade !== 'any';
+    !routePreferences.byWeather && chosenRouteType === 'shaded' && preferences.sunShade !== 'any';
   const alternativeLabel = ALTERNATIVE_LABEL;
   const selectedRouteType =
     routeType === 'shaded' && shownRoute === 'shaded' && routePlanner.shaded ? 'shaded' : 'fastest';
@@ -100,18 +97,18 @@ export function App({ userMenu = null }) {
   const showsAssistant =
     Boolean(activeRoute) && routePlanner.status !== 'loading' && !navigation.isActive;
 
-  // A new answer means another route: the calculated ones go away and "Según el tiempo" too.
+  // A new answer means another route: the calculated ones go away. Shade, sun or the wind chosen by
+  // hand also turn «Según el tiempo de hoy» off (useRoutePreferences).
   function changePreferences(changes) {
     routePlanner.clearRoutes();
     setShownRoute('shaded');
-    setByWeather(false);
     routePreferences.change(changes);
   }
 
   function toggleWeather() {
     routePlanner.clearRoutes();
     setShownRoute('shaded');
-    setByWeather((current) => !current);
+    routePreferences.toggleWeather();
   }
 
   // The places of a route that is calculated go to the recent places (#180); a failed one does not.
@@ -119,29 +116,21 @@ export function App({ userMenu = null }) {
     setShownRoute('shaded');
     const result = await routePlanner.calculateRoute(origin, destination, {
       routeType: chosenRouteType,
-      recommended: isRecommended,
-      preferences,
+      preferences: answersAndMinutes(preferences),
       ...dateTime,
     });
     if (result) routeHistory.recordPlaces([origin, destination]);
   }
 
-  // The answers of the route on screen: the assistant's, those behind the weights the weather chose
-  // or the user's.
+  // The answers of the route on screen: the assistant's or the user's (marked by the weather or not).
   function currentPreferences() {
-    if (adjustment) return adjustment.after;
-    if (!isRecommended) return preferences;
-    return {
-      ...answersFromWeights(routePlanner.comparison?.recommendation?.weights),
-      extraMinutes: preferences.extraMinutes,
-    };
+    return adjustment ? adjustment.after : answersAndMinutes(preferences);
   }
 
   // "Usar como mis preferencias": the assistant's answers become the user's. The route on screen
   // already is theirs, so it stays.
   async function usePreferences(answers) {
     await routePreferences.replace(answers);
-    setByWeather(false);
   }
 
   // The assistant recalculates the route of the same points; if it fails, the route stays.
@@ -266,7 +255,8 @@ export function App({ userMenu = null }) {
               preferences={
                 <RoutePreferences
                   preferences={preferences}
-                  byWeather={byWeather}
+                  byWeather={routePreferences.byWeather}
+                  weather={routePreferences.weather}
                   isCompact={Boolean(routePlanner.fastest)}
                   loadFailed={routePreferences.loadFailed}
                   saveError={routePreferences.saveError}
@@ -281,10 +271,6 @@ export function App({ userMenu = null }) {
               renderComparison={(collapse) =>
                 routePlanner.comparison ? (
                   <>
-                    <RecommendationCard
-                      recommendation={routePlanner.comparison.recommendation}
-                      isExpanded={collapse.isExpanded}
-                    />
                     <RouteComparisonPanel
                       comparison={routePlanner.comparison}
                       selectedRouteType={selectedRouteType}
@@ -296,10 +282,7 @@ export function App({ userMenu = null }) {
                       comparison={routePlanner.comparison}
                       selectedRouteType={selectedRouteType}
                       alternativeLabel={alternativeLabel}
-                      weights={
-                        routePlanner.comparison.weights ??
-                        routePlanner.comparison.recommendation?.weights
-                      }
+                      weights={routePlanner.comparison.weights}
                       isExpanded={collapse.isExpanded}
                     />
                   </>

@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  getFastestRoute,
-  getPreferredRouteComparison,
-  getRecommendedRoute,
-} from '../../services/api/routesApi.js';
+import { getFastestRoute, getPreferredRouteComparison } from '../../services/api/routesApi.js';
 
 const EMPTY_STATE = {
   status: 'idle',
@@ -49,24 +45,6 @@ export function useRoutePlanner() {
     setState({ ...EMPTY_STATE, status: 'loading' });
 
     try {
-      // "Según el tiempo" (the recommended route of PBI-9.1, provisional until PBI-21): the backend
-      // chooses the weights with the current weather.
-      if (options.recommended) {
-        const comparison = await getRecommendedRoute(
-          { origin, destination },
-          { signal: controller.signal }
-        );
-        if (requestId !== requestIdRef.current || controller.signal.aborted) return null;
-        setState({
-          status: 'success',
-          fastest: comparison.fastest,
-          shaded: comparison.shaded,
-          comparison,
-          errorMessage: '',
-        });
-        return comparison;
-      }
-
       // With some preference the route of the answers is compared with the fastest one (PBI-18).
       if (options.routeType === 'shaded') {
         const comparison = await getPreferredRouteComparison(

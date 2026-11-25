@@ -1608,114 +1608,6 @@ input:focus-visible {
   min-height: 2.75rem;
 }
 
-/* Why the recommended route (PBI-9.1): criterion, reason, weights and weather used. */
-.recommendation-card {
-  display: grid;
-  grid-column: 1 / -1;
-  gap: 0.45rem;
-  border-top: 1px solid #dfe9e4;
-  padding-top: 0.65rem;
-}
-
-.recommendation-card h2 {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  color: #35445a;
-  font-size: 0.82rem;
-}
-
-.recommendation-card h2 .profile-icon { color: #c2571a; }
-
-.recommendation-reason {
-  margin: 0;
-  color: var(--ink);
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
-.recommendation-details {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.recommendation-weights {
-  display: grid;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.recommendation-weight {
-  display: grid;
-  grid-template-columns: auto minmax(5.5rem, auto) minmax(0, 1fr) 3.2rem;
-  align-items: center;
-  gap: 0.4rem;
-  color: #35445a;
-  font-size: 0.76rem;
-}
-
-.recommendation-weight meter {
-  width: 100%;
-  height: 0.55rem;
-}
-
-.recommendation-weight-value {
-  justify-self: end;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-/* The time row has no bar: its value takes the space of the bar and the number. */
-.recommendation-weight-time .recommendation-weight-value { grid-column: 3 / -1; }
-
-.recommendation-weight-wind .profile-icon { color: #3a7ca5; }
-.recommendation-weight-time .profile-icon { color: #536174; }
-.recommendation-weight-shade-sun .profile-icon { color: #2c8a5f; }
-
-/* Read-only shade-sun scale: filled from the centre towards shade (left) or sun (right). */
-.shade-sun-scale {
-  position: relative;
-  height: 0.55rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e3e8ee;
-}
-
-.shade-sun-scale::after {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(50% - 1px);
-  width: 2px;
-  background: #8794a6;
-  content: '';
-}
-
-.shade-sun-scale-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: #2c8a5f;
-}
-
-.shade-sun-scale.is-sun .shade-sun-scale-fill { background: #d48a12; }
-.recommendation-weight-wind meter { accent-color: #3a7ca5; }
-.recommendation-weight-vegetation .profile-icon { color: #5a9a2e; }
-.recommendation-weight-vegetation meter { accent-color: #5a9a2e; }
-
-.recommendation-weather,
-.recommendation-attribution {
-  margin: 0;
-  color: #627268;
-  font-size: 0.74rem;
-  line-height: 1.4;
-}
-
-.recommendation-attribution { font-size: 0.68rem; }
-
 /* Only small screens can collapse the comparison. */
 .comparison-toggle,
 .comparison-collapsed-summary { display: none; }
@@ -2317,17 +2209,6 @@ input:focus-visible {
     font-weight: 750;
     cursor: pointer;
   }
-
-  .route-actions .recommendation-card {
-    gap: 0.3rem;
-    border-top: 0;
-    padding-top: 0;
-  }
-
-  /* Plegada con la comparación: solo el criterio y el motivo. Con "Ver más", pesos y tiempo. */
-  .recommendation-card.is-collapsed .recommendation-details { display: none; }
-
-  .route-actions:has(.route-steps.is-open) .recommendation-card { display: none; }
 
   /* Comparación plegada: una línea con la ruta elegida. Para cambiar de ruta, "Ver más". */
   /* El desglose del confort (PBI-11) solo con "Ver más" y sin el recorrido abierto. */
@@ -3016,7 +2897,6 @@ input:focus-visible {
 /* Pantallas muy bajas (móvil en horizontal): el panel abierto y la comparación no caben a la vez. */
 @media (max-width: 56.24rem) and (max-height: 30rem) {
   .route-search-panel:not(.is-collapsed) .route-comparison,
-  .route-search-panel:not(.is-collapsed) .recommendation-card,
   .route-search-panel:not(.is-collapsed) .comfort-summary { display: none; }
 
   .control-panel:has(.route-search-panel:not(.is-collapsed)) {

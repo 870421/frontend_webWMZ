@@ -1,15 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import {
-  getFastestRoute,
-  getRecommendedRoute,
-  getPreferredRouteComparison,
-} from '../../services/api/routesApi.js';
+import { getFastestRoute, getPreferredRouteComparison } from '../../services/api/routesApi.js';
 import { useRoutePlanner } from './useRoutePlanner.js';
 
 jest.mock('../../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
-  getRecommendedRoute: jest.fn(),
   getPreferredRouteComparison: jest.fn(),
 }));
 
@@ -30,40 +25,7 @@ const route = {
 describe('useRoutePlanner', () => {
   beforeEach(() => {
     getFastestRoute.mockReset();
-    getRecommendedRoute.mockReset();
     getPreferredRouteComparison.mockReset();
-  });
-
-  it('asks the backend for the recommended route with only the points (PBI-9.1)', async () => {
-    const comparison = {
-      status: 'selected',
-      fastest: route,
-      shaded: { ...route, duration: 660 },
-      recommendation: { criterion: 'hot' },
-    };
-    getRecommendedRoute.mockResolvedValue(comparison);
-    const { result } = renderHook(() => useRoutePlanner());
-
-    await act(async () => {
-      await result.current.calculateRoute(origin, destination, {
-        routeType: 'shaded',
-        recommended: true,
-        date: '2026-07-15',
-        weights: { shade: 0, sun: 0, wind: 0 },
-      });
-    });
-
-    expect(getRecommendedRoute).toHaveBeenCalledWith(
-      { origin, destination },
-      { signal: expect.any(AbortSignal) }
-    );
-    expect(getPreferredRouteComparison).not.toHaveBeenCalled();
-    expect(result.current).toMatchObject({
-      status: 'success',
-      fastest: route,
-      shaded: comparison.shaded,
-      comparison,
-    });
   });
 
   it('keeps the existing fastest route flow independent from environmental data', async () => {

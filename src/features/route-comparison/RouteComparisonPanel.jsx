@@ -11,12 +11,12 @@ const statusMessages = {
   sun_below_horizon: 'El Sol está bajo el horizonte en el momento seleccionado.',
   sun_too_low:
     'El Sol está demasiado bajo en el momento seleccionado para estimar la sombra. Prueba con una hora más central del día.',
-  // "Según el tiempo" (PBI-9.1) or an assistant that removed every preference.
+  // An assistant that removed every preference.
   fastest_only: 'La ruta elegida es la más rápida.',
 };
 
-// The extra time the user accepts, in minutes (PBI-18, ADR-036). The provisional "Según el tiempo"
-// still uses the percentage of the recommended route (PBI-9.1) until PBI-21.
+// The extra time the user accepts, in minutes (PBI-18, ADR-036). The percentage is only for a
+// comparison without minutes (the weighted calculation of PBI-6).
 function noAlternativeText(comparison) {
   const minutes = comparison.strategy?.maximumExtraMinutes;
   const factor = comparison.strategy?.maximumDurationFactor;

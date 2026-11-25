@@ -3,13 +3,17 @@ import userEvent from '@testing-library/user-event';
 
 import { App } from './App.jsx';
 import { askRouteAssistant } from '../services/api/routeAssistantApi.js';
-import { getRoutePreferences, saveRoutePreferences } from '../services/api/routePreferencesApi.js';
+import {
+  getRoutePreferences,
+  getWeatherSuggestion,
+  saveRoutePreferences,
+} from '../services/api/routePreferencesApi.js';
 import {
   listRecentPlaces,
   listRouteFavorites,
   recordRecentPlaces,
 } from '../services/api/routeHistoryApi.js';
-import { getFastestRoute, getRecommendedRoute } from '../services/api/routesApi.js';
+import { getFastestRoute, getPreferredRouteComparison } from '../services/api/routesApi.js';
 
 // The route assistant (PBI-9.2) inside the app: the API is simulated.
 jest.mock('../services/api/geocodingApi.js', () => ({
@@ -19,7 +23,6 @@ jest.mock('../services/api/geocodingApi.js', () => ({
 jest.mock('../services/api/routesApi.js', () => ({
   getFastestRoute: jest.fn(),
   getPreferredRouteComparison: jest.fn(),
-  getRecommendedRoute: jest.fn(),
 }));
 jest.mock('../services/api/routeAssistantApi.js', () => ({ askRouteAssistant: jest.fn() }));
 jest.mock('../services/api/routeHistoryApi.js', () => ({
@@ -33,6 +36,7 @@ jest.mock('../services/api/routeHistoryApi.js', () => ({
 jest.mock('../services/api/routePreferencesApi.js', () => ({
   ...jest.requireActual('../services/api/routePreferencesApi.js'),
   getRoutePreferences: jest.fn(),
+  getWeatherSuggestion: jest.fn(),
   saveRoutePreferences: jest.fn(),
 }));
 jest.mock('../features/weather/WeatherPanel.jsx', () => ({
@@ -338,9 +342,11 @@ describe('App with the route assistant', () => {
 
     await user.click(screen.getByRole('button', { name: 'Usar como mis preferencias' }));
 
-    expect(saveRoutePreferences).toHaveBeenCalledWith(SHADE_SETTING, {
-      signal: expect.any(AbortSignal),
-    });
+    // The answers of Cierzo are the user's: «Según el tiempo de hoy» goes off (PBI-21).
+    expect(saveRoutePreferences).toHaveBeenCalledWith(
+      { ...SHADE_SETTING, byWeather: false },
+      { signal: expect.any(AbortSignal) }
+    );
     expect(await screen.findByText('Ya son tus preferencias.')).toBeInTheDocument();
     // The route on screen stays: it already is the route of those answers.
     expect(shownGeometry()).toBe(JSON.stringify(SHADED.geometry.coordinates));
@@ -348,27 +354,24 @@ describe('App with the route assistant', () => {
     expect(screen.getByText('Sombra · +15 min')).toBeInTheDocument();
   });
 
-  it('with «Según el tiempo» starts from the answers behind the weights the weather chose', async () => {
+  it('with «Según el tiempo de hoy» starts from the answers the weather marked (PBI-21)', async () => {
     const user = userEvent.setup();
-    getRecommendedRoute.mockResolvedValue({
+    getRoutePreferences.mockResolvedValue({ ...NO_PREFERENCES, byWeather: true });
+    getWeatherSuggestion.mockResolvedValue({
+      status: 'available',
+      answers: { sunShade: 'shade', avoidWind: true },
+      message: 'Hace calor y sopla cierzo: he marcado «Sombra» y «Evitar el viento».',
+    });
+    getPreferredRouteComparison.mockResolvedValue({
       status: 'selected',
       fastest: { ...FASTEST, windExposure: { status: 'available', exposure: 0 } },
       shaded: { ...SHADED, windExposure: { status: 'available', exposure: 0 } },
       additionalDurationSeconds: 100,
       weights: { shade: 50, sun: 0, wind: 50, vegetation: 0 },
-      recommendation: {
-        criterion: 'hot_windy',
-        label: 'Calor y cierzo',
-        reason: 'Hace calor y sopla cierzo.',
-        weights: { shade: 50, sun: 0, wind: 50 },
-        maxDetourPercentage: 25,
-        weather: null,
-        rules: [],
-      },
     });
     askRouteAssistant.mockReturnValue(new Promise(() => {}));
     render(<App />);
-    await user.click(await screen.findByRole('button', { name: 'Según el tiempo' }));
+    await screen.findByText(/he marcado «Sombra» y «Evitar el viento»/);
     await user.click(screen.getByText('Select map point'));
     await user.click(screen.getByText('Select map point'));
     await user.click(screen.getByRole('button', { name: 'Calcular ruta' }));
