@@ -114,7 +114,7 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await choosePlace(page, 'Destino', 'Prueba Sur', PLACES.destination);
 
   // Fastest route: with every answer indifferent.
-  await page.getByRole('button', { name: 'Calcular ruta' }).click();
+  await page.getByRole('button', { name: 'Calcular ruta', exact: true }).click();
   const summary = page.getByRole('region', { name: 'La más rápida' });
   await expect(summary).toBeVisible();
   await expect(summary).toContainText(FASTEST_ROUTE_TEXT.distance);
@@ -134,7 +134,7 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await byWeather.click();
   await expect(reason).toContainText('he marcado «Evitar el viento»');
   await expect(avoidWind).toBeChecked();
-  await page.getByRole('button', { name: 'Calcular ruta' }).click();
+  await page.getByRole('button', { name: 'Calcular ruta', exact: true }).click();
   const comparison = page.getByRole('region', { name: 'Comparación' });
   await expect(comparison).toBeVisible();
   const fastestOption = comparison.getByRole('button', { name: /La más rápida/ });
