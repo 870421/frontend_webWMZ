@@ -59,18 +59,14 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await expect(userMenu).toBeVisible();
 
   // La PBI-20 abre el tutorial automáticamente al registrar un usuario.
-// Lo cerramos porque este test comprueba las rutas, no el tutorial.
-const tutorial = page.getByRole('dialog', {
-  name: 'Origen y destino'
-});
+  // Lo cerramos porque este test comprueba las rutas, no el tutorial.
+  const tutorial = page.getByRole('dialog', {
+    name: 'Origen y destino',
+  });
 
-await expect(tutorial).toBeVisible();
-
-await tutorial.getByRole('button', {
-  name: 'Saltar tutorial'
-}).click();
-
-await expect(tutorial).toBeHidden();
+  await expect(tutorial).toBeVisible();
+  await tutorial.getByRole('button', { name: 'Saltar tutorial' }).click();
+  await expect(tutorial).toBeHidden();
   
   // A new account starts with «Según el tiempo de hoy» on (PBI-21): the fake weather is mild with a
   // strong cierzo, so it marks «Evitar el viento», leaves «Me da igual» and says why.
