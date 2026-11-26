@@ -60,7 +60,7 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
 
   // A new account starts with «Según el tiempo de hoy» on (PBI-21): the fake weather is mild with a
   // strong cierzo, so it marks «Evitar el viento», leaves «Me da igual» and says why.
-  const byWeather = page.getByRole('button', { name: 'Según el tiempo de hoy' });
+  const byWeather = page.getByRole('button', { name: 'Según el tiempo de hoy', exact: true });
   await expect(byWeather).toHaveAttribute('aria-pressed', 'true');
   const reason = page.getByText(/cierzo de 40 km\/h/);
   await expect(reason).toContainText('he marcado «Evitar el viento»');
