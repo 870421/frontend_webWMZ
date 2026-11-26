@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { useAuth } from './AuthProvider.jsx';
@@ -56,6 +56,24 @@ describe('UserMenu', () => {
     await userEvent.click(logoutItem);
 
     expect(logout).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('stays open while the guided tour shows it, even after a click outside', async () => {
+    renderMenu();
+    const tourMenu = (open) =>
+      act(() => {
+        window.dispatchEvent(
+          new window.CustomEvent('weathermapz:tour-user-menu', { detail: { open } })
+        );
+      });
+
+    tourMenu(true);
+    expect(screen.getByRole('menuitem', { name: 'Favoritos' })).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Fuera del menú'));
+    expect(screen.getByRole('menuitem', { name: 'Ver tutorial' })).toBeInTheDocument();
+
+    tourMenu(false);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 

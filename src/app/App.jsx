@@ -85,10 +85,19 @@ export function App({ userMenu = null, user = null, onSaveTutorialStatus = null 
     return () => window.removeEventListener('weathermapz:open-favorites', listen);
   }, []);
 
+  // The weather details open on their step of the tour and close on the others; the profile menu
+  // opens on the steps about the favourites and «Ver tutorial», and closes when the tour ends.
   useEffect(() => {
-    if (tourStep === TOUR_STEPS.length - 1) {
-      window.dispatchEvent(new window.Event('weathermapz:open-weather'));
+    const id = tourStep === null ? null : TOUR_STEPS[tourStep].id;
+    if (id !== null) {
+      const event = id === 'current-weather' ? 'open' : 'close';
+      window.dispatchEvent(new window.Event(`weathermapz:${event}-weather`));
     }
+    window.dispatchEvent(
+      new window.CustomEvent('weathermapz:tour-user-menu', {
+        detail: { open: id === 'favorites' || id === 'repeat' },
+      })
+    );
   }, [tourStep]);
 
   async function finishTutorial(status) {
@@ -324,7 +333,6 @@ export function App({ userMenu = null, user = null, onSaveTutorialStatus = null 
               origin={routePoints.origin}
               pointErrorMessage={routePoints.pointError}
               guidedTourActive={tourStep !== null}
-              onOpenTutorial={openTutorial}
               routeCalculation={{ ...routePlanner, activeRoute }}
               selectedStepIndex={selectedStepIndex}
               onSelectStep={(index) => setSelectedStep({ route: activeRoute, index })}
@@ -340,7 +348,7 @@ export function App({ userMenu = null, user = null, onSaveTutorialStatus = null 
                   byWeather={routePreferences.byWeather}
                   weather={routePreferences.weather}
                   isCompact={Boolean(routePlanner.fastest) && tourStep === null}
-                  showExtraTimeForTour={tourStep === 2}
+                  showExtraTimeForTour={TOUR_STEPS[tourStep]?.id === 'extra-time'}
                   loadFailed={routePreferences.loadFailed}
                   saveError={routePreferences.saveError}
                   onChange={changePreferences}

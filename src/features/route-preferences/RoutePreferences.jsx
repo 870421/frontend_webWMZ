@@ -53,28 +53,24 @@ export function RoutePreferences({
         <div className="preferences-title-row">
           <h3 id="route-preferences-title">¿Cómo prefieres ir?</h3>
           <InfoButton label="preferencias">
-            Elige sombra o sol, evitar el viento o pasar por parques. Si mantienes todo indiferente,
-            se calcula la ruta más rápida.
+            Elige sombra o sol, evitar el viento o pasar por parques; si lo dejas todo en «Me da
+            igual», se calcula la ruta más rápida. «Según el tiempo de hoy» marca las opciones con
+            el tiempo que hace y te dice por qué; puedes cambiarlas cuando quieras.
           </InfoButton>
         </div>
-        <div className="weather-choice-row">
-          <button
-            type="button"
-            className={`weather-choice ${byWeather ? 'is-active' : ''}`}
-            aria-pressed={byWeather}
-            onClick={() => {
-              setIsEditing(false);
-              onToggleWeather();
-            }}
-          >
-            <Icon kind="weather" />
-            {WEATHER_LABEL}
-          </button>
-          <InfoButton label="según el tiempo de hoy">
-            WeatherMapZ sugiere preferencias según las condiciones meteorológicas actuales. Puedes
-            cambiarlas manualmente cuando quieras.
-          </InfoButton>
-        </div>
+        <button
+          type="button"
+          className={`weather-choice ${byWeather ? 'is-active' : ''}`}
+          aria-pressed={byWeather}
+          data-tour="weather-today"
+          onClick={() => {
+            setIsEditing(false);
+            onToggleWeather();
+          }}
+        >
+          <Icon kind="weather" />
+          {WEATHER_LABEL}
+        </button>
       </div>
 
       {!showsQuestions ? (
@@ -129,7 +125,10 @@ export function RoutePreferences({
             <legend>
               Viento y parques{' '}
               <InfoButton label="viento y parques">
-                Estas opciones pueden cambiar el recorrido si hay datos y alternativas adecuadas.
+                <strong>Evitar el viento:</strong> busca calles más resguardadas y en las que el
+                viento no sople de cara, sobre todo cuando hay cierzo. <strong>Por parques:</strong>{' '}
+                prefiere recorridos que pasan junto a árboles, parques y zonas verdes. Solo cambian
+                la ruta si hay un camino mejor dentro de los minutos extra que elijas.
               </InfoButton>
             </legend>
             <div className="toggle-choices">
