@@ -58,6 +58,37 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('button', { name: 'Calcular ruta' })).toBeDisabled();
   });
 
+  it('opens a folded panel and preference sheet for the guided tour, then restores the panel state', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<RouteSearchPanel guidedTourActive={false} />);
+    const toggle = screen.getByRole('button', { name: 'Ocultar' });
+    await user.click(toggle);
+    expect(screen.getByRole('button', { name: 'Ruta' })).toHaveAttribute('aria-expanded', 'false');
+
+    rerender(<RouteSearchPanel guidedTourActive />);
+    expect(screen.getByRole('button', { name: 'Ocultar' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByRole('button', { name: 'Ocultar preferencias' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+
+    rerender(<RouteSearchPanel guidedTourActive={false} />);
+    expect(screen.getByRole('button', { name: 'Ruta' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('offers a direct way to open the step-by-step help from the route panel', async () => {
+    const user = userEvent.setup();
+    const onOpenTutorial = jest.fn();
+    render(<RouteSearchPanel onOpenTutorial={onOpenTutorial} />);
+
+    await user.click(screen.getByRole('button', { name: 'Te ayudo paso a paso' }));
+
+    expect(onOpenTutorial).toHaveBeenCalledTimes(1);
+  });
+
   it('selects an autocomplete result for the active input', async () => {
     const user = userEvent.setup();
     const onSetPoint = jest.fn();

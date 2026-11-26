@@ -75,7 +75,17 @@ input:focus-visible {
   position: relative;
   min-width: 0;
   overflow: hidden;
-  background: #dce9e2;
+  background: #e7eee9;
+}
+
+/* A quieter basemap makes WeatherMapZ's route and location overlays easier to read while
+   retaining the familiar OpenStreetMap detail and its original tile provider. */
+.leaflet-container {
+  background: #e7eee9;
+}
+
+.leaflet-tile-pane {
+  filter: saturate(0.58) contrast(0.94) brightness(1.055);
 }
 
 .control-panel {
@@ -161,7 +171,7 @@ input:focus-visible {
 
 .route-form {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .selection-mode {
@@ -239,6 +249,8 @@ input:focus-visible {
   background: #ffffff;
   box-shadow: 0 1.2rem 3rem rgba(18, 32, 28, 0.28);
 }
+
+.profile-dialog.favorites-dialog { width: min(100%, 31rem); gap: 0.9rem; }
 
 .profile-dialog h2 {
   margin: 0;
@@ -321,7 +333,7 @@ input:focus-visible {
   filter: drop-shadow(0 1px 1px rgba(160, 110, 0, 0.25));
 }
 
-.history-section { display: grid; gap: 0.45rem; }
+.history-section { display: grid; gap: 0.55rem; min-width: 0; }
 
 .history-section h3 {
   display: flex;
@@ -334,36 +346,43 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
+.history-count { display: inline-grid; min-width: 1.4rem; height: 1.4rem; place-items: center; margin-left: auto; border-radius: 999px; padding: 0 .35rem; color: #176d58; background: #eef7f2; font-size: .7rem; letter-spacing: 0; }
+
 .history-list {
   display: grid;
-  max-height: 34dvh;
-  gap: 0.35rem;
+  max-height: min(40dvh, 22rem);
+  gap: 0.45rem;
   overflow-y: auto;
   margin: 0;
-  padding: 0;
+  padding: 0.1rem 0.2rem 0.2rem 0;
   list-style: none;
+  overscroll-behavior: contain;
 }
 
 .history-list li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.35rem;
+  align-items: stretch;
+  gap: 0.45rem;
 }
 
 .history-trip {
   display: grid;
   min-width: 0;
-  gap: 0.1rem;
-  border: 1px solid #dfe7ec;
-  border-radius: 0.75rem;
-  padding: 0.55rem 0.75rem;
+  gap: 0.35rem;
+  border: 1px solid #e6ece9;
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.8rem;
   color: var(--ink);
-  background: #f7f9fa;
+  background: #ffffff;
   text-align: left;
   cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
 }
 
-.history-trip:hover { border-color: #2c8a5f; background: #eef7f2; }
+.history-trip:hover,
+.history-trip:focus-visible { border-color: #a9d3bf; background: #f7fbf8; box-shadow: 0 2px 8px #176d5814; }
+.history-trip:focus-visible { outline: 3px solid #2c8a5f; outline-offset: 2px; }
 
 /* Save the trip on screen as a favourite (#180): the star and the trip, like a favourite. */
 .history-save-trip {
@@ -403,28 +422,41 @@ input:focus-visible {
   white-space: nowrap;
 }
 
-.history-trip strong { font-size: 0.86rem; }
+.history-trip strong { color: #17322a; font-size: 0.88rem; font-weight: 750; }
 
-.history-trip small { color: #7b8899; font-size: 0.74rem; }
+.history-trip-route { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .35rem; color: #536174; font-size: .76rem; }
+.history-trip-route > span:not(.history-trip-arrow) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-trip-route > span:last-child { text-align: right; }
+.history-trip-arrow { color: #8b9a92; text-align: center; }
+.history-trip-hint { color: #176d58; font-size: .69rem; font-weight: 650; }
 
 .history-action {
   display: grid;
-  width: 2.6rem;
+  width: 2.75rem;
+  min-height: 2.75rem;
   place-items: center;
-  border: 1px solid #dfe7ec;
-  border-radius: 0.75rem;
-  color: #536174;
-  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 0.85rem;
+  color: #718078;
+  background: #f6f8f7;
   cursor: pointer;
 }
 
 .history-action:disabled { cursor: default; }
 
-.history-action:not(:disabled):hover { border-color: #f0c75a; background: #fffaf0; }
+.history-action-delete:not(:disabled):hover { border-color: #f1d4cd; color: #a2441f; background: #fff7f5; }
 
-.history-action:not(:disabled):hover .history-icon-star { color: #d99600; transform: scale(1.12); }
+.history-action:focus-visible { outline: 3px solid #2c8a5f; outline-offset: 2px; }
 
 .history-action .history-icon { transition: transform 0.15s ease, color 0.15s ease; }
+
+.history-action-delete:disabled { opacity: .55; }
+
+.history-empty { display: flex; align-items: center; gap: .75rem; border: 1px solid #edf1ef; border-radius: .85rem; padding: .8rem; background: #fafcfb; }
+.history-empty-icon { display: grid; width: 2.4rem; height: 2.4rem; flex: none; place-items: center; border-radius: 50%; color: #8b9a92; background: #eef2ef; }
+.history-empty-icon .history-icon { width: 1.1rem; height: 1.1rem; }
+.history-empty p { display: grid; gap: .15rem; margin: 0; color: #536174; font-size: .76rem; }
+.history-empty strong { color: #31485a; font-size: .82rem; }
 
 .history-action.is-favorite { border-color: #f3d27a; background: #fff7e0; }
 
@@ -492,6 +524,8 @@ input:focus-visible {
     border-radius: 1.2rem 1.2rem 0 0;
     padding: 1.1rem 1rem max(1rem, env(safe-area-inset-bottom));
   }
+
+  .profile-dialog.favorites-dialog { max-height: min(88dvh, 52rem); }
 
   .profile-dialog-actions button { flex: 1; }
 }
@@ -1996,7 +2030,7 @@ input:focus-visible {
   .route-form {
     grid-column: 1 / -1;
     grid-row: 2;
-    gap: 0.4rem;
+    gap: 0.65rem;
   }
 
   .route-search-panel.is-collapsed .point-list { display: none; }
@@ -2042,7 +2076,7 @@ input:focus-visible {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.65rem;
     width: auto;
     max-width: 26rem;
     margin: 0 auto;
@@ -2232,7 +2266,7 @@ input:focus-visible {
   /* «¿Cómo prefieres ir?» y «Según el tiempo de hoy» en una sola fila, como en los bocetos. */
   .route-actions .route-preferences { gap: 0.6rem; }
 
-  .route-actions .route-preferences-header { flex-wrap: nowrap; }
+  .route-actions .route-preferences-header { flex-wrap: wrap; }
 
   .route-actions .route-preferences-header h3 {
     font-size: 0.92rem;
@@ -2462,7 +2496,7 @@ input:focus-visible {
   }
 
   .route-search-panel { padding-top: 0.75rem; }
-  .route-form { gap: 0.35rem; }
+  .route-form { gap: 0.55rem; }
 
   .point-list { gap: 0.65rem; }
 
@@ -2978,6 +3012,14 @@ input:focus-visible {
   background: #fff1eb;
 }
 
+.user-menu-item-tutorial:hover,
+.user-menu-item-tutorial:focus-visible,
+.user-menu-item-favorites:hover,
+.user-menu-item-favorites:focus-visible {
+  color: #176d58;
+  background: #eef7f2;
+}
+
 .user-menu-item svg {
   width: 1rem;
   height: 1rem;
@@ -2987,6 +3029,51 @@ input:focus-visible {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
+}
+
+.info-button-wrap { position: relative; display: inline-flex; width: 1.75rem; height: 1.75rem; flex: none; align-items: center; justify-content: center; vertical-align: middle; margin: 0; }
+.info-button { display: inline-grid; width: 100%; height: 100%; place-items: center; border: 0; border-radius: 50%; padding: 0; color: #70877f; background: transparent; cursor: pointer; }
+.info-button svg { display: block; width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.info-button svg .info-button-dot { fill: currentColor; stroke: none; }
+.info-button:hover { color: #176d58; background: #eef7f2; }
+.info-button:focus-visible { outline: 3px solid #2c8a5f; outline-offset: 2px; }
+.info-popover { position: fixed; z-index: 4000; visibility: hidden; box-sizing: border-box; width: min(18rem, calc(100vw - 1.5rem)); max-height: calc(100vh - 1.5rem); overflow: auto; overscroll-behavior: contain; padding: .7rem .8rem; border: 1px solid #d7e1e7; border-radius: .65rem; color: #263238; background: #fff; box-shadow: 0 .4rem 1.2rem #172b2540; font-size: .85rem; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.route-help-row { display: flex; align-items: center; gap: .35rem; padding: .1rem .3rem .35rem; color: #536174; font-size: .76rem; }
+.preferences-title-row,
+.weather-choice-row { display: inline-flex; min-width: 0; align-items: center; gap: .15rem; }
+.preferences-title-row h3 { white-space: nowrap; }
+.weather-choice-row { justify-self: end; }
+.preference-group legend .info-button-wrap,
+.selection-mode legend .info-button-wrap { margin-left: .15rem; }
+.guided-tour-layer { position: fixed; z-index: 2000; inset: 0; display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); background: transparent; }
+.guided-tour-backdrop { position: fixed; z-index: -1; inset: 0; background: #10211d99; }
+.guided-tour-highlight { position: fixed; z-index: 2001; pointer-events: none; border: 3px solid #39c987; border-radius: .8rem; box-shadow: 0 0 0 9999px #10211d99, 0 0 1rem #fff; }
+.guided-tour-highlight { transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease; }
+.guided-tour-card { position: relative; z-index: 2002; width: min(30rem, 100%); max-height: 90dvh; overflow-y: auto; border-radius: 1rem; padding: 1.25rem; color: #263238; background: white; box-shadow: 0 1rem 3rem #10211d66; }
+.guided-tour-card.is-anchored { position: fixed; width: min(34rem, 42vw); max-height: 84dvh; margin: 0; }
+.guided-tour-card.is-right-of-target::before,
+.guided-tour-card.is-left-of-target::before { position: absolute; top: 3rem; width: 0; height: 0; border-block: .8rem solid transparent; content: ''; }
+.guided-tour-card.is-right-of-target::before { left: -.8rem; border-right: .8rem solid #fff; }
+.guided-tour-card.is-left-of-target::before { right: -.8rem; border-left: .8rem solid #fff; }
+.guided-tour-card h2 { margin: .35rem 0 .6rem; font-size: 1.3rem; }
+.guided-tour-card p { line-height: 1.5; }
+.guided-tour-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.guided-tour-skip { border: 0; padding: .3rem .1rem; color: #536174; background: transparent; font: inherit; font-weight: 650; cursor: pointer; }
+.guided-tour-skip:hover { color: #176d58; text-decoration: underline; }
+.guided-tour-progress { margin: 0; color: #176d58; font-size: .82rem; font-weight: 750; }
+.guided-tour-dots { display: flex; gap: .45rem; margin-top: 1rem; }
+.guided-tour-dots span { width: 1rem; height: .45rem; border-radius: 999px; background: #e1ebe6; }
+.guided-tour-dots span.is-active,
+.guided-tour-dots span.is-complete { background: #176d58; }
+.guided-tour-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin-top: 1rem; }
+.guided-tour-actions button { min-height: 2.75rem; flex: 1; }
+.guided-tour-launch { display: flex; width: 100%; min-height: 3rem; align-items: center; justify-content: center; gap: .6rem; margin: .3rem 0 .75rem; border: 1px solid #b8dccb; border-radius: .75rem; color: #176d58; background: #eef7f2; font: inherit; font-weight: 700; cursor: pointer; }
+.guided-tour-launch:hover { background: #e0f1e8; }
+.guided-tour-launch svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.tour-minutes-preview > p { margin: .2rem 0 .55rem; color: #536174; font-size: .8rem; }
+.tour-minute-choice { display: grid; min-height: 2.75rem; flex: 1; place-items: center; border: 1px solid #d7e1e7; border-radius: .65rem; color: #536174; background: #fff; font-size: .8rem; font-weight: 650; }
+@media (max-width: 68.74rem) {
+  .guided-tour-card { align-self: start; width: min(38rem, 100%); max-height: 70dvh; margin-top: 14dvh; }
 }
 
 @media (max-width: 56.24rem) {
@@ -3082,7 +3169,7 @@ input:focus-visible {
   /* Con una ruta calculada ya no hace falta la explicación de cómo marcar puntos. */
   .route-actions:has(.route-summary, .route-comparison) .map-guidance > p:first-child { display: none; }
 
-  .route-form { gap: 0.7rem; }
+  .route-form { gap: 0.9rem; }
 }
 
 /* La leyenda va en la esquina inferior derecha, encima de la atribución: el panel la tapaba a la izquierda. */

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AppShell } from '../components/layout/AppShell.jsx';
 import { ComfortSummary } from '../features/comfort-summary/ComfortSummary.jsx';
@@ -17,10 +17,11 @@ import { getZaragozaDateTime } from '../features/routing/zaragozaDateTime.js';
 import { useRoutePlanner } from '../features/routing/useRoutePlanner.js';
 import { RouteSearchPanel } from '../features/route-search/RouteSearchPanel.jsx';
 import { useDeviceLocation } from '../features/route-search/useDeviceLocation.js';
-import { RouteHistory } from '../features/route-history/RouteHistory.jsx';
+import { FavoritesDialog } from '../features/route-history/RouteHistory.jsx';
 import { useRouteHistory } from '../features/route-history/useRouteHistory.js';
 import { useRoutePoints } from '../features/route-search/useRoutePoints.js';
 import { WeatherPanel } from '../features/weather/WeatherPanel.jsx';
+import { GuidedTour, TOUR_STEPS } from '../features/tutorial/GuidedTour.jsx';
 
 const ignoreMapPoint = () => {};
 // The route chosen with the preferences (or the weather) is "Tu ruta", as in the sketches of the
@@ -37,7 +38,7 @@ function getStepGeometry(route, stepIndex) {
   return { type: 'LineString', coordinates: route.geometry.coordinates.slice(start, end + 1) };
 }
 
-export function App({ userMenu = null }) {
+export function App({ userMenu = null, user = null, onSaveTutorialStatus = null }) {
   const routePoints = useRoutePoints();
   const routePlanner = useRoutePlanner();
   const routePreferences = useRoutePreferences();
@@ -48,6 +49,70 @@ export function App({ userMenu = null }) {
   const [shownRoute, setShownRoute] = useState('shaded');
   const [solarDateTime, setSolarDateTime] = useState(getZaragozaDateTime);
   const [selectedStep, setSelectedStep] = useState(null);
+  const [tourStep, setTourStep] = useState(null);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  const [tourError, setTourError] = useState('');
+  const [isSavingTutorial, setIsSavingTutorial] = useState(false);
+  const autoStartedTour = useRef(false);
+  const previousFocus = useRef(null);
+
+  const openTutorial = useCallback(() => {
+    previousFocus.current = document.activeElement;
+    setTourError('');
+    setTourStep(0);
+  }, []);
+
+  useEffect(() => {
+    if (user && user.tutorialStatus == null && !autoStartedTour.current) {
+      autoStartedTour.current = true;
+      openTutorial();
+    }
+  }, [user, openTutorial]);
+
+  useEffect(() => {
+    function listen() {
+      openTutorial();
+    }
+    window.addEventListener('weathermapz:open-tour', listen);
+    return () => window.removeEventListener('weathermapz:open-tour', listen);
+  }, [openTutorial]);
+
+  useEffect(() => {
+    function listen() {
+      setIsFavoritesOpen(true);
+    }
+    window.addEventListener('weathermapz:open-favorites', listen);
+    return () => window.removeEventListener('weathermapz:open-favorites', listen);
+  }, []);
+
+  useEffect(() => {
+    if (tourStep === TOUR_STEPS.length - 1) {
+      window.dispatchEvent(new window.Event('weathermapz:open-weather'));
+    }
+  }, [tourStep]);
+
+  async function finishTutorial(status) {
+    setTourError('');
+    setIsSavingTutorial(true);
+    try {
+      await onSaveTutorialStatus?.(status);
+      setTourStep(null);
+      window.setTimeout(() => previousFocus.current?.focus?.(), 0);
+    } catch (error) {
+      setTourError(error.message || 'Error de conexión');
+    } finally {
+      setIsSavingTutorial(false);
+    }
+  }
+
+  async function nextTutorialStep() {
+    if (tourStep === TOUR_STEPS.length - 1) {
+      await finishTutorial('completed');
+      return true;
+    }
+    setTourStep((current) => current + 1);
+    return false;
+  }
   const geolocation = useDeviceLocation({
     onLocated: (pointType, point) => {
       routePlanner.clearRoutes();
@@ -168,6 +233,32 @@ export function App({ userMenu = null }) {
     <AppShell
       userMenu={userMenu}
       weather={<WeatherPanel />}
+      overlay={
+        <>
+          {tourStep !== null && (
+            <GuidedTour
+              step={tourStep}
+              onPrevious={() => setTourStep((step) => Math.max(0, step - 1))}
+              onNext={nextTutorialStep}
+              onSkip={() => finishTutorial('skipped')}
+              saving={isSavingTutorial}
+              error={tourError}
+            />
+          )}
+          {isFavoritesOpen && (
+            <FavoritesDialog
+              history={routeHistory}
+              currentTrip={
+                routePoints.origin && routePoints.destination
+                  ? { origin: routePoints.origin, destination: routePoints.destination }
+                  : null
+              }
+              onSelectTrip={repeatTrip}
+              onClose={() => setIsFavoritesOpen(false)}
+            />
+          )}
+        </>
+      }
       map={
         <MapView
           activePoint={routePoints.activePoint}
@@ -232,6 +323,8 @@ export function App({ userMenu = null }) {
               onSetPoint={withSelectionUpdated(routePoints.setPoint)}
               origin={routePoints.origin}
               pointErrorMessage={routePoints.pointError}
+              guidedTourActive={tourStep !== null}
+              onOpenTutorial={openTutorial}
               routeCalculation={{ ...routePlanner, activeRoute }}
               selectedStepIndex={selectedStepIndex}
               onSelectStep={(index) => setSelectedStep({ route: activeRoute, index })}
@@ -241,23 +334,13 @@ export function App({ userMenu = null }) {
               asksSolarDateTime={asksSolarDateTime}
               alternativeLabel={alternativeLabel}
               recentPlaces={routeHistory.places}
-              routeHistory={
-                <RouteHistory
-                  history={routeHistory}
-                  currentTrip={
-                    routePoints.origin && routePoints.destination
-                      ? { origin: routePoints.origin, destination: routePoints.destination }
-                      : null
-                  }
-                  onSelectTrip={repeatTrip}
-                />
-              }
               preferences={
                 <RoutePreferences
                   preferences={preferences}
                   byWeather={routePreferences.byWeather}
                   weather={routePreferences.weather}
-                  isCompact={Boolean(routePlanner.fastest)}
+                  isCompact={Boolean(routePlanner.fastest) && tourStep === null}
+                  showExtraTimeForTour={tourStep === 2}
                   loadFailed={routePreferences.loadFailed}
                   saveError={routePreferences.saveError}
                   onChange={changePreferences}

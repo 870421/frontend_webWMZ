@@ -1,4 +1,10 @@
-import { getCurrentUser, GOOGLE_LOGIN_URL, loginUser, registerUser } from './authApi.js';
+import {
+  getCurrentUser,
+  GOOGLE_LOGIN_URL,
+  loginUser,
+  registerUser,
+  saveTutorialStatus,
+} from './authApi.js';
 
 describe('authApi', () => {
   const originalFetch = global.fetch;
@@ -61,6 +67,17 @@ describe('authApi', () => {
     await expect(getCurrentUser()).resolves.toEqual(user);
     expect(global.fetch).toHaveBeenCalledWith('/api/auth/me', {
       signal: undefined,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  });
+
+  it('persists the tutorial status for the signed-in user', async () => {
+    const savedUser = { ...user, tutorialStatus: 'completed' };
+    global.fetch = respond({ user: savedUser });
+    await expect(saveTutorialStatus('completed')).resolves.toEqual(savedUser);
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/me/tutorial', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'completed' }),
       headers: { 'Content-Type': 'application/json' },
     });
   });

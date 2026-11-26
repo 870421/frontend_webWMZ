@@ -1,7 +1,12 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { getCurrentUser, loginUser, registerUser } from '../../services/api/authApi.js';
+import {
+  getCurrentUser,
+  loginUser,
+  registerUser,
+  saveTutorialStatus,
+} from '../../services/api/authApi.js';
 import { apiRequest } from '../../services/api/client.js';
 import { AuthProvider, useAuth } from './AuthProvider.jsx';
 
@@ -9,6 +14,7 @@ jest.mock('../../services/api/authApi.js', () => ({
   getCurrentUser: jest.fn(),
   loginUser: jest.fn(),
   registerUser: jest.fn(),
+  saveTutorialStatus: jest.fn(),
 }));
 
 const user = { id: 7, name: 'Ana López', email: 'ana@correo.es' };
@@ -19,6 +25,7 @@ function Probe() {
     <div>
       <span data-testid="status">{auth.status}</span>
       <span data-testid="user">{auth.user?.name ?? 'none'}</span>
+      <span data-testid="tutorial-status">{auth.user?.tutorialStatus ?? 'unset'}</span>
       <span data-testid="notice">{auth.notice ?? 'none'}</span>
       <button type="button" onClick={() => auth.login({ email: 'a', password: 'b' })}>
         login
@@ -28,6 +35,9 @@ function Probe() {
       </button>
       <button type="button" onClick={auth.logout}>
         logout
+      </button>
+      <button type="button" onClick={() => auth.saveTutorialStatus('completed')}>
+        Save tutorial
       </button>
     </div>
   );
@@ -70,6 +80,19 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('status')).toHaveTextContent('checking');
     expect(await screen.findByText('authenticated')).toBeInTheDocument();
     expect(screen.getByTestId('user')).toHaveTextContent('Ana López');
+  });
+
+  it('updates the authenticated user after saving the tutorial state', async () => {
+    window.localStorage.setItem('weathermapz.authToken', 'jwt');
+    getCurrentUser.mockResolvedValue(user);
+    saveTutorialStatus.mockResolvedValue({ ...user, tutorialStatus: 'completed' });
+    renderProvider();
+    await screen.findByText('authenticated');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save tutorial' }));
+
+    expect(await screen.findByTestId('tutorial-status')).toHaveTextContent('completed');
+    expect(saveTutorialStatus).toHaveBeenCalledWith('completed');
   });
 
   it('forgets an expired token', async () => {

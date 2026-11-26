@@ -8,7 +8,12 @@ import {
   useState,
 } from 'react';
 
-import { getCurrentUser, loginUser, registerUser } from '../../services/api/authApi.js';
+import {
+  getCurrentUser,
+  loginUser,
+  registerUser,
+  saveTutorialStatus as persistTutorialStatus,
+} from '../../services/api/authApi.js';
 import { setUnauthorizedHandler } from '../../services/api/client.js';
 import { clearStoredToken, getStoredToken, storeToken } from '../../services/auth/tokenStorage.js';
 import { consumeAuthRedirect } from './authRedirect.js';
@@ -65,14 +70,21 @@ export function AuthProvider({ children }) {
     setState({ status: 'authenticated', user, notice: null });
   }, []);
 
+  const saveTutorialStatus = useCallback(async (status) => {
+    const user = await persistTutorialStatus(status);
+    setState((current) => ({ ...current, user }));
+    return user;
+  }, []);
+
   const value = useMemo(
     () => ({
       ...state,
       login: (credentials) => startSession(loginUser, credentials),
       register: (data) => startSession(registerUser, data),
       logout: () => logout(),
+      saveTutorialStatus,
     }),
-    [state, startSession, logout]
+    [state, startSession, logout, saveTutorialStatus]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

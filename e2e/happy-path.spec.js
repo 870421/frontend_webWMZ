@@ -58,9 +58,19 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   const userMenu = page.getByRole('button', { name: `Menú de usuario de ${user.name}` });
   await expect(userMenu).toBeVisible();
 
+  // La PBI-20 abre el tutorial automáticamente al registrar un usuario.
+  // Lo cerramos porque este test comprueba las rutas, no el tutorial.
+  const tutorial = page.getByRole('dialog', {
+    name: 'Origen y destino',
+  });
+
+  await expect(tutorial).toBeVisible();
+  await tutorial.getByRole('button', { name: 'Saltar tutorial' }).click();
+  await expect(tutorial).toBeHidden();
+
   // A new account starts with «Según el tiempo de hoy» on (PBI-21): the fake weather is mild with a
   // strong cierzo, so it marks «Evitar el viento», leaves «Me da igual» and says why.
-  const byWeather = page.getByRole('button', { name: 'Según el tiempo de hoy' });
+  const byWeather = page.getByRole('button', { name: 'Según el tiempo de hoy', exact: true });
   await expect(byWeather).toHaveAttribute('aria-pressed', 'true');
   const reason = page.getByText(/cierzo de 40 km\/h/);
   await expect(reason).toContainText('he marcado «Evitar el viento»');
@@ -104,7 +114,7 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await choosePlace(page, 'Destino', 'Prueba Sur', PLACES.destination);
 
   // Fastest route: with every answer indifferent.
-  await page.getByRole('button', { name: 'Calcular ruta' }).click();
+  await page.getByRole('button', { name: 'Calcular ruta', exact: true }).click();
   const summary = page.getByRole('region', { name: 'La más rápida' });
   await expect(summary).toBeVisible();
   await expect(summary).toContainText(FASTEST_ROUTE_TEXT.distance);
@@ -124,7 +134,7 @@ test('sign up, keep the preferences, choose the points and compare the routes', 
   await byWeather.click();
   await expect(reason).toContainText('he marcado «Evitar el viento»');
   await expect(avoidWind).toBeChecked();
-  await page.getByRole('button', { name: 'Calcular ruta' }).click();
+  await page.getByRole('button', { name: 'Calcular ruta', exact: true }).click();
   const comparison = page.getByRole('region', { name: 'Comparación' });
   await expect(comparison).toBeVisible();
   const fastestOption = comparison.getByRole('button', { name: /La más rápida/ });

@@ -63,6 +63,17 @@ describe('WeatherPanel', () => {
     );
   });
 
+  it('opens the current weather section when the tutorial reaches its last step', async () => {
+    getCurrentWeather.mockResolvedValue(weather);
+
+    render(<WeatherPanel />);
+    const pill = await screen.findByRole('button', { name: /Ver detalles/ });
+    fireEvent(window, new window.Event('weathermapz:open-weather'));
+
+    expect(pill).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: /Open-Meteo/ })).toBeVisible();
+  });
+
   it('closes the details with Escape and returns the focus to the pill', async () => {
     getCurrentWeather.mockResolvedValue(weather);
 

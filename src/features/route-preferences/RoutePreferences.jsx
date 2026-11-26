@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Icon } from '../../components/ui/Icon.jsx';
+import { InfoButton } from '../../components/ui/InfoButton.jsx';
 import {
   MINUTE_CHOICES,
   SUN_SHADE_CHOICES,
@@ -28,6 +29,7 @@ export function RoutePreferences({
   byWeather = false,
   weather = { status: 'idle', message: '' },
   isCompact = false,
+  showExtraTimeForTour = false,
   loadFailed = false,
   saveError = '',
   onChange,
@@ -48,19 +50,31 @@ export function RoutePreferences({
   return (
     <section className="route-preferences" aria-labelledby="route-preferences-title">
       <div className="route-preferences-header">
-        <h3 id="route-preferences-title">¿Cómo prefieres ir?</h3>
-        <button
-          type="button"
-          className={`weather-choice ${byWeather ? 'is-active' : ''}`}
-          aria-pressed={byWeather}
-          onClick={() => {
-            setIsEditing(false);
-            onToggleWeather();
-          }}
-        >
-          <Icon kind="weather" />
-          {WEATHER_LABEL}
-        </button>
+        <div className="preferences-title-row">
+          <h3 id="route-preferences-title">¿Cómo prefieres ir?</h3>
+          <InfoButton label="preferencias">
+            Elige sombra o sol, evitar el viento o pasar por parques. Si mantienes todo indiferente,
+            se calcula la ruta más rápida.
+          </InfoButton>
+        </div>
+        <div className="weather-choice-row">
+          <button
+            type="button"
+            className={`weather-choice ${byWeather ? 'is-active' : ''}`}
+            aria-pressed={byWeather}
+            onClick={() => {
+              setIsEditing(false);
+              onToggleWeather();
+            }}
+          >
+            <Icon kind="weather" />
+            {WEATHER_LABEL}
+          </button>
+          <InfoButton label="según el tiempo de hoy">
+            WeatherMapZ sugiere preferencias según las condiciones meteorológicas actuales. Puedes
+            cambiarlas manualmente cuando quieras.
+          </InfoButton>
+        </div>
       </div>
 
       {!showsQuestions ? (
@@ -85,8 +99,14 @@ export function RoutePreferences({
               {weather.message}
             </p>
           )}
-          <fieldset className="preference-group">
-            <legend>Sombra o sol</legend>
+          <fieldset className="preference-group" aria-label="Sombra o sol">
+            <legend>
+              Sombra o sol{' '}
+              <InfoButton label="sombra o sol">
+                Indica si prefieres caminar por sombra o recibir más sol. «Me da igual» deja que se
+                priorice la ruta rápida.
+              </InfoButton>
+            </legend>
             <div className="sun-shade-choices">
               {SUN_SHADE_CHOICES.map(({ value, label, icon }) => (
                 <label key={value} className="preference-choice">
@@ -105,8 +125,13 @@ export function RoutePreferences({
               ))}
             </div>
           </fieldset>
-          <fieldset className="preference-group">
-            <legend>Viento y parques</legend>
+          <fieldset className="preference-group" aria-label="Viento y parques">
+            <legend>
+              Viento y parques{' '}
+              <InfoButton label="viento y parques">
+                Estas opciones pueden cambiar el recorrido si hay datos y alternativas adecuadas.
+              </InfoButton>
+            </legend>
             <div className="toggle-choices">
               <label className="preference-toggle">
                 <input
@@ -133,9 +158,16 @@ export function RoutePreferences({
             </div>
           </fieldset>
           {asksMinutes && (
-            <fieldset className="preference-group preference-minutes">
+            <fieldset
+              className="preference-group preference-minutes"
+              data-tour="extra-time"
+              aria-label="¿Cuánto más estás dispuesto a andar?"
+            >
               <legend>
                 <span>¿Cuánto más estás dispuesto a andar?</span>
+                <InfoButton label="tiempo adicional">
+                  El límite restringe cuánto más puede durar tu ruta preferida frente a la rápida.
+                </InfoButton>
                 <span className="preference-minutes-value" aria-hidden="true">
                   {preferences.extraMinutes === 0 ? 'Nada' : `+${preferences.extraMinutes} min`}
                 </span>
@@ -155,6 +187,23 @@ export function RoutePreferences({
                       {minutes > 0 && <span className="visually-hidden"> minutos</span>}
                     </span>
                   </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {!asksMinutes && showExtraTimeForTour && (
+            <fieldset
+              className="preference-group preference-minutes tour-minutes-preview"
+              data-tour="extra-time"
+              aria-label="¿Cuánto más estás dispuesto a andar?"
+            >
+              <legend>¿Cuánto más estás dispuesto a andar?</legend>
+              <p>Este ajuste aparecerá cuando elijas alguna preferencia.</p>
+              <div className="minute-choices" aria-hidden="true">
+                {MINUTE_CHOICES.map((minutes) => (
+                  <span className="tour-minute-choice" key={minutes}>
+                    {minutesText(minutes)}
+                  </span>
                 ))}
               </div>
             </fieldset>

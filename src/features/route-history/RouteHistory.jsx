@@ -128,9 +128,10 @@ function SaveCurrentTrip({ trip, history }) {
   );
 }
 
-function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
+export function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
   const [confirmsClear, setConfirmsClear] = useState(false);
   const [error, setError] = useState('');
+  const [removingFavoriteId, setRemovingFavoriteId] = useState(null);
   const { places, favorites, status } = history;
 
   function choose(trip) {
@@ -148,7 +149,7 @@ function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
   }
 
   return (
-    <Dialog title="Favoritos" onClose={onClose}>
+    <Dialog title="Favoritos" onClose={onClose} className="favorites-dialog">
       {status === 'loading' && (
         <p className="profile-dialog-text" role="status">
           Cargando…
@@ -168,21 +169,51 @@ function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
       <section className="history-section" aria-labelledby="history-favorites-title">
         <h3 id="history-favorites-title">
           <Icon kind="star-filled" />
-          Tus trayectos
+          <span>Tus trayectos</span>
+          {status === 'ready' && <span className="history-count">{favorites.length}</span>}
         </h3>
         {favorites.length ? (
           <ul className="history-list">
             {favorites.map((favorite) => (
               <li key={favorite.id}>
-                <button type="button" className="history-trip" onClick={() => choose(favorite)}>
+                <button
+                  type="button"
+                  className="history-trip"
+                  onClick={() => choose(favorite)}
+                  title={`Usar trayecto: ${tripText(favorite)}`}
+                >
                   <strong>{favorite.name}</strong>
-                  <small>{tripText(favorite)}</small>
+                  <span className="history-trip-route">
+                    <span title={placeName(favorite.origin)}>{placeName(favorite.origin)}</span>
+                    <span className="history-trip-arrow" aria-hidden="true">
+                      →
+                    </span>
+                    <span title={placeName(favorite.destination)}>
+                      {placeName(favorite.destination)}
+                    </span>
+                  </span>
+                  <small className="history-trip-hint">Toca para calcular este trayecto</small>
                 </button>
                 <button
                   type="button"
-                  className="history-action"
-                  aria-label={`Quitar «${favorite.name}» de favoritos`}
-                  onClick={() => run(() => history.removeFavorite(favorite.id))}
+                  className="history-action history-action-delete"
+                  aria-label={
+                    removingFavoriteId === favorite.id
+                      ? `Quitando «${favorite.name}»`
+                      : `Quitar «${favorite.name}» de favoritos`
+                  }
+                  title="Quitar de favoritos"
+                  disabled={removingFavoriteId === favorite.id}
+                  onClick={() =>
+                    run(async () => {
+                      setRemovingFavoriteId(favorite.id);
+                      try {
+                        await history.removeFavorite(favorite.id);
+                      } finally {
+                        setRemovingFavoriteId(null);
+                      }
+                    })
+                  }
                 >
                   <Icon kind="trash" />
                 </button>
@@ -190,7 +221,17 @@ function FavoritesDialog({ history, currentTrip, onSelectTrip, onClose }) {
             ))}
           </ul>
         ) : (
-          <p className="profile-dialog-text">Aún no tienes favoritos.</p>
+          status === 'ready' && (
+            <div className="history-empty">
+              <span className="history-empty-icon">
+                <Icon kind="star" />
+              </span>
+              <p>
+                <strong>Aún no tienes favoritos.</strong>
+                <span>Guarda un trayecto y podrás repetirlo desde aquí.</span>
+              </p>
+            </div>
+          )
         )}
         <SaveCurrentTrip trip={currentTrip} history={history} />
       </section>

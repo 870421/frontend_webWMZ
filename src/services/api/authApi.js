@@ -52,3 +52,15 @@ export async function getCurrentUser({ signal } = {}) {
   if (!isValidUser(data?.user)) throw new Error(INVALID_RESPONSE_MESSAGE);
   return data.user;
 }
+
+export async function saveTutorialStatus(status) {
+  const data = await apiRequest('/auth/me/tutorial', {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+    fallbackErrorMessage: 'No se ha podido guardar el estado del tutorial.',
+  });
+  if (!isValidUser(data?.user) || data.user.tutorialStatus !== status) {
+    throw new Error(INVALID_RESPONSE_MESSAGE);
+  }
+  return data.user;
+}
