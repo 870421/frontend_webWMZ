@@ -1,15 +1,24 @@
 # PBI-20: ayudas contextuales y tutorial guiado
 
-La interfaz ofrece botones de información junto a la selección de puntos, las preferencias, el
-tiempo adicional, el cálculo y la navegación. Se pueden activar con ratón o teclado; el texto se
-cierra al pulsar fuera o Escape.
+La interfaz ofrece botones de información junto a la selección de puntos, las preferencias (una
+sola ayuda para «¿Cómo prefieres ir?» y «Según el tiempo de hoy», que van en la misma fila), sombra
+o sol, viento y parques (explica qué hace «Evitar el viento» y qué hace «Por parques») y el tiempo
+adicional. Se pueden activar con ratón o teclado; el texto se cierra al pulsar fuera o Escape. Al
+pasar el ratón solo se oscurece el icono, sin círculo de fondo.
 
-El tutorial se inicia la primera vez que una cuenta autenticada abre la aplicación. Consta de seis
-pasos: origen y destino, preferencias, tiempo adicional, cálculo e interpretación, navegación y
-tiempo actual. El último paso despliega y resalta el panel «Tiempo ahora». Se puede avanzar,
-retroceder o saltar, y se puede volver a abrir desde «Ver tutorial» en el menú de perfil o desde «Te
-ayudo paso a paso» en el panel de ruta. En móvil el panel se expande durante la guía. El resaltado y
-la tarjeta se reposicionan al cambiar el tamaño o desplazar la pantalla.
+El tutorial se inicia la primera vez que una cuenta autenticada abre la aplicación. Consta de nueve
+pasos: origen y destino; preferencias; «Según el tiempo de hoy»; tiempo adicional; «Calcula y
+compara», con una simulación de la comparación (rutas de ejemplo que se pueden elegir); navegación;
+tiempo actual, que despliega y resalta el panel «Tiempo ahora»; favoritos en el perfil; y cómo
+repetir el tutorial desde el perfil. Se puede avanzar, retroceder o saltar, y se vuelve a abrir desde
+«Ver tutorial» en el menú de perfil. En móvil el panel se expande durante la guía y la tarjeta se
+coloca en la mitad de la pantalla que no ocupa el elemento resaltado. El resaltado y la tarjeta se
+reposicionan al cambiar el tamaño o desplazar la pantalla.
+
+Mejoras tras la revisión del equipo (rama `feature/mejoras-tutorial`): se retiran el botón «Te ayudo
+paso a paso» del panel, la fila «Ayuda sobre cómo elegir los puntos» (en móvil pisaba la cabecera) y
+los botones de información sueltos junto a «Calcular ruta» e «Iniciar ruta»; y se quitan los puntos
+de progreso de la tarjeta, que en el último paso formaban una barra (queda «Paso N de 9»).
 
 El menú del perfil también abre Favoritos. Se ha retirado el botón duplicado del panel izquierdo;
 el diálogo de favoritos conserva sus operaciones y comportamiento.

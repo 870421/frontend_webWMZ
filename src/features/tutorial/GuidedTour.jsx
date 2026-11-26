@@ -1,46 +1,125 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { RouteComparisonPanel } from '../route-comparison/RouteComparisonPanel.jsx';
+
+// The steps of the guided tour (PBI-20). `include` adds another element to the highlighted area (the
+// weather details, which open below the pill); a step with `demo` shows a simulated result instead of
+// pointing at the screen.
 export const TOUR_STEPS = [
   {
+    id: 'points',
     target: '[data-tour="points"]',
     title: 'Origen y destino',
     text: 'Elige de dónde sales y adónde quieres llegar. Puedes escribir una dirección, usar tu ubicación o tocar el mapa.',
   },
   {
+    id: 'preferences',
     target: '[data-tour="preferences"]',
     title: 'Elige cómo quieres ir',
-    text: 'Elige sombra o sol, evitar el viento o pasar por parques. Si no cambias nada, se calcula la ruta más rápida.',
+    text: 'Elige sombra o sol, evitar el viento o pasar por parques. Si lo dejas todo en «Me da igual», se calcula la ruta más rápida.',
   },
   {
+    id: 'weather-today',
+    target: '[data-tour="weather-today"]',
+    title: 'Según el tiempo de hoy',
+    text: 'Con este botón activado, WeatherMapZ marca las opciones según el tiempo que hace: sombra si hace calor, sol si hace frío y evitar el viento si sopla fuerte. Debajo te explica por qué. Puedes cambiar cualquier opción después.',
+  },
+  {
+    id: 'extra-time',
     target: '[data-tour="extra-time"]',
     title: 'Ajusta el tiempo extra',
-    text: 'Al elegir una preferencia aparece este control. Elige cuánto más estás dispuesto a tardar para priorizarla.',
+    text: 'Al elegir una preferencia aparece este control. Elige cuántos minutos más estás dispuesto a andar para conseguirla.',
   },
   {
-    target: '[data-tour="calculate-route"]',
+    id: 'compare',
+    demo: true,
     title: 'Calcula y compara',
-    text: 'Pulsa Calcular ruta. Verás duración y distancia y, cuando haya datos, la sombra estimada. Si existe una alternativa, podrás compararla con la ruta más rápida.',
+    text: 'Al pulsar «Calcular ruta» verás algo así: la ruta más rápida y la que mejor encaja con tus preferencias, con sus minutos, distancia, sombra, viento y verde. Toca una de las dos para verla en el mapa. Pruébalo aquí:',
   },
   {
+    id: 'start-navigation',
     target: '[data-tour="start-navigation"]',
     fallback: '[data-tour="calculate-route"]',
     title: 'Empieza la navegación',
-    text: 'Después de calcular, el botón de esta zona cambiará a Iniciar ruta. Al pulsarlo, se activa la navegación GPS con instrucciones y tu posición en el mapa.',
+    text: 'Después de calcular, este botón cambia a «Iniciar ruta». Al pulsarlo, la navegación GPS te guía con indicaciones y tu posición en el mapa.',
   },
   {
+    id: 'current-weather',
     target: '[data-tour="current-weather"]',
+    include: '.weather-details:not([hidden])',
     title: 'Consulta el tiempo actual',
-    text: 'Aquí puedes consultar la temperatura, el estado del cielo y el viento actuales en Zaragoza. En tu perfil también tienes acceso a tus favoritos y a este tutorial.',
+    text: 'Aquí tienes la temperatura, el estado del cielo y el viento de ahora en Zaragoza. Tócalo para ver el detalle.',
+  },
+  {
+    id: 'favorites',
+    target: '.user-menu-item-favorites',
+    fallback: '[data-tour="user-menu"]',
+    title: 'Tus favoritos',
+    text: 'Toca tu perfil y entra en «Favoritos»: puedes guardar el trayecto que tienes elegido con un nombre y repetirlo después con un toque. Los lugares que uses también aparecen como recientes al escribir el origen o el destino.',
+  },
+  {
+    id: 'repeat',
+    target: '.user-menu-item-tutorial',
+    fallback: '[data-tour="user-menu"]',
+    title: 'Vuelve a verlo cuando quieras',
+    text: 'Si quieres repasar cómo funciona la aplicación, toca tu perfil y pulsa «Ver tutorial».',
   },
 ];
+
+// A simulated result for the «Calcula y compara» step: the real comparison with example routes.
+const DEMO_COMPARISON = {
+  status: 'selected',
+  fastest: {
+    duration: 900,
+    distance: 1200,
+    exposure: { status: 'available', shadePercentage: 35, sunPercentage: 65 },
+    windExposure: { status: 'available', exposure: 40 },
+    vegetation: { status: 'available', greenPercentage: 15 },
+  },
+  shaded: {
+    duration: 960,
+    distance: 1300,
+    exposure: { status: 'available', shadePercentage: 70, sunPercentage: 30 },
+    windExposure: { status: 'available', exposure: 25 },
+    vegetation: { status: 'available', greenPercentage: 30 },
+  },
+  additionalDurationSeconds: 60,
+};
+
+function ComparisonDemo() {
+  const [selected, setSelected] = useState('shaded');
+  return (
+    <div className="guided-tour-demo">
+      <RouteComparisonPanel
+        comparison={DEMO_COMPARISON}
+        selectedRouteType={selected}
+        onSelectRoute={setSelected}
+      />
+      <p className="guided-tour-demo-note">Ejemplo: las cifras no son de una ruta real.</p>
+    </div>
+  );
+}
+
+function boundsOf(stepInfo) {
+  const target =
+    document.querySelector(stepInfo.target) ||
+    (stepInfo.fallback ? document.querySelector(stepInfo.fallback) : null);
+  if (!target) return { target: null, rect: null };
+  const boxes = [target, stepInfo.include && document.querySelector(stepInfo.include)]
+    .filter(Boolean)
+    .map((element) => element.getBoundingClientRect());
+  const left = Math.min(...boxes.map((box) => box.left));
+  const top = Math.min(...boxes.map((box) => box.top));
+  const right = Math.max(...boxes.map((box) => box.right));
+  const bottom = Math.max(...boxes.map((box) => box.bottom));
+  return { target, rect: { left, top, width: right - left, height: bottom - top } };
+}
 
 export function GuidedTour({ step, onPrevious, onNext, onSkip, saving = false, error = '' }) {
   const dialog = useRef(null);
   const [rect, setRect] = useState(null);
   const stepInfo = TOUR_STEPS[step];
-  const target =
-    document.querySelector(stepInfo.target) ||
-    (stepInfo.fallback ? document.querySelector(stepInfo.fallback) : null);
+  const target = stepInfo.demo ? null : boundsOf(stepInfo).target;
   const isDesktop = window.innerWidth >= 1100;
   const cardWidth = Math.min(544, window.innerWidth * 0.42);
   const cardHeight = 440;
@@ -49,6 +128,10 @@ export function GuidedTour({ step, onPrevious, onNext, onSkip, saving = false, e
   if (isDesktop && rect) {
     cardClasses.push('is-anchored');
     cardClasses.push(placeRight ? 'is-right-of-target' : 'is-left-of-target');
+  }
+  // On smaller screens the card goes to the half of the screen the target is not in.
+  if (!isDesktop && rect && rect.top + rect.height / 2 < window.innerHeight / 2) {
+    cardClasses.push('is-at-bottom');
   }
   const left = rect
     ? Math.max(
@@ -67,14 +150,7 @@ export function GuidedTour({ step, onPrevious, onNext, onSkip, saving = false, e
     : 0;
 
   useEffect(() => {
-    const updateRect = () => {
-      const bounds = target?.getBoundingClientRect();
-      setRect(
-        bounds
-          ? { left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height }
-          : null
-      );
-    };
+    const updateRect = () => setRect(stepInfo.demo ? null : boundsOf(stepInfo).rect);
     const timer = window.setTimeout(updateRect, 0);
     window.addEventListener('resize', updateRect);
     window.addEventListener('scroll', updateRect, true);
@@ -83,7 +159,7 @@ export function GuidedTour({ step, onPrevious, onNext, onSkip, saving = false, e
       window.removeEventListener('resize', updateRect);
       window.removeEventListener('scroll', updateRect, true);
     };
-  }, [target, step]);
+  }, [target, step, stepInfo]);
 
   useEffect(() => {
     dialog.current?.focus();
@@ -147,20 +223,7 @@ export function GuidedTour({ step, onPrevious, onNext, onSkip, saving = false, e
         </div>
         <h2 id="guided-tour-title">{stepInfo.title}</h2>
         <p id="guided-tour-description">{stepInfo.text}</p>
-        <div className="guided-tour-dots" aria-hidden="true">
-          {TOUR_STEPS.map((tourStep, index) => (
-            <span
-              key={tourStep.title}
-              className={[
-                'guided-tour-dot',
-                index === step && 'is-active',
-                index < step && 'is-complete',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            />
-          ))}
-        </div>
+        {stepInfo.demo && <ComparisonDemo />}
         {error && (
           <p role="alert" className="form-message-error">
             No se ha podido guardar el estado: {error}

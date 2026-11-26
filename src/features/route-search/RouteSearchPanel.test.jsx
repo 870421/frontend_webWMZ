@@ -79,14 +79,12 @@ describe('RouteSearchPanel', () => {
     expect(screen.getByRole('button', { name: 'Ruta' })).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('offers a direct way to open the step-by-step help from the route panel', async () => {
-    const user = userEvent.setup();
-    const onOpenTutorial = jest.fn();
-    render(<RouteSearchPanel onOpenTutorial={onOpenTutorial} />);
+  it('keeps the route panel free of the tutorial launcher and of loose help buttons', () => {
+    render(<RouteSearchPanel />);
 
-    await user.click(screen.getByRole('button', { name: 'Te ayudo paso a paso' }));
-
-    expect(onOpenTutorial).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Te ayudo paso a paso' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Ayuda sobre cómo elegir los puntos')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ayuda: calcular ruta' })).not.toBeInTheDocument();
   });
 
   it('selects an autocomplete result for the active input', async () => {

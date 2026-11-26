@@ -381,7 +381,6 @@ export function RouteSearchPanel({
   navigationError = '',
   pointErrorMessage = '',
   guidedTourActive = false,
-  onOpenTutorial = noop,
 }) {
   const isLocating = geolocation.status === 'loading';
   const isCalculating = routeCalculation.status === 'loading';
@@ -484,20 +483,6 @@ export function RouteSearchPanel({
             />
           ))}
         </div>
-        <div className="route-help-row">
-          <InfoButton label="origen y destino">
-            Busca direcciones, selecciona un lugar reciente o usa Mi ubicación. También puedes fijar
-            los puntos tocando el mapa.
-          </InfoButton>
-          <span>Ayuda sobre cómo elegir los puntos</span>
-        </div>
-        <button type="button" className="guided-tour-launch" onClick={onOpenTutorial}>
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M4 5.5h16v12H9l-5 3v-15Z" />
-            <path d="M8 10h8M8 13h5" />
-          </svg>
-          Te ayudo paso a paso
-        </button>
         <div className={`route-actions ${sheetFolded ? 'is-folded' : ''}`} ref={routeActionsRef}>
           <button
             type="button"
@@ -632,9 +617,6 @@ export function RouteSearchPanel({
                 >
                   Iniciar ruta
                 </button>
-                <InfoButton label="iniciar navegación">
-                  Inicia la navegación GPS cuando ya has calculado una ruta.
-                </InfoButton>
               </>
             ) : (
               <>
@@ -656,10 +638,6 @@ export function RouteSearchPanel({
                   {isCalculating && <span className="route-submit-spinner" aria-hidden="true" />}
                   {calculateButtonLabel}
                 </button>
-                <InfoButton label="calcular ruta">
-                  Calcula el recorrido entre los puntos seleccionados. El resultado muestra
-                  duración, distancia y los datos ambientales disponibles.
-                </InfoButton>
               </>
             )}
           </div>

@@ -30,9 +30,12 @@ export function WeatherPanel() {
 
   useEffect(() => {
     const openFromTutorial = () => setOpen(true);
+    const closeFromTutorial = () => setOpen(false);
     window.addEventListener('weathermapz:open-weather', openFromTutorial);
+    window.addEventListener('weathermapz:close-weather', closeFromTutorial);
     return () => {
       window.removeEventListener('weathermapz:open-weather', openFromTutorial);
+      window.removeEventListener('weathermapz:close-weather', closeFromTutorial);
     };
   }, []);
 

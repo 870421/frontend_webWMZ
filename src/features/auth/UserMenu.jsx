@@ -31,6 +31,9 @@ export function UserMenu({
 }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  // The guided tour opens the menu on its steps about the profile (favourites and «Ver tutorial»).
+  // It is kept apart from `open`: a click on the tour (outside the menu) must not close it.
+  const [openByTour, setOpenByTour] = useState(false);
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -42,6 +45,12 @@ export function UserMenu({
     setOpen(false);
     if (returnFocus) buttonRef.current?.focus();
   }
+
+  useEffect(() => {
+    const listen = (event) => setOpenByTour(Boolean(event.detail?.open));
+    window.addEventListener('weathermapz:tour-user-menu', listen);
+    return () => window.removeEventListener('weathermapz:tour-user-menu', listen);
+  }, []);
 
   // Closes the menu when the user clicks or taps anywhere outside it.
   useEffect(() => {
@@ -89,7 +98,7 @@ export function UserMenu({
         <span aria-hidden="true">{getInitials(user.name)}</span>
       </button>
 
-      {open && (
+      {(open || openByTour) && (
         <div className="user-menu-dropdown">
           <div className="user-menu-identity">
             <span className="user-menu-avatar" aria-hidden="true">
